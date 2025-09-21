@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, AsyncMock
 import json
 from datetime import datetime
 
-from selectors import SelectorDefinition, SelectorRegistry, default_registry
+from dom_selectors import SelectorDefinition, SelectorRegistry, default_registry
 
 
 class TestSelectorDefinition:

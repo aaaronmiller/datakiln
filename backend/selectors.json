@@ -1,0 +1,142 @@
+{
+  "selectors": [
+    {
+      "key": "google_search_input",
+      "selector": "input[name='q']",
+      "selector_type": "css",
+      "description": "Google search input field",
+      "provider": "gemini_deep_research",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.226971",
+      "updated_at": "2025-09-21 08:48:09.227111"
+    },
+    {
+      "key": "google_search_button",
+      "selector": "input[value='Google Search']",
+      "selector_type": "css",
+      "description": "Google search button",
+      "provider": "gemini_deep_research",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.226977",
+      "updated_at": "2025-09-21 08:48:09.227913"
+    },
+    {
+      "key": "perplexity_search_input",
+      "selector": "textarea[data-testid='search-input']",
+      "selector_type": "css",
+      "description": "Perplexity search input",
+      "provider": "perplexity",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.226979",
+      "updated_at": "2025-09-21 08:48:09.228187"
+    },
+    {
+      "key": "perplexity_send_button",
+      "selector": "button[data-testid='send-button']",
+      "selector_type": "css",
+      "description": "Perplexity send button",
+      "provider": "perplexity",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.226980",
+      "updated_at": "2025-09-21 08:48:09.228425"
+    },
+    {
+      "key": "contenteditable_input",
+      "selector": "[contenteditable='true']",
+      "selector_type": "css",
+      "description": "Generic contenteditable element for prompt input",
+      "provider": null,
+      "context": "prompt_input",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.226983",
+      "updated_at": "2025-09-21 08:48:09.228720"
+    },
+    {
+      "key": "submit_button",
+      "selector": "button[type='submit']",
+      "selector_type": "css",
+      "description": "Generic submit button",
+      "provider": null,
+      "context": "forms",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.227100",
+      "updated_at": "2025-09-21 08:48:09.228996"
+    },
+    {
+      "key": "text_input",
+      "selector": "input[type='text']",
+      "selector_type": "css",
+      "description": "Generic text input field",
+      "provider": null,
+      "context": "forms",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.227102",
+      "updated_at": "2025-09-21 08:48:09.229234"
+    },
+    {
+      "key": "main_content",
+      "selector": "main, [role='main'], .main-content, #main",
+      "selector_type": "css",
+      "description": "Main content area",
+      "provider": null,
+      "context": "content",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.227103",
+      "updated_at": "2025-09-21 08:48:09.229461"
+    },
+    {
+      "key": "article_content",
+      "selector": "article, .article, .post-content",
+      "selector_type": "css",
+      "description": "Article content",
+      "provider": null,
+      "context": "content",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 08:48:09.227105",
+      "updated_at": "2025-09-21 08:48:09.229688"
+    }
+  ],
+  "provider_mappings": {
+    "gemini_deep_research": [
+      "google_search_input",
+      "google_search_button"
+    ],
+    "perplexity": [
+      "perplexity_search_input",
+      "perplexity_send_button"
+    ]
+  },
+  "context_mappings": {
+    "search": [
+      "google_search_input",
+      "google_search_button",
+      "perplexity_search_input",
+      "perplexity_send_button"
+    ],
+    "prompt_input": [
+      "contenteditable_input"
+    ],
+    "forms": [
+      "submit_button",
+      "text_input"
+    ],
+    "content": [
+      "main_content",
+      "article_content"
+    ]
+  },
+  "exported_at": "2025-09-21T08:48:09.229723"
+}

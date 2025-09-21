@@ -8,7 +8,7 @@ from main import app
 from research_agent import ResearchMode
 from query_engine import QueryEngine
 from providers import ProviderManager
-from selectors import default_registry as selectors_registry
+from dom_selectors import default_registry as selectors_registry
 
 
 @pytest.fixture

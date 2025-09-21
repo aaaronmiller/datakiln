@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 import json

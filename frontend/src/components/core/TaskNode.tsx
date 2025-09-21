@@ -1,19 +1,22 @@
 import * as React from "react"
-import { Handle, Position, NodeProps } from 'reactflow'
+import { Handle, Position, NodeProps } from '@xyflow/react'
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 
-interface TaskNodeData {
+// ReactFlow-compatible interface for node data
+interface TaskNodeData extends Record<string, unknown> {
   label: string
-  parameters: Record<string, any>
+  parameters: Record<string, string>
   status: 'pending' | 'running' | 'completed' | 'error'
-  onParameterChange?: (paramName: string, value: any) => void
+  onParameterChange?: (_paramName: string, _value: string) => void
   onDelete?: () => void
   isSelected?: boolean
 }
 
-const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
+const TaskNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const nodeData = data as TaskNodeData
+
   const getNodeIcon = (type: string) => {
     const icons: Record<string, string> = {
       'deep-research': "🔬",
@@ -57,17 +60,17 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="text-lg">{getNodeIcon(data.label.toLowerCase().replace(' ', '-'))}</span>
-            <CardTitle className="text-sm">{data.label}</CardTitle>
+            <span className="text-lg">{getNodeIcon(nodeData.label.toLowerCase().replace(' ', '-'))}</span>
+            <CardTitle className="text-sm">{nodeData.label}</CardTitle>
           </div>
           <div className="flex items-center space-x-2">
-            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(data.status)}`}>
-              {getStatusIcon(data.status)} {data.status}
+            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${getStatusColor(nodeData.status)}`}>
+              {getStatusIcon(nodeData.status)} {nodeData.status}
             </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={data.onDelete}
+              onClick={nodeData.onDelete}
               className="h-6 w-6 p-0"
             >
               ×
@@ -77,14 +80,14 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {Object.entries(data.parameters).map(([paramName, paramValue]) => (
+        {Object.entries(nodeData.parameters).map(([paramName, paramValue]) => (
           <div key={paramName}>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               {paramName.charAt(0).toUpperCase() + paramName.slice(1).replace(/([A-Z])/g, ' $1')}
             </label>
             <Input
               value={paramValue}
-              onChange={(e) => data.onParameterChange?.(paramName, e.target.value)}
+              onChange={(e) => nodeData.onParameterChange?.(paramName, e.target.value)}
               placeholder={`Enter ${paramName}`}
               className="text-xs"
             />

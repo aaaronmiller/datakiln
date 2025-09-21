@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from nodes.base_node import BaseNode
 from dom_actions import DomActionExecutor
-from selectors import default_registry as selectors_registry
+from dom_selectors import default_registry as selectors_registry
 
 
 class ExecutionState(Enum):

@@ -1,16 +1,26 @@
 import { WorkflowGraph, WorkflowExecutionResult, WorkflowValidationResult, SelectorsRegistry, ProviderStatus, ExecutionHistoryItem } from '../types/workflow'
 
+interface ViteEnv {
+  VITE_API_BASE_URL?: string
+}
+
+declare global {
+  interface ImportMeta {
+    env: ViteEnv
+  }
+}
+
 export class WorkflowService {
   private baseUrl: string
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
-    this.baseUrl = baseUrl
+  constructor(baseUrl?: string) {
+    this.baseUrl = baseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
   }
 
   // Execute a workflow
   async executeWorkflow(
     workflow: WorkflowGraph,
-    options: Record<string, any> = {}
+    options: Record<string, unknown> = {}
   ): Promise<WorkflowExecutionResult> {
     try {
       const response = await fetch(`${this.baseUrl}/workflow/execute`, {
@@ -25,13 +35,18 @@ export class WorkflowService {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        throw new Error(`Workflow execution failed: ${response.status} ${response.statusText}. ${errorText}`)
       }
 
-      return await response.json()
+      const result = await response.json()
+      return result
     } catch (error) {
       console.error('Workflow execution failed:', error)
-      throw error
+      if (error instanceof Error) {
+        throw new Error(`Workflow execution error: ${error.message}`)
+      }
+      throw new Error('Workflow execution failed: Unknown error')
     }
   }
 
@@ -74,7 +89,7 @@ export class WorkflowService {
   }
 
   // Test a provider
-  async testProvider(providerName: string): Promise<any> {
+  async testProvider(providerName: string): Promise<unknown> {
     try {
       const response = await fetch(`${this.baseUrl}/providers/test`, {
         method: 'POST',
@@ -136,7 +151,7 @@ export class WorkflowService {
   }
 
   // Optimize a workflow
-  async optimizeWorkflow(workflow: WorkflowGraph): Promise<any> {
+  async optimizeWorkflow(workflow: WorkflowGraph): Promise<unknown> {
     try {
       const response = await fetch(`${this.baseUrl}/workflow/optimize`, {
         method: 'POST',
@@ -159,11 +174,11 @@ export class WorkflowService {
 
   // Create a workflow
   async createWorkflow(
-    nodesConfig: Record<string, any>,
+    nodesConfig: Record<string, unknown>,
     connections: Array<{ from: string; to: string }>,
     name: string = 'Custom Workflow',
     description: string = ''
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       const response = await fetch(`${this.baseUrl}/workflow/create`, {
         method: 'POST',
@@ -190,7 +205,7 @@ export class WorkflowService {
   }
 
   // Health check
-  async healthCheck(): Promise<any> {
+  async healthCheck(): Promise<unknown> {
     try {
       const response = await fetch(`${this.baseUrl}/health`)
 

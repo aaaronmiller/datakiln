@@ -71,6 +71,8 @@ describe('TaskNode', () => {
     dragging: false,
     targetPosition: 'left' as any,
     sourcePosition: 'right' as any,
+    positionAbsoluteX: 0,
+    positionAbsoluteY: 0,
   }
 
   beforeEach(() => {

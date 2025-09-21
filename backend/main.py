@@ -8,8 +8,9 @@ import json
 
 from research_agent import ResearchAgent, ResearchMode
 from query_engine import QueryEngine
+from websocket_manager import collaboration_manager
+from dom_selectors import default_registry as selectors_registry
 from providers import ProviderManager
-from selectors import default_registry as selectors_registry
 
 app = FastAPI(title="DataKiln Backend API", version="2.0.0")
 research_agent = ResearchAgent()
@@ -37,6 +38,38 @@ class WorkflowValidationRequest(BaseModel):
 
 class ProviderTestRequest(BaseModel):
     provider_name: str
+
+# Version management models
+class VersionCreateRequest(BaseModel):
+    entity_type: str
+    entity_id: str
+    data: Dict[str, Any]
+    metadata: Optional[Dict[str, Any]] = None
+
+class VersionCompareRequest(BaseModel):
+    entity_type: str
+    entity_id: str
+    version1_id: str
+    version2_id: str
+
+class VersionRollbackRequest(BaseModel):
+    entity_type: str
+    entity_id: str
+    version_id: str
+    create_new_version: bool = True
+
+class BranchCreateRequest(BaseModel):
+    entity_type: str
+    entity_id: str
+    branch_name: str
+    base_version_id: str
+
+class MergeRequest(BaseModel):
+    entity_type: str
+    entity_id: str
+    source_version_id: str
+    target_version_id: str
+    merge_strategy: str = "auto"
 
 @app.get("/")
 async def read_root():

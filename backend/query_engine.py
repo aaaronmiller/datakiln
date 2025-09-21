@@ -10,7 +10,7 @@ import os
 
 from executor import WorkflowExecutor, ExecutionContext
 from providers import ProviderManager, GeminiProvider, PerplexityProvider
-from selectors import default_registry as selectors_registry
+from dom_selectors import default_registry as selectors_registry
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -1,10 +1,7 @@
-interface WorkflowTemplate {
-  id: string
-  name: string
-  description: string
+import { Template, QueryNode, QueryEdge } from '../types/query'
+
+interface WorkflowTemplate extends Template {
   category: string
-  nodes: any[]
-  edges: any[]
   createdAt: string
   updatedAt: string
 }

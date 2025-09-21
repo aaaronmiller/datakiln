@@ -1,11 +1,4 @@
-interface Provider {
-  id: string
-  name: string
-  description: string
-  status: 'active' | 'inactive' | 'error'
-  type: string
-  capabilities: string[]
-}
+import { Provider } from '../types/query'
 
 export class ProviderManager {
   private providers: Provider[] = [

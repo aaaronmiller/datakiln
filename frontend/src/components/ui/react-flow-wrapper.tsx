@@ -1,16 +1,11 @@
 import * as React from "react"
 import {
   ReactFlow,
-  Background,
-  BackgroundVariant,
-  Node,
-  Edge,
   OnNodesChange,
   OnEdgesChange,
   OnConnect,
-  NodeTypes,
   ReactFlowProps,
-} from 'reactflow'
+} from '@xyflow/react'
 
 export interface ReactFlowWrapperProps extends Omit<ReactFlowProps, 'onNodesChange' | 'onEdgesChange' | 'onConnect'> {
   onNodesChange?: OnNodesChange

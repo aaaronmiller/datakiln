@@ -15,13 +15,13 @@ export interface TaskResult {
   task_id: string;
   task_type: 'deep_research' | 'youtube_transcript' | 'other';
   status: 'success' | 'error';
-  data: any;
+  data: DeepResearchResult | YouTubeAnalysisResult | unknown;
   error?: string;
   metadata?: {
     execution_time?: number;
     source_url?: string;
     timestamp?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -35,7 +35,7 @@ export interface DeepResearchResult {
     sources: string[];
   }>;
   recommendations: string[];
-  raw_data?: any;
+  raw_data?: unknown;
 }
 
 export interface YouTubeAnalysisResult {
@@ -54,7 +54,7 @@ export interface YouTubeAnalysisResult {
     topics?: string[];
     duration?: string;
   };
-  raw_data?: any;
+  raw_data?: unknown;
 }
 
 export interface ResultDisplayProps {
@@ -77,7 +77,7 @@ export interface ResultFiltersProps {
     status?: string;
     dateRange?: { start: string; end: string };
   };
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: ResultFiltersProps['filters']) => void;
   onSortChange: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
 }
 

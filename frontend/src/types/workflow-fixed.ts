@@ -1,4 +1,3 @@
-// Import Node type from ReactFlow
 import { Node } from '@xyflow/react'
 
 // Workflow Node Types matching backend implementation
@@ -33,6 +32,7 @@ export interface WorkflowNode {
     // UI properties
     color?: string
     icon?: string
+    type?: string
     // Runtime status
     status?: 'pending' | 'running' | 'completed' | 'error'
     parameters?: Record<string, unknown>
@@ -58,42 +58,42 @@ export interface WorkflowGraph {
 }
 
 export interface WorkflowExecutionOptions {
-   execution_id?: string
-   query?: string
-   start_time?: string
-   browser_context?: unknown
-   [key: string]: unknown
- }
+  execution_id?: string
+  query?: string
+  start_time?: string
+  browser_context?: unknown
+  [key: string]: unknown
+}
 
 export interface WorkflowExecutionResult {
-   success: boolean
-   execution_id?: string
-   execution_time?: number
-   result?: unknown
-   error?: string
-   performance?: unknown
-   timestamp?: string
-   artifacts?: Array<{
-     node_id: string
-     node_type: string
-     outputs: Record<string, unknown>
-     execution_time?: number
-     timestamp: string
-   }>
- }
+  success: boolean
+  execution_id?: string
+  execution_time?: number
+  result?: unknown
+  error?: string
+  performance?: unknown
+  timestamp?: string
+  artifacts?: Array<{
+    node_id: string
+    node_type: string
+    outputs: Record<string, unknown>
+    execution_time?: number
+    timestamp: string
+  }>
+}
 
 export interface WorkflowNodeType {
-   type: string
-   label: string
-   icon: string
-   color: string
-   category: 'input' | 'action' | 'process' | 'output' | 'control'
-   description: string
-   defaultData: Record<string, unknown>
-   inputs: number
-   outputs: number
-   configSchema: Record<string, unknown>
- }
+  type: string
+  label: string
+  icon: string
+  color: string
+  category: 'input' | 'action' | 'process' | 'output' | 'control'
+  description: string
+  defaultData: Record<string, unknown>
+  inputs: number
+  outputs: number
+  configSchema: Record<string, unknown>
+}
 
 export const WORKFLOW_NODE_TYPES: WorkflowNodeType[] = [
   {
@@ -241,15 +241,15 @@ export const WORKFLOW_NODE_TYPES: WorkflowNodeType[] = [
 
 // Selector types for DOM actions
 export interface SelectorDefinition {
-   key: string
-   selector: string
-   selector_type: 'css' | 'xpath'
-   description?: string
-   provider?: string
-   context?: string
-   fallback_selectors?: string[]
-   attributes?: Record<string, unknown>
- }
+  key: string
+  selector: string
+  selector_type: 'css' | 'xpath'
+  description?: string
+  provider?: string
+  context?: string
+  fallback_selectors?: string[]
+  attributes?: Record<string, unknown>
+}
 
 export interface SelectorsRegistry {
   selectors: Record<string, SelectorDefinition>
@@ -271,20 +271,20 @@ export interface PromptTemplate {
 
 // Provider status types
 export interface ProviderStatus {
-   providers: Record<string, unknown>
-   usage_stats: Record<string, unknown>
-   default_provider?: string
- }
+  providers: Record<string, unknown>
+  usage_stats: Record<string, unknown>
+  default_provider?: string
+}
 
 // Execution history types
 export interface ExecutionHistoryItem {
-   execution_id: string
-   timestamp: string
-   success: boolean
-   execution_time: number
-   workflow_name?: string
-   details?: unknown
- }
+  execution_id: string
+  timestamp: string
+  success: boolean
+  execution_time: number
+  workflow_name?: string
+  details?: unknown
+}
 
 // Workflow validation types
 export interface WorkflowValidationResult {

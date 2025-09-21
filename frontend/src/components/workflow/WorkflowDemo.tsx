@@ -1,27 +1,33 @@
 import React, { useState, useCallback } from 'react'
-import { useNodesState, useEdgesState, addEdge, Connection, Edge, Node } from 'reactflow'
-import 'reactflow/dist/style.css'
+import { useNodesState, useEdgesState, Edge, Node } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 
 import WorkflowEditor from './WorkflowEditor'
 import { workflowService } from '../../services/workflowService'
-import { WorkflowGraph, WORKFLOW_NODE_TYPES } from '../../types/workflow'
+import { WorkflowGraph, WorkflowNode } from '../../types/workflow'
+
+interface ValidationResult {
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+interface ExecutionResult {
+  success: boolean
+  execution_time?: number
+  execution_id?: string
+  error?: string
+}
 
 const WorkflowDemo: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes, _onNodesChange] = useNodesState([] as Node[])
+  const [edges, setEdges, _onEdgesChange] = useEdgesState([] as Edge[])
 
   const [isExecuting, setIsExecuting] = useState(false)
-  const [executionResult, setExecutionResult] = useState<any>(null)
-  const [validationResult, setValidationResult] = useState<any>(null)
+  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null)
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
 
-  // Handle connections
-  const onConnect = useCallback(
-    (params: Connection) => {
-      const newEdge = { ...params, id: `${params.source}-${params.target}` } as Edge
-      setEdges((eds) => addEdge(newEdge, eds))
-    },
-    [setEdges]
-  )
+  // Handle connections - removed as WorkflowEditor handles its own connections
 
   // Handle workflow changes
   const handleWorkflowChange = useCallback((newNodes: Node[], newEdges: Edge[]) => {
@@ -103,10 +109,10 @@ const WorkflowDemo: React.FC = () => {
       // Convert React Flow nodes to workflow format
       const workflowNodes = nodes.map(node => ({
         id: node.id,
-        type: node.data.type,
-        name: node.data.name,
+        type: node.data.type as WorkflowNode['type'],
+        name: node.data.name as string,
         position: node.position,
-        data: node.data,
+        data: node.data as WorkflowNode['data'],
       }))
 
       const workflowEdges = edges.map(edge => ({
@@ -205,7 +211,6 @@ const WorkflowDemo: React.FC = () => {
           initialNodes={nodes}
           initialEdges={edges}
           onChange={handleWorkflowChange}
-          onConnect={onConnect}
         />
       </div>
 

@@ -2,22 +2,22 @@ interface WorkflowExecutionOptions {
   execution_id?: string
   query?: string
   start_time?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface WorkflowExecutionResult {
   success: boolean
   execution_id?: string
   execution_time?: number
-  data?: any[]
+  data?: unknown[]
   error?: string
-  performance?: any
+  performance?: unknown
   timestamp?: string
 }
 
 interface WorkflowGraph {
-  nodes: any[]
-  edges: any[]
+  nodes: unknown[]
+  edges: unknown[]
 }
 
 export class WorkflowExecutionService {
@@ -61,7 +61,7 @@ export class WorkflowExecutionService {
     }
   }
 
-  async validateWorkflow(workflow: WorkflowGraph): Promise<any> {
+  async validateWorkflow(workflow: WorkflowGraph): Promise<unknown> {
     try {
       const response = await fetch(`${this.baseUrl}/workflow/validate`, {
         method: 'POST',
@@ -82,7 +82,7 @@ export class WorkflowExecutionService {
     }
   }
 
-  async getExecutionHistory(limit: number = 10, includeDetails: boolean = false): Promise<any> {
+  async getExecutionHistory(limit: number = 10, includeDetails: boolean = false): Promise<unknown> {
     try {
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -102,7 +102,7 @@ export class WorkflowExecutionService {
     }
   }
 
-  async optimizeWorkflow(workflow: WorkflowGraph): Promise<any> {
+  async optimizeWorkflow(workflow: WorkflowGraph): Promise<unknown> {
     try {
       const response = await fetch(`${this.baseUrl}/workflow/optimize`, {
         method: 'POST',

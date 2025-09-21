@@ -1,24 +1,10 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { workflowService } from '../services/workflowService'
+import { WorkflowNode, WorkflowEdge, WorkflowGraph } from '../types/workflow'
 
-export interface WorkflowNode {
-  id: string
-  type: string
-  position: { x: number; y: number }
-  data: {
-    label: string
-    parameters: Record<string, any>
-    status: 'pending' | 'running' | 'completed' | 'error'
-  }
-}
-
-export interface WorkflowEdge {
-  id: string
-  source: string
-  target: string
-  sourceHandle?: string | null
-  targetHandle?: string | null
-}
+// Re-export for compatibility
+export type { WorkflowNode, WorkflowEdge }
 
 interface WorkflowState {
   nodes: WorkflowNode[]
@@ -114,32 +100,40 @@ export const useWorkflowStore = create<WorkflowState>()(
         }))
 
         try {
-          // Call backend API to execute workflow
-          const response = await fetch('/api/workflows/execute', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ nodes, edges })
-          })
-
-          if (!response.ok) {
-            throw new Error('Workflow execution failed')
+          // Convert nodes and edges to workflow format expected by backend
+          const workflowGraph: WorkflowGraph = {
+            name: 'Workflow from Store',
+            start_node: nodes[0]?.id || '',
+            nodes: nodes.reduce((acc, node) => {
+              acc[node.id] = {
+                id: node.id,
+                type: node.type as unknown as WorkflowNode['type'],
+                position: node.position,
+                data: {
+                  ...node.data,
+                  name: node.data.label // Add required name field
+                }
+              }
+              return acc
+            }, {} as Record<string, WorkflowNode>),
+            edges: edges
           }
 
-          const result = await response.json()
+          // Call backend API using workflowService
+          await workflowService.executeWorkflow(workflowGraph)
 
-          // Update node statuses based on result
+          // Update node statuses based on result - for now mark all as completed
           set((state) => ({
             nodes: state.nodes.map((node) => ({
               ...node,
               data: {
                 ...node.data,
-                status: result.nodeStatuses?.[node.id] || 'completed'
+                status: 'completed' as const
               }
             }))
           }))
         } catch (error) {
+          console.error('Workflow execution error:', error)
           // Mark all nodes as error
           set((state) => ({
             nodes: state.nodes.map((node) => ({
@@ -147,6 +141,8 @@ export const useWorkflowStore = create<WorkflowState>()(
               data: { ...node.data, status: 'error' as const }
             }))
           }))
+          // Re-throw to allow UI to handle the error
+          throw error
         }
       }
     }),

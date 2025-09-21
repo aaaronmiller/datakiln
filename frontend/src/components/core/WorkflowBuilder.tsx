@@ -7,22 +7,16 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
-  Connection,
-  Edge,
-  Node,
   NodeTypes,
   OnConnect,
-  OnEdgesChange,
-  OnNodesChange,
   BackgroundVariant,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import { Button } from "../ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import TaskNode from "./TaskNode"
 import QueryNode from "./QueryNode"
 import QueryEditor from "./QueryEditor"
-import { useWorkflowStore, WorkflowNode, WorkflowEdge } from "../../stores/workflowStore"
+import { useWorkflowStore, WorkflowNode } from "../../stores/workflowStore"
 
 const nodeTypes: NodeTypes = {
   taskNode: TaskNode,
@@ -37,8 +31,6 @@ const WorkflowBuilder: React.FC = () => {
     updateNode,
     deleteNode,
     addEdge: storeAddEdge,
-    deleteEdge,
-    setSelectedNode,
     saveWorkflow,
     loadWorkflow,
     executeWorkflow,
@@ -48,11 +40,11 @@ const WorkflowBuilder: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(
     storeNodes.map((node) => ({
       id: node.id,
-      type: node.type === 'query-builder' ? 'queryNode' : 'taskNode',
+      type: (node.type as any) === 'query-builder' ? 'queryNode' : 'taskNode',
       position: node.position,
       data: {
         ...node.data,
-        onParameterChange: (paramName: string, value: any) => {
+        onParameterChange: (paramName: string, value: unknown) => {
           updateNode(node.id, {
             data: {
               ...node.data,
@@ -64,7 +56,7 @@ const WorkflowBuilder: React.FC = () => {
           })
         },
         onDelete: () => deleteNode(node.id),
-        onOpenEditor: node.type === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
+        onOpenEditor: (node.type as any) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
         isSelected: selectedNodeId === node.id,
       },
     }))
@@ -75,7 +67,7 @@ const WorkflowBuilder: React.FC = () => {
   // Query Editor state
   const [queryEditorOpen, setQueryEditorOpen] = React.useState(false)
   const [currentQueryNodeId, setCurrentQueryNodeId] = React.useState<string | null>(null)
-  const [currentQueryGraph, setCurrentQueryGraph] = React.useState<{ nodes: any[], connections: any[] } | undefined>()
+  const [currentQueryGraph, setCurrentQueryGraph] = React.useState<{ nodes: unknown[], connections: unknown[] } | undefined>()
 
   const availableNodeTypes = [
     { type: "deep-research", label: "Deep Research", icon: "🔬" },
@@ -90,10 +82,11 @@ const WorkflowBuilder: React.FC = () => {
   const onConnect: OnConnect = (params) => {
     if (params.source && params.target) {
       const newEdge = {
-        ...params,
         id: `edge-${Date.now()}`,
         source: params.source,
         target: params.target,
+        sourceHandle: params.sourceHandle || undefined,
+        targetHandle: params.targetHandle || undefined,
       }
       setEdges((eds) => addEdge(newEdge, eds))
       storeAddEdge(newEdge)
@@ -102,10 +95,11 @@ const WorkflowBuilder: React.FC = () => {
 
   const handleAddNode = (type: string) => {
     const newNode: Omit<WorkflowNode, 'id'> = {
-      type,
+      type: type as WorkflowNode['type'],
       position: { x: Math.random() * 400, y: Math.random() * 400 },
       data: {
         label: `${type.charAt(0).toUpperCase() + type.slice(1)} Task`,
+        name: `${type.charAt(0).toUpperCase() + type.slice(1)} Task`,
         parameters: getDefaultParameters(type),
         status: 'pending',
       },
@@ -114,7 +108,7 @@ const WorkflowBuilder: React.FC = () => {
   }
 
   const getDefaultParameters = (type: string) => {
-    const defaults: Record<string, Record<string, any>> = {
+    const defaults: Record<string, Record<string, unknown>> = {
       'deep-research': { query: '', depth: 3, sources: 10 },
       'youtube-analysis': { videoUrl: '', analysisType: 'transcript' },
       'web-search': { query: '', maxResults: 10 },
@@ -138,11 +132,11 @@ const WorkflowBuilder: React.FC = () => {
       loadWorkflow(workflow)
       setNodes(workflow.nodes.map((node: WorkflowNode) => ({
         id: node.id,
-        type: node.type === 'query-builder' ? 'queryNode' : 'taskNode',
+        type: (node.type as any) === 'query-builder' ? 'queryNode' : 'taskNode',
         position: node.position,
         data: {
           ...node.data,
-          onParameterChange: (paramName: string, value: any) => {
+          onParameterChange: (paramName: string, value: unknown) => {
             updateNode(node.id, {
               data: {
                 ...node.data,
@@ -154,7 +148,7 @@ const WorkflowBuilder: React.FC = () => {
             })
           },
           onDelete: () => deleteNode(node.id),
-          onOpenEditor: node.type === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
+          onOpenEditor: (node.type as any) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
           isSelected: selectedNodeId === node.id,
         },
       })))
@@ -178,12 +172,12 @@ const WorkflowBuilder: React.FC = () => {
     const node = storeNodes.find(n => n.id === nodeId)
     if (node) {
       setCurrentQueryNodeId(nodeId)
-      setCurrentQueryGraph((node.data as any).queryGraph)
+      setCurrentQueryGraph((node.data as { queryGraph?: { nodes: unknown[], connections: unknown[] } }).queryGraph)
       setQueryEditorOpen(true)
     }
   }
 
-  const handleSaveQuery = (queryGraph: { nodes: any[], connections: any[] }) => {
+  const handleSaveQuery = (queryGraph: { nodes: unknown[], connections: unknown[] }) => {
     if (currentQueryNodeId) {
       const node = storeNodes.find(n => n.id === currentQueryNodeId)
       if (node) {
@@ -191,7 +185,7 @@ const WorkflowBuilder: React.FC = () => {
           data: {
             ...node.data,
             queryGraph
-          } as any
+          }
         })
       }
     }
@@ -265,7 +259,7 @@ const WorkflowBuilder: React.FC = () => {
       <QueryEditor
         isOpen={queryEditorOpen}
         onClose={() => setQueryEditorOpen(false)}
-        initialQueryGraph={currentQueryGraph}
+        initialQueryGraph={currentQueryGraph as any}
         onSave={handleSaveQuery}
       />
     </div>

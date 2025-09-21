@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Users, User, Lock, Unlock, MessageCircle } from 'lucide-react'
+import { Users, Lock } from 'lucide-react'
 
-interface User {
+interface CollabUser {
   user_id: string
   user_info: {
     user_name: string
@@ -11,11 +11,21 @@ interface User {
   last_activity: string
 }
 
+interface WebSocketMessage {
+  type: string
+  user?: CollabUser
+  user_id?: string
+  node_id?: string
+  lock?: boolean
+  position?: { x: number; y: number }
+  [key: string]: unknown
+}
+
 interface CollaborationPanelProps {
   workflowId: string
   currentUserId: string
-  onUserActivity?: (userId: string, activity: string) => void
-  onNodeLock?: (nodeId: string, userId: string, locked: boolean) => void
+  onUserActivity?: (_userId: string, _activity: string) => void
+  onNodeLock?: (_nodeId: string, _userId: string, _locked: boolean) => void
 }
 
 const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
@@ -24,11 +34,73 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
   onUserActivity,
   onNodeLock,
 }) => {
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<CollabUser[]>([])
   const [lockedNodes, setLockedNodes] = useState<Record<string, string>>({})
   const [isConnected, setIsConnected] = useState(false)
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null)
   const [messages, setMessages] = useState<string[]>([])
+
+  // Handle WebSocket messages
+  const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+    switch (message.type) {
+      case 'user_joined':
+        if (message.user) {
+          setUsers(prev => [...prev, message.user!])
+          setMessages(prev => [...prev, `${message.user!.user_info.user_name} joined the collaboration`])
+          onUserActivity?.(message.user!.user_id, 'joined')
+        }
+        break
+
+      case 'user_left':
+        if (message.user) {
+          setUsers(prev => prev.filter(u => u.user_id !== message.user!.user_id))
+          setMessages(prev => [...prev, `User left the collaboration`])
+          onUserActivity?.(message.user!.user_id, 'left')
+        }
+        break
+
+      case 'node_locked':
+        if (message.node_id && message.user_id) {
+          setLockedNodes(prev => ({
+            ...prev,
+            [message.node_id!]: message.user_id!
+          }))
+          onNodeLock?.(message.node_id!, message.user_id!, true)
+        }
+        break
+
+      case 'node_unlocked':
+        if (message.node_id && message.user_id) {
+          setLockedNodes(prev => {
+            const updated = { ...prev }
+            delete updated[message.node_id!]
+            return updated
+          })
+          onNodeLock?.(message.node_id!, message.user_id!, false)
+        }
+        break
+
+      case 'workflow_updated':
+        if (message.user_id) {
+          setMessages(prev => [...prev, `Workflow updated by ${message.user_id!}`])
+        }
+        break
+
+      case 'cursor_update':
+        // Handle cursor position updates for real-time cursor tracking
+        if (message.user_id) {
+          onUserActivity?.(message.user_id!, 'cursor_move')
+        }
+        break
+
+      case 'pong':
+        // Heartbeat response
+        break
+
+      default:
+        console.log('Unknown message type:', message.type)
+    }
+  }, [onUserActivity, onNodeLock])
 
   // Connect to WebSocket
   useEffect(() => {
@@ -63,57 +135,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
     return () => {
       ws.close()
     }
-  }, [workflowId, currentUserId])
-
-  // Handle WebSocket messages
-  const handleWebSocketMessage = useCallback((message: any) => {
-    switch (message.type) {
-      case 'user_joined':
-        setUsers(prev => [...prev, message.user])
-        setMessages(prev => [...prev, `${message.user_info.user_name} joined the collaboration`])
-        onUserActivity?.(message.user_id, 'joined')
-        break
-
-      case 'user_left':
-        setUsers(prev => prev.filter(u => u.user_id !== message.user_id))
-        setMessages(prev => [...prev, `User left the collaboration`])
-        onUserActivity?.(message.user_id, 'left')
-        break
-
-      case 'node_locked':
-        setLockedNodes(prev => ({
-          ...prev,
-          [message.node_id]: message.user_id
-        }))
-        onNodeLock?.(message.node_id, message.user_id, true)
-        break
-
-      case 'node_unlocked':
-        setLockedNodes(prev => {
-          const updated = { ...prev }
-          delete updated[message.node_id]
-          return updated
-        })
-        onNodeLock?.(message.node_id, message.user_id, false)
-        break
-
-      case 'workflow_updated':
-        setMessages(prev => [...prev, `Workflow updated by ${message.user_id}`])
-        break
-
-      case 'cursor_update':
-        // Handle cursor position updates for real-time cursor tracking
-        onUserActivity?.(message.user_id, 'cursor_move')
-        break
-
-      case 'pong':
-        // Heartbeat response
-        break
-
-      default:
-        console.log('Unknown message type:', message.type)
-    }
-  }, [onUserActivity, onNodeLock])
+  }, [workflowId, currentUserId, handleWebSocketMessage])
 
   // Send heartbeat ping
   useEffect(() => {
@@ -129,7 +151,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
   }, [wsConnection, isConnected])
 
   // Request node lock
-  const requestNodeLock = useCallback((nodeId: string) => {
+  const _requestNodeLock = useCallback((nodeId: string) => {
     if (wsConnection && isConnected) {
       wsConnection.send(JSON.stringify({
         type: 'node_lock',
@@ -140,7 +162,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
   }, [wsConnection, isConnected])
 
   // Release node lock
-  const releaseNodeLock = useCallback((nodeId: string) => {
+  const _releaseNodeLock = useCallback((nodeId: string) => {
     if (wsConnection && isConnected) {
       wsConnection.send(JSON.stringify({
         type: 'node_lock',
@@ -151,7 +173,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
   }, [wsConnection, isConnected])
 
   // Update cursor position
-  const updateCursorPosition = useCallback((position: { x: number; y: number }) => {
+  const _updateCursorPosition = useCallback((position: { x: number; y: number }) => {
     if (wsConnection && isConnected) {
       wsConnection.send(JSON.stringify({
         type: 'cursor_position',
@@ -231,7 +253,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
       {Object.keys(lockedNodes).length > 0 && (
         <div className="space-y-2 mb-4">
           <h4 className="font-medium text-gray-700 text-sm">Locked Nodes</h4>
-          {Object.entries(lockedNodes).map(([nodeId, userId]) => {
+          {Object.entries(lockedNodes).map(([nodeId, userId]: [string, string]) => {
             const user = users.find(u => u.user_id === userId)
             return (
               <div key={nodeId} className="flex items-center space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded">

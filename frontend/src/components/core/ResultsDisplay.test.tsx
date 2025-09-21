@@ -1,5 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, fireEvent } from '@testing-library/react'
+import { screen } from '@testing-library/dom'
 import '@testing-library/jest-dom'
 import ResultsDisplay from './ResultsDisplay'
 
@@ -210,13 +211,13 @@ describe('ResultsDisplay', () => {
     expect(contentElement).toHaveClass('whitespace-pre-wrap')
   })
 
-  it('handles unknown result types with default icon', () => {
+  it('handles any result types with default icon', () => {
     const resultsWithUnknownType = [
       {
         id: '1',
         title: 'Unknown Type Result',
         content: 'Content',
-        type: 'unknown',
+        type: 'any',
         timestamp: '2024-01-01T12:00:00Z'
       }
     ]

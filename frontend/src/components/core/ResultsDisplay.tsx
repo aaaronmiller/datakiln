@@ -8,13 +8,13 @@ interface ResultItem {
   content: string
   type: string
   timestamp: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 interface ResultsDisplayProps {
   results?: ResultItem[]
   isLoading?: boolean
-  onExport?: (format: string) => void
+  onExport?: (_format: string) => void
   onClear?: () => void
 }
 

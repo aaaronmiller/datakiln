@@ -1,9 +1,28 @@
 import React, { memo } from 'react'
-import { Handle, Position, NodeProps } from 'reactflow'
-import { WorkflowNode as WorkflowNodeType, WORKFLOW_NODE_TYPES } from '../../types/workflow'
+import { Handle, Position, NodeProps } from '@xyflow/react'
+import { WORKFLOW_NODE_TYPES } from '../../types/workflow'
+
+interface WorkflowNodeData {
+  type: string
+  name: string
+  label?: string
+  action?: string
+  selector_key?: string
+  template_id?: string
+  max_tokens?: number
+  provider_type?: string
+  research_depth?: string
+  transform_type?: string
+  output_key?: string
+  format?: string
+  path_key?: string
+  expr?: string
+  status?: string
+  [key: string]: unknown
+}
 
 interface WorkflowNodeProps extends NodeProps {
-  data: WorkflowNodeType['data']
+  data: WorkflowNodeData
 }
 
 const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) => {

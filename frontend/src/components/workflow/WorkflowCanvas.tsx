@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -12,13 +12,13 @@ import {
   MiniMap,
   Controls,
   Panel,
-  useReactFlow,
   ReactFlowProvider,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+  ReactFlowInstance,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 
 import WorkflowNode from './WorkflowNode'
-import { WorkflowNode as WorkflowNodeType, WorkflowEdge, WORKFLOW_NODE_TYPES } from '../../types/workflow'
+import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
 
 // Node types for React Flow
 const nodeTypes: NodeTypes = {
@@ -57,7 +57,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   showMinimap = true,
   showControls = true,
 }) => {
-  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null)
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
 
   // Handle node selection
   const handleNodeClick = useCallback(
@@ -76,27 +76,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     }
   }, [onNodeSelect])
 
-  // Handle node add (for future drag and drop functionality)
-  const handlePaneDoubleClick = useCallback(
-    (event: React.MouseEvent) => {
-      if (readonly || !onNodeAdd) return
-
-      const reactFlowBounds = (reactFlowInstance as any)?.getBoundingClientRect?.()
-      if (!reactFlowBounds) return
-
-      const position = (reactFlowInstance as any)?.screenToFlowPosition?.({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
-      })
-
-      if (position) {
-        // Default to adding a provider node
-        onNodeAdd('provider', position)
-      }
-    },
-    [onNodeAdd, readonly, reactFlowInstance]
-  )
-
   return (
     <div className="w-full h-full relative">
       <ReactFlow
@@ -107,7 +86,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
-        onPaneDoubleClick={handlePaneDoubleClick}
         onInit={setReactFlowInstance}
         nodeTypes={nodeTypes}
         fitView
@@ -143,13 +121,11 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   key={nodeType.type}
                   onClick={() => {
                     if (onNodeAdd && reactFlowInstance) {
-                      const center = (reactFlowInstance as any)?.getViewport?.()
-                      if (center) {
-                        onNodeAdd(nodeType.type, {
-                          x: (center.x || 0) + 100,
-                          y: (center.y || 0) + 100
-                        })
-                      }
+                      const viewport = reactFlowInstance.getViewport()
+                      onNodeAdd(nodeType.type, {
+                        x: viewport.x + 100,
+                        y: viewport.y + 100
+                      })
                     }
                   }}
                   className={`
@@ -185,14 +161,41 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 }
 
 // Wrapper component with React Flow Provider
-const WorkflowCanvasWrapper: React.FC<Omit<WorkflowCanvasProps, 'onNodesChange' | 'onEdgesChange' | 'onConnect'> & {
+interface WorkflowCanvasWrapperProps {
+  nodes: Node[]
+  edges: Edge[]
   onNodesChange?: OnNodesChange
   onEdgesChange?: OnEdgesChange
   onConnect?: OnConnect
-}> = (props) => {
+  selectedNode?: string
+  onNodeSelect?: (nodeId: string | null) => void
+  onNodeAdd?: (type: string, position: { x: number; y: number }) => void
+  readonly?: boolean
+  showMinimap?: boolean
+  showControls?: boolean
+}
+
+const WorkflowCanvasWrapper: React.FC<WorkflowCanvasWrapperProps> = (props) => {
+  // Provide default handlers for required props to fix TypeScript errors
+  const defaultNodesChange: OnNodesChange = () => {}
+  const defaultEdgesChange: OnEdgesChange = () => {}
+  const defaultConnect: OnConnect = () => {}
+
   return (
     <ReactFlowProvider>
-      <WorkflowCanvas {...props} />
+      <WorkflowCanvas
+        nodes={props.nodes}
+        edges={props.edges}
+        onNodesChange={props.onNodesChange || defaultNodesChange}
+        onEdgesChange={props.onEdgesChange || defaultEdgesChange}
+        onConnect={props.onConnect || defaultConnect}
+        selectedNode={props.selectedNode}
+        onNodeSelect={props.onNodeSelect}
+        onNodeAdd={props.onNodeAdd}
+        readonly={props.readonly}
+        showMinimap={props.showMinimap}
+        showControls={props.showControls}
+      />
     </ReactFlowProvider>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   ReactFlow,
   Background,
@@ -10,11 +10,13 @@ import {
   Edge,
   Node,
   OnConnect,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+  NodeChange,
+  EdgeChange,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 
 import WorkflowNode from './WorkflowNode'
-import { WorkflowNode as WorkflowNodeType, WORKFLOW_NODE_TYPES } from '../../types/workflow'
+import { WORKFLOW_NODE_TYPES } from '../../types/workflow'
 
 // Node types for React Flow
 const nodeTypes = {
@@ -57,9 +59,9 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   // Handle node changes
   const handleNodesChange = useCallback(
-    (changes: any) => {
+    (changes: NodeChange[]) => {
       onNodesChange(changes)
-      const updatedNodes = changes.reduce((acc: Node[], change: any) => {
+      const updatedNodes = changes.reduce((acc: Node[], change: NodeChange) => {
         if (change.type === 'select') {
           setSelectedNode(change.selected ? change.id : null)
         }
@@ -72,9 +74,9 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   // Handle edges changes
   const handleEdgesChange = useCallback(
-    (changes: any) => {
+    (changes: EdgeChange[]) => {
       onEdgesChange(changes)
-      const updatedEdges = changes.reduce((acc: Edge[], change: any) => acc, edges)
+      const updatedEdges = changes.reduce((acc: Edge[], _change: EdgeChange) => acc, edges)
       onChange?.(nodes, updatedEdges)
     },
     [onEdgesChange, nodes, edges, onChange]

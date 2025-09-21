@@ -7,22 +7,42 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
-  Connection,
-  Edge,
   Node,
+  Edge,
   NodeTypes,
   OnConnect,
-  OnEdgesChange,
-  OnNodesChange,
   BackgroundVariant,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import { Button } from "../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 
+// Query Node Data Interfaces
+interface DataSourceNodeData {
+  source?: string
+  label: string
+}
+
+interface FilterNodeData {
+  condition?: string
+  label: string
+}
+
+interface TransformNodeData {
+  transformation?: string
+  label: string
+}
+
+interface AggregateNodeData {
+  aggregation?: string
+  label: string
+}
+
+type QueryNodeData = DataSourceNodeData | FilterNodeData | TransformNodeData | AggregateNodeData
+
 // Query Node Types
-const DataSourceNode: React.FC<any> = ({ data }) => (
+const DataSourceNode: React.FC<{ data: DataSourceNodeData }> = ({ data }) => (
   <Card className="w-48 border-green-300 bg-green-50">
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-green-800">📊 Data Source</CardTitle>
@@ -35,7 +55,7 @@ const DataSourceNode: React.FC<any> = ({ data }) => (
   </Card>
 )
 
-const FilterNode: React.FC<any> = ({ data }) => (
+const FilterNode: React.FC<{ data: FilterNodeData }> = ({ data }) => (
   <Card className="w-48 border-blue-300 bg-blue-50">
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-blue-800">🔍 Filter</CardTitle>
@@ -48,7 +68,7 @@ const FilterNode: React.FC<any> = ({ data }) => (
   </Card>
 )
 
-const TransformNode: React.FC<any> = ({ data }) => (
+const TransformNode: React.FC<{ data: TransformNodeData }> = ({ data }) => (
   <Card className="w-48 border-orange-300 bg-orange-50">
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-orange-800">⚡ Transform</CardTitle>
@@ -61,7 +81,7 @@ const TransformNode: React.FC<any> = ({ data }) => (
   </Card>
 )
 
-const AggregateNode: React.FC<any> = ({ data }) => (
+const AggregateNode: React.FC<{ data: AggregateNodeData }> = ({ data }) => (
   <Card className="w-48 border-purple-300 bg-purple-50">
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-purple-800">📈 Aggregate</CardTitle>
@@ -85,10 +105,10 @@ interface QueryEditorProps {
   isOpen: boolean
   onClose: () => void
   initialQueryGraph?: {
-    nodes: any[]
-    connections: any[]
+    nodes: Node[]
+    connections: Edge[]
   }
-  onSave: (queryGraph: { nodes: any[], connections: any[] }) => void
+  onSave: (queryGraph: { nodes: Node[], connections: Edge[] }) => void
 }
 
 const QueryEditor: React.FC<QueryEditorProps> = ({
@@ -120,30 +140,26 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
       id: `query-node-${Date.now()}`,
       type,
       position: { x: Math.random() * 400, y: Math.random() * 400 },
-      data: {
-        label: `${type} Node`,
-        ...getDefaultNodeData(type)
-      },
+      data: getDefaultNodeData(type) as unknown as Record<string, unknown>,
     }
     setNodes((nds) => nds.concat(newNode))
   }
 
-  const getDefaultNodeData = (type: string) => {
-    const defaults: Record<string, any> = {
-      dataSource: { source: "Select data source" },
-      filter: { condition: "Define filter condition" },
-      transform: { transformation: "Define transformation" },
-      aggregate: { aggregation: "Define aggregation" }
+  const getDefaultNodeData = (type: string): QueryNodeData => {
+    const defaults: Record<string, QueryNodeData> = {
+      dataSource: { source: "Select data source", label: "Data Source" },
+      filter: { condition: "Define filter condition", label: "Filter" },
+      transform: { transformation: "Define transformation", label: "Transform" },
+      aggregate: { aggregation: "Define aggregation", label: "Aggregate" }
     }
-    return defaults[type] || {}
+    return defaults[type] || { label: "Unknown" }
   }
 
   const handleSave = () => {
-    const queryGraph = {
+    onSave({
       nodes,
       connections: edges
-    }
-    onSave(queryGraph)
+    })
     onClose()
   }
 

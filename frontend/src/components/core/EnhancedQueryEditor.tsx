@@ -1,45 +1,120 @@
 import * as React from "react"
 import {
-  ReactFlow,
   MiniMap,
   Controls,
   Background,
   useNodesState,
   useEdgesState,
   addEdge,
-  Connection,
-  Edge,
   Node,
   NodeTypes,
   OnConnect,
-  OnEdgesChange,
-  OnNodesChange,
   BackgroundVariant,
   ReactFlowProvider,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import { Button } from "../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { ErrorBoundary } from "../ui/error-boundary"
 import { ReactFlowWrapper } from "../ui/react-flow-wrapper"
-import { QueryNode as QueryNodeType, QueryGraph, QUERY_NODE_TYPES } from "../../types/query"
+import QueryNode, { QueryEdge, QueryGraph, QUERY_NODE_TYPES, QueryNodeType, ReactFlowQueryNode, QueryNodeData, Template, Provider } from "../../types/query"
 import { Progress } from "../ui/progress"
 import { Badge } from "../ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { Select } from "../ui/select"
 import { Textarea } from "../ui/textarea"
 import { useToast } from "../../hooks/use-toast"
-import { WorkflowExecutionService } from "../../services/workflowExecutionService"
+
 import { WorkflowTemplateService } from "../../services/workflowTemplateService"
 import { ProviderManager } from "../../services/providerManager"
 import { Separator } from "../ui/separator"
 import { ScrollArea } from "../ui/scroll-area"
 
+// Node Component Props Interfaces
+interface BaseNodeProps {
+  data: Record<string, unknown>
+  selected?: boolean
+}
+
+
+interface DataSourceNodeData extends Record<string, unknown> {
+  provider?: string
+  connection?: string
+  schema?: { tables?: Array<{ name: string; columns: Array<{ name: string; type: string }> }> }
+  status?: 'connected' | 'disconnected' | 'error'
+}
+
+interface FilterNodeData extends Record<string, unknown> {
+  condition?: string
+  filterType?: 'basic' | 'advanced' | 'regex'
+  columns?: string[]
+}
+
+interface TransformNodeData extends Record<string, unknown> {
+  operation?: string
+  language?: string
+  outputSchema?: string
+}
+
+interface AggregateNodeData extends Record<string, unknown> {
+  functions?: string[]
+  groupBy?: string[]
+  output?: string
+}
+
+interface JoinNodeData extends Record<string, unknown> {
+  joinType?: string
+  condition?: string
+  tables?: Array<{ name: string; columns: Array<{ name: string; type: string }> }>
+}
+
+interface UnionNodeData extends Record<string, unknown> {
+  inputCount?: number
+  unionMode?: string
+}
+
+interface MLNodeData extends Record<string, unknown> {
+  model?: string
+  task?: string
+  features?: string[]
+}
+
+interface NLPNodeData extends Record<string, unknown> {
+  task?: string
+  language?: string
+  output?: string
+}
+
+interface ValidationNodeData extends Record<string, unknown> {
+  rules?: Array<{ name: string; condition: string }>
+  schema?: string
+  strict?: boolean
+}
+
+interface LoopNodeData extends Record<string, unknown> {
+  maxIterations?: string
+  condition?: string
+  loopVariable?: string
+}
+
+interface ConditionNodeData extends Record<string, unknown> {
+  expression?: string
+  truePath?: string
+  falsePath?: string
+}
+
+interface CustomNodeData extends Record<string, unknown> {
+  customType?: string
+  script?: boolean
+  inputs?: Array<{ name: string; type: string }>
+  outputs?: Array<{ name: string; type: string }>
+}
+
 // Advanced Node Components
-const DataSourceNode: React.FC<any> = ({ data, selected }) => (
+const DataSourceNode: React.FC<BaseNodeProps & { data: DataSourceNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-green-300 bg-green-50 ${selected ? 'ring-2 ring-green-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-green-800 flex items-center gap-2">
@@ -61,7 +136,7 @@ const DataSourceNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const FilterNode: React.FC<any> = ({ data, selected }) => (
+const FilterNode: React.FC<BaseNodeProps & { data: FilterNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-blue-300 bg-blue-50 ${selected ? 'ring-2 ring-blue-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-blue-800 flex items-center gap-2">
@@ -78,7 +153,7 @@ const FilterNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const TransformNode: React.FC<any> = ({ data, selected }) => (
+const TransformNode: React.FC<BaseNodeProps & { data: TransformNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-orange-300 bg-orange-50 ${selected ? 'ring-2 ring-orange-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-orange-800 flex items-center gap-2">
@@ -95,7 +170,7 @@ const TransformNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const AggregateNode: React.FC<any> = ({ data, selected }) => (
+const AggregateNode: React.FC<BaseNodeProps & { data: AggregateNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-purple-300 bg-purple-50 ${selected ? 'ring-2 ring-purple-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-purple-800 flex items-center gap-2">
@@ -112,7 +187,7 @@ const AggregateNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const JoinNode: React.FC<any> = ({ data, selected }) => (
+const JoinNode: React.FC<BaseNodeProps & { data: JoinNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-indigo-300 bg-indigo-50 ${selected ? 'ring-2 ring-indigo-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-indigo-800 flex items-center gap-2">
@@ -129,7 +204,7 @@ const JoinNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const UnionNode: React.FC<any> = ({ data, selected }) => (
+const UnionNode: React.FC<BaseNodeProps & { data: UnionNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-pink-300 bg-pink-50 ${selected ? 'ring-2 ring-pink-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-pink-800 flex items-center gap-2">
@@ -146,7 +221,7 @@ const UnionNode: React.FC<any> = ({ data, selected }) => (
 )
 
 // Advanced Nodes
-const MLNode: React.FC<any> = ({ data, selected }) => (
+const MLNode: React.FC<BaseNodeProps & { data: MLNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-cyan-300 bg-cyan-50 ${selected ? 'ring-2 ring-cyan-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-cyan-800 flex items-center gap-2">
@@ -163,7 +238,7 @@ const MLNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const NLPNode: React.FC<any> = ({ data, selected }) => (
+const NLPNode: React.FC<BaseNodeProps & { data: NLPNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-teal-300 bg-teal-50 ${selected ? 'ring-2 ring-teal-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-teal-800 flex items-center gap-2">
@@ -180,7 +255,7 @@ const NLPNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const ValidationNode: React.FC<any> = ({ data, selected }) => (
+const ValidationNode: React.FC<BaseNodeProps & { data: ValidationNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-red-300 bg-red-50 ${selected ? 'ring-2 ring-red-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-red-800 flex items-center gap-2">
@@ -197,7 +272,7 @@ const ValidationNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const LoopNode: React.FC<any> = ({ data, selected }) => (
+const LoopNode: React.FC<BaseNodeProps & { data: LoopNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-yellow-300 bg-yellow-50 ${selected ? 'ring-2 ring-yellow-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-yellow-800 flex items-center gap-2">
@@ -214,7 +289,7 @@ const LoopNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const ConditionNode: React.FC<any> = ({ data, selected }) => (
+const ConditionNode: React.FC<BaseNodeProps & { data: ConditionNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-gray-300 bg-gray-50 ${selected ? 'ring-2 ring-gray-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-gray-800 flex items-center gap-2">
@@ -231,7 +306,7 @@ const ConditionNode: React.FC<any> = ({ data, selected }) => (
   </Card>
 )
 
-const CustomNode: React.FC<any> = ({ data, selected }) => (
+const CustomNode: React.FC<BaseNodeProps & { data: CustomNodeData }> = ({ data, selected }) => (
   <Card className={`w-56 border-violet-300 bg-violet-50 ${selected ? 'ring-2 ring-violet-500' : ''}`}>
     <CardHeader className="pb-2">
       <CardTitle className="text-sm text-violet-800 flex items-center gap-2">
@@ -279,18 +354,26 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
   onSave,
   onExecute
 }) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(
-    initialQueryGraph?.nodes || []
+  const [nodes, setNodes, onNodesChange] = useNodesState<ReactFlowQueryNode>(
+    (initialQueryGraph?.nodes || []).map(node => ({
+      ...node,
+      type: node.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+      data: {
+        ...node.data,
+        id: node.id,
+        type: node.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+        position: node.position
+      }
+    }))
   )
-  const [edges, setEdges, onEdgesChange] = useEdgesState(
+  const [edges, setEdges, onEdgesChange] = useEdgesState<QueryEdge>(
     initialQueryGraph?.edges || []
   )
   const [executionProgress, setExecutionProgress] = React.useState(0)
   const [executionStatus, setExecutionStatus] = React.useState<'idle' | 'running' | 'completed' | 'error'>('idle')
-  const [executionResults, setExecutionResults] = React.useState<any>(null)
   const [selectedNode, setSelectedNode] = React.useState<Node | null>(null)
-  const [templates, setTemplates] = React.useState<any[]>([])
-  const [providers, setProviders] = React.useState<any[]>([])
+  const [templates, setTemplates] = React.useState<Template[]>([])
+  const [providers, setProviders] = React.useState<Provider[]>([])
   const [activeTab, setActiveTab] = React.useState('builder')
 
   const { toast } = useToast()
@@ -325,14 +408,20 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
   }
 
   const handleAddNode = (nodeType: QueryNodeType) => {
-    const newNode: Node = {
+    const newNode: ReactFlowQueryNode = {
       id: `query-node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: nodeType.type,
+      type: nodeType.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
       position: {
         x: Math.random() * 300 + 50,
         y: Math.random() * 300 + 50
       },
       data: {
+        id: `query-node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: nodeType.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+        position: {
+          x: Math.random() * 300 + 50,
+          y: Math.random() * 300 + 50
+        },
         label: nodeType.label,
         ...nodeType.defaultData,
         status: 'idle'
@@ -348,7 +437,10 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
     setExecutionProgress(0)
 
     try {
-      const queryGraph: QueryGraph = { nodes, edges }
+      const queryGraph: QueryGraph = {
+        nodes: nodes as QueryNode[],
+        edges: edges as QueryEdge[]
+      }
       await onExecute(queryGraph)
 
       // Simulate progress updates
@@ -366,6 +458,7 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
       toast({
         title: "Workflow executed successfully",
         description: "All nodes completed execution",
+        type: "success"
       })
     } catch (error) {
       setExecutionStatus('error')
@@ -379,8 +472,8 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
 
   const handleSave = () => {
     const queryGraph: QueryGraph = {
-      nodes,
-      edges
+      nodes: nodes as QueryNode[],
+      edges: edges as QueryEdge[]
     }
     onSave(queryGraph)
     onClose()
@@ -388,13 +481,32 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
 
   const handleCancel = () => {
     // Reset to initial state
-    setNodes(initialQueryGraph?.nodes || [])
+    setNodes((initialQueryGraph?.nodes || []).map(node => ({
+      ...node,
+      type: node.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+      data: {
+        ...node.data,
+        id: node.id,
+        type: node.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+        position: node.position
+      }
+    })))
     setEdges(initialQueryGraph?.edges || [])
     onClose()
   }
 
-  const handleLoadTemplate = (template: any) => {
-    setNodes(template.nodes || [])
+  const handleLoadTemplate = (template: Template) => {
+    const reactFlowNodes = (template.nodes || []).map(node => ({
+      ...node,
+      type: node.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+      data: {
+        ...node.data,
+        id: node.id,
+        type: node.type as 'dataSource' | 'filter' | 'transform' | 'aggregate' | 'join' | 'union',
+        position: node.position
+      }
+    }))
+    setNodes(reactFlowNodes)
     setEdges(template.edges || [])
     toast({
       title: "Template loaded",
@@ -406,7 +518,7 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
     setSelectedNode(node)
   }
 
-  const handleNodeConfigUpdate = (nodeId: string, config: any) => {
+  const handleNodeConfigUpdate = (nodeId: string, config: Record<string, unknown>) => {
     setNodes((nds) =>
       nds.map((node) =>
         node.id === nodeId
@@ -447,14 +559,7 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                         {[
                           { category: 'Input', nodes: QUERY_NODE_TYPES.filter(n => n.category === 'input') },
                           { category: 'Transform', nodes: QUERY_NODE_TYPES.filter(n => n.category === 'transform') },
-                          { category: 'Advanced', nodes: [
-                            { type: 'ml', label: 'ML Analysis', icon: '🤖', color: 'bg-cyan-500', category: 'transform', description: 'Machine learning analysis', defaultData: {}, inputs: 1, outputs: 1 },
-                            { type: 'nlp', label: 'NLP Processing', icon: '💬', color: 'bg-teal-500', category: 'transform', description: 'Natural language processing', defaultData: {}, inputs: 1, outputs: 1 },
-                            { type: 'validation', label: 'Validation', icon: '✅', color: 'bg-red-500', category: 'transform', description: 'Data validation', defaultData: {}, inputs: 1, outputs: 1 },
-                            { type: 'loop', label: 'Loop', icon: '🔄', color: 'bg-yellow-500', category: 'transform', description: 'Iterative processing', defaultData: {}, inputs: 1, outputs: 1 },
-                            { type: 'condition', label: 'Condition', icon: '⚡', color: 'bg-gray-500', category: 'transform', description: 'Conditional logic', defaultData: {}, inputs: 1, outputs: 2 },
-                            { type: 'custom', label: 'Custom', icon: '🛠️', color: 'bg-violet-500', category: 'transform', description: 'Custom node', defaultData: {}, inputs: 1, outputs: 1 },
-                          ]}
+                          { category: 'Advanced', nodes: QUERY_NODE_TYPES.filter(n => ['ml', 'nlp', 'validation', 'loop', 'condition', 'custom'].includes(n.type)) }
                         ].map(({ category, nodes }) => (
                           <div key={category}>
                             <h5 className="text-xs font-medium text-gray-500 mb-2">{category}</h5>
@@ -601,8 +706,8 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                 <ReactFlowWrapper
                   nodes={nodes}
                   edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
+                  onNodesChange={onNodesChange as unknown as any}
+                  onEdgesChange={onEdgesChange as unknown as any}
                   onConnect={onConnect}
                   onNodeClick={handleNodeClick}
                   nodeTypes={queryNodeTypes}
@@ -623,7 +728,7 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">
-                      {selectedNode.data?.label || 'Node'}
+                      {(selectedNode.data as QueryNodeData)?.label || 'Node'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -631,17 +736,13 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                       <div className="space-y-3">
                         <div>
                           <Label htmlFor="provider">Provider</Label>
-                          <Select onValueChange={(value) => handleNodeConfigUpdate(selectedNode.id, { provider: value })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select provider" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {providers.map((provider) => (
-                                <SelectItem key={provider.id} value={provider.id}>
-                                  {provider.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
+                          <Select value={(selectedNode.data as QueryNodeData)?.provider || ''} onChange={(e) => handleNodeConfigUpdate(selectedNode.id, { provider: e.target.value })}>
+                            <option value="">Select provider</option>
+                            {providers.map((provider) => (
+                              <option key={provider.id} value={provider.id}>
+                                {provider.name}
+                              </option>
+                            ))}
                           </Select>
                         </div>
                         <div>
@@ -649,7 +750,7 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                           <Input
                             id="connection"
                             placeholder="Database URL or API endpoint"
-                            value={selectedNode.data?.connection || ''}
+                            value={(selectedNode.data as QueryNodeData)?.connection || ''}
                             onChange={(e) => handleNodeConfigUpdate(selectedNode.id, { connection: e.target.value })}
                           />
                         </div>
@@ -663,21 +764,17 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                           <Textarea
                             id="condition"
                             placeholder="e.g., age > 18 AND status = 'active'"
-                            value={selectedNode.data?.condition || ''}
+                            value={(selectedNode.data as QueryNodeData)?.condition || ''}
                             onChange={(e) => handleNodeConfigUpdate(selectedNode.id, { condition: e.target.value })}
                           />
                         </div>
                         <div>
                           <Label htmlFor="filterType">Filter Type</Label>
-                          <Select onValueChange={(value) => handleNodeConfigUpdate(selectedNode.id, { filterType: value })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select filter type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="basic">Basic</SelectItem>
-                              <SelectItem value="advanced">Advanced</SelectItem>
-                              <SelectItem value="regex">Regex</SelectItem>
-                            </SelectContent>
+                          <Select value={(selectedNode.data as QueryNodeData)?.filterType || ''} onChange={(e) => handleNodeConfigUpdate(selectedNode.id, { filterType: e.target.value })}>
+                            <option value="">Select filter type</option>
+                            <option value="Basic">Basic</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Regex">Regex</option>
                           </Select>
                         </div>
                       </div>
@@ -687,29 +784,21 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                       <div className="space-y-3">
                         <div>
                           <Label htmlFor="model">ML Model</Label>
-                          <Select onValueChange={(value) => handleNodeConfigUpdate(selectedNode.id, { model: value })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select model" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="auto">Auto-select</SelectItem>
-                              <SelectItem value="linear">Linear Regression</SelectItem>
-                              <SelectItem value="random_forest">Random Forest</SelectItem>
-                              <SelectItem value="neural_net">Neural Network</SelectItem>
-                            </SelectContent>
+                          <Select value={(selectedNode.data as QueryNodeData)?.model || ''} onChange={(e) => handleNodeConfigUpdate(selectedNode.id, { model: e.target.value })}>
+                            <option value="">Select model</option>
+                            <option value="Auto-select">Auto-select</option>
+                            <option value="Linear Regression">Linear Regression</option>
+                            <option value="Random Forest">Random Forest</option>
+                            <option value="Neural Network">Neural Network</option>
                           </Select>
                         </div>
                         <div>
                           <Label htmlFor="task">Task</Label>
-                          <Select onValueChange={(value) => handleNodeConfigUpdate(selectedNode.id, { task: value })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select task" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="classification">Classification</SelectItem>
-                              <SelectItem value="regression">Regression</SelectItem>
-                              <SelectItem value="clustering">Clustering</SelectItem>
-                            </SelectContent>
+                          <Select value={(selectedNode.data as QueryNodeData)?.task || ''} onChange={(e) => handleNodeConfigUpdate(selectedNode.id, { task: e.target.value })}>
+                            <option value="">Select task</option>
+                            <option value="Classification">Classification</option>
+                            <option value="Regression">Regression</option>
+                            <option value="Clustering">Clustering</option>
                           </Select>
                         </div>
                       </div>
