@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: datakiln-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/datakiln
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: datakiln-db
+    environment:
+      - POSTGRES_DB=datakiln
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: datakiln-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+
+  # Frontend Service (if available)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: datakiln-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: datakiln-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  datakiln-network:
+    driver: bridge

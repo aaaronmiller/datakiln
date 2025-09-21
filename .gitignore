@@ -1,98 +1,151 @@
-# ----- OS / Editors -----
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon?
+.DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-.fseventsd
+ehthumbs.db
+Thumbs.db
 
-# VS Code (keep shared config if desired)
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/tasks.json
-!.vscode/launch.json
-
-# Roo Code local state
-.roo/
-
-# ----- Environment / Secrets -----
-.env
-.env.*
-!.env.example
-
-# ----- Node / Next.js / Frontend -----
-node_modules/
-.npm/
-.pnpm-debug.log*
+# Logs
+*.log
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.eslintcache
-.stylelintcache
-.nyc_output/
-coverage/
-.next/
-.swc/
-.turbo/
-.vercel/
-*.tsbuildinfo
-.parcel-cache/
-out/
-dist/
-build/
+lerna-debug.log*
 
-# Playwright
-playwright-report/
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Browser data (Playwright)
 test-results/
+playwright-report/
 playwright/.cache/
 
-# Chrome extension (if building)
-chrome-extension/node_modules/
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build outputs
+dist/
+build/
+out/
+
+# Application specific
+datakiln.db
+*.session
+sessions/
+
+# Provider API keys and sensitive data
+.env
+.env.*
+
+# Backup files
+*.bak
+*.backup
+
+# Local configuration
+config.local.json
+config.local.js
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Chrome extension (if any)
 chrome-extension/dist/
 chrome-extension/build/
 
-# ----- Python / Backend -----
-__pycache__/
-*.py[cod]
-*.pyd
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
-.coverage
-.coverage.*
-htmlcov/
-*.egg-info/
-*.egg
-.wheels/
-pip-wheel-metadata/
-venv/
-.venv/
-env/
-ENV/
-build/
-dist/
-
-# Alembic local DBs / logs (project-specific)
-*.sqlite
-*.db
-*.db-journal
-context_portal/context.db
-context_portal/logs/
-
-# ----- Logs / Temp -----
-logs/
-*.log
-*.log.*
-log/
-pids/
-*.pid
-*.pid.lock
-tmp/
-temp/
-*.swp
-*.swo
-*.orig
+# Frontend build artifacts
+frontend/dist/
+frontend/build/
+frontend/.next/
