@@ -85,9 +85,8 @@ class YouTubeTranscriptTask(AutomationTask):
             ]
 
             # Add analysis flag if requested
-            if kwargs.get('analyze', True):
+            if not kwargs.get('analyze', True):
                 cmd.append("--no-analysis")
-                cmd.append("false")  # This is wrong, let me fix this
 
             result = subprocess.run(
                 cmd,

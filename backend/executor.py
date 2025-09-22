@@ -8,6 +8,8 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from nodes.base_node import BaseNode
+from nodes.node_factory import node_factory, create_node
+from nodes.error_handler import error_handler
 from dom_actions import DomActionExecutor
 from dom_selectors import default_registry as selectors_registry
 
@@ -59,16 +61,22 @@ class WorkflowExecutor:
         self.retry_count = 0
         self.max_retries = 3
         self.state_history: List[Dict[str, Any]] = []
+        self.provider_manager = None
+        self.selectors_registry = None
 
     async def execute_workflow(
         self,
         workflow: Dict[str, Any],
         browser_context: Optional[Any] = None,
-        on_state_change: Optional[Callable[[ExecutionState, Dict[str, Any]], None]] = None
+        on_state_change: Optional[Callable[[ExecutionState, Dict[str, Any]], None]] = None,
+        provider_manager: Optional[Any] = None,
+        selectors_registry: Optional[Any] = None
     ) -> Dict[str, Any]:
         """Execute a complete workflow"""
         try:
             self._reset_execution()
+            self.provider_manager = provider_manager
+            self.selectors_registry = selectors_registry or selectors_registry
             self.context = ExecutionContext(
                 workflow=workflow,
                 nodes={},
@@ -171,7 +179,12 @@ class WorkflowExecutor:
                     raise ValueError(f"Node {node_id} missing type")
 
                 node_class = self._get_node_class(node_type)
-                node = node_class(**node_config)
+                if node_class is None:
+                    # Use dynamic factory for custom nodes
+                    node = await create_node(node_type, **node_config)
+                else:
+                    # Use traditional class instantiation for built-in nodes
+                    node = node_class(**node_config)
                 nodes[node_id] = node
 
             # Update context
@@ -232,7 +245,7 @@ class WorkflowExecutor:
         self.state = ExecutionState.EXECUTE_NODE
 
     async def _handle_execute_node(self):
-        """Execute the current node"""
+        """Execute the current node with enhanced error handling"""
         current_node = self.context.nodes.get(self.context.current_node_id)
 
         try:
@@ -243,11 +256,13 @@ class WorkflowExecutor:
                 "browser_context": self.context.browser_context,
                 "page": self.context.page,
                 "selectors_registry": self._get_selectors_dict(),
-                "artifacts": self.context.artifacts
+                "artifacts": self.context.artifacts,
+                "provider_manager": self.provider_manager,
+                "execution_options": self.context.execution_data.get("execution_options", {})
             }
 
-            # Execute node
-            result = await current_node.execute(execution_context)
+            # Execute node with comprehensive error handling
+            result = await current_node.execute_with_error_handling(execution_context)
 
             # Store result
             self.context.execution_data[f"node_{current_node.id}_result"] = result
@@ -269,7 +284,8 @@ class WorkflowExecutor:
                 self.state = ExecutionState.NEXT_NODE
 
         except Exception as e:
-            await self._handle_execution_error(current_node, str(e))
+            # Enhanced error handling with workflow-level recovery
+            await self._handle_workflow_execution_error(current_node, e)
 
     async def _handle_wait_for_dom(self):
         """Wait for DOM readiness"""
@@ -401,34 +417,52 @@ class WorkflowExecutor:
         else:
             self.state = ExecutionState.ERROR
 
-    async def _handle_execution_error(self, node: Optional[BaseNode], error_message: str):
-        """Handle execution errors with retry logic"""
-        if node:
-            node.mark_failed(error_message)
+    async def _handle_workflow_execution_error(self, node: Optional[BaseNode], exception: Exception):
+        """Handle workflow-level execution errors with enhanced error handling"""
+        # Get error recovery result from the error handler
+        recovery_result = await error_handler.handle_execution_error(
+            node, exception, self.retry_count + 1, self.context.execution_data if self.context else None
+        )
 
         # Store error in context
         error_info = {
             "node_id": node.id if node else None,
-            "error": error_message,
+            "error": str(exception),
+            "recovery_strategy": recovery_result.recovery_strategy,
+            "should_retry": recovery_result.should_retry,
             "retry_count": self.retry_count,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "error_details": recovery_result.new_error.to_dict() if recovery_result.new_error else None
         }
 
         if not self.context.execution_data.get("errors"):
             self.context.execution_data["errors"] = []
         self.context.execution_data["errors"].append(error_info)
 
-        # Check if we should retry
-        if self.retry_count < self.max_retries:
-            # Wait before retry with exponential backoff
-            wait_time = min(2 ** self.retry_count, 30)  # Max 30 seconds
-            await asyncio.sleep(wait_time)
+        # Check if we should retry at workflow level
+        if recovery_result.should_retry and self.retry_count < self.max_retries:
+            self.retry_count += 1
+            # Wait before retry with delay from recovery result
+            await asyncio.sleep(recovery_result.delay_seconds)
             self.state = ExecutionState.RETRY
         else:
+            # Check for workflow failure handling strategies
+            await self._handle_workflow_failure(node, exception, recovery_result)
             self.state = ExecutionState.ERROR
 
     def _get_node_class(self, node_type: str):
-        """Get node class by type"""
+        """Get node class by type using dynamic factory"""
+        # First try to get from dynamic factory
+        try:
+            # Check if it's a registered custom node
+            definition = node_factory.get_node_definition(node_type)
+            if definition:
+                # This is a custom node, let the factory handle it
+                return None  # Signal to use factory
+        except:
+            pass
+
+        # Fall back to built-in nodes
         from nodes.dom_action_node import DomActionNode
         from nodes.prompt_node import PromptNode
         from nodes.provider_node import ProviderNode
@@ -509,6 +543,80 @@ class WorkflowExecutor:
             "retry_count": self.retry_count,
             "max_retries": self.max_retries
         }
+
+    async def _handle_workflow_failure(
+        self,
+        node: Optional[BaseNode],
+        exception: Exception,
+        recovery_result: Any
+    ):
+        """Handle workflow-level failure with error propagation strategies"""
+        # Check workflow configuration for failure handling
+        workflow_config = self.context.workflow.get("error_handling", {}) if self.context else {}
+
+        failure_strategy = workflow_config.get("failure_strategy", "fail_fast")
+
+        if failure_strategy == "continue_on_error":
+            # Continue workflow execution despite errors
+            self._logger.warning(f"Continuing workflow despite error in node {node.id if node else 'unknown'}: {str(exception)}")
+            # Mark error in context but don't fail workflow
+            self.context.execution_data["workflow_errors"] = self.context.execution_data.get("workflow_errors", [])
+            self.context.execution_data["workflow_errors"].append({
+                "node_id": node.id if node else None,
+                "error": str(exception),
+                "strategy": "continue_on_error",
+                "timestamp": datetime.now().isoformat()
+            })
+            # Try to continue to next node
+            self.state = ExecutionState.NEXT_NODE
+
+        elif failure_strategy == "rollback":
+            # Attempt to rollback workflow state
+            await self._rollback_workflow(node, exception)
+            self.state = ExecutionState.ERROR
+
+        elif failure_strategy == "compensate":
+            # Execute compensation actions
+            await self._execute_compensation_actions(node, exception)
+            self.state = ExecutionState.ERROR
+
+        else:  # fail_fast (default)
+            # Immediate failure
+            self.state = ExecutionState.ERROR
+
+    async def _rollback_workflow(self, failed_node: Optional[BaseNode], exception: Exception):
+        """Rollback workflow to a safe state"""
+        if not self.context:
+            return
+
+        # Find completed nodes that might need rollback
+        completed_nodes = [
+            node for node in self.context.nodes.values()
+            if node.status == "completed"
+        ]
+
+        # Execute rollback in reverse order
+        for node in reversed(completed_nodes):
+            if hasattr(node, 'rollback'):
+                try:
+                    await node.rollback(self.context.execution_data)
+                    node.status = "rolled_back"
+                except Exception as rollback_error:
+                    self._logger.error(f"Rollback failed for node {node.id}: {str(rollback_error)}")
+
+    async def _execute_compensation_actions(self, failed_node: Optional[BaseNode], exception: Exception):
+        """Execute compensation actions for failed workflow"""
+        if not self.context:
+            return
+
+        compensation_actions = self.context.workflow.get("compensation_actions", [])
+
+        for action in compensation_actions:
+            try:
+                # Execute compensation logic (simplified - would need more implementation)
+                self._logger.info(f"Executing compensation action: {action}")
+            except Exception as comp_error:
+                self._logger.error(f"Compensation action failed: {str(comp_error)}")
 
     def _calculate_execution_time(self) -> Optional[float]:
         """Calculate execution time in seconds"""

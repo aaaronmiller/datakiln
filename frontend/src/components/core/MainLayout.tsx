@@ -1,0 +1,66 @@
+import * as React from "react"
+import Header from "./Header"
+import Sidebar from "./Sidebar"
+import CommandPalette from "./CommandPalette"
+import GlobalSearchModal from "./GlobalSearchModal"
+import { Breadcrumb } from "../ui/breadcrumb"
+import { ToastContainer } from "../ui/toast"
+import { ErrorBoundary } from "../ui/error-boundary"
+import { Loading } from "../ui/loading"
+import { useCommandPalette, useSidebar, useNotifications, useLoading } from "../../stores/uiStore"
+
+interface MainLayoutProps {
+  children: React.ReactNode
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const commandPalette = useCommandPalette()
+  const sidebar = useSidebar()
+  const notifications = useNotifications()
+  const loading = useLoading()
+
+  const handleCommandPalette = () => {
+    commandPalette.open()
+    // Test notification
+    notifications.add({
+      type: 'info',
+      title: 'Command Palette Opened',
+      message: 'Use keyboard shortcuts to navigate quickly!'
+    })
+  }
+
+  const toggleSidebar = () => {
+    sidebar.toggle()
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen theme-bg-background">
+        <Header onCommandPalette={handleCommandPalette} onToggleSidebar={toggleSidebar} />
+        <Breadcrumb />
+        <div className="flex">
+          <Sidebar isOpen={sidebar.isOpen} onClose={sidebar.close} />
+          <main className="flex-1 p-6 md:ml-0">
+            {children}
+          </main>
+        </div>
+        <CommandPalette />
+        <GlobalSearchModal />
+        <ToastContainer
+          notifications={notifications.notifications}
+          onClose={notifications.remove}
+        />
+        {loading.isLoading && (
+          <Loading
+            type="spinner"
+            size="lg"
+            message={loading.message || "Loading..."}
+            fullScreen
+          />
+        )}
+      </div>
+    </ErrorBoundary>
+  )
+}
+
+export default MainLayout

@@ -1,54 +1,104 @@
-import React, { useState } from 'react'
-import EnhancedQueryEditor from './components/core/EnhancedQueryEditor'
-import { QueryGraph } from './types/query'
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import MainLayout from './components/core/MainLayout'
+import Dashboard from './pages/Dashboard'
+import Workflows from './pages/Workflows'
+import Runs from './pages/Runs'
+import Results from './pages/Results'
+import Selectors from './pages/Selectors'
+import Templates from './pages/Templates'
+import Transcript from './pages/Transcript'
+import Extension from './pages/Extension'
+import Settings from './pages/Settings'
 
 function App() {
-  const [isEditorOpen, setIsEditorOpen] = useState(false)
-
-  const handleOpenEditor = () => {
-    setIsEditorOpen(true)
-  }
-
-  const handleCloseEditor = () => {
-    setIsEditorOpen(false)
-  }
-
-  const handleSaveQuery = (queryGraph: QueryGraph) => {
-    console.log('Saving query graph:', queryGraph)
-    // TODO: Implement save functionality
-  }
-
-  const handleExecuteQuery = async (queryGraph: QueryGraph) => {
-    console.log('Executing query graph:', queryGraph)
-    // TODO: Implement execution functionality
-    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate async operation
-  }
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>DataKiln</h1>
-        <button
-          onClick={handleOpenEditor}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Open Query Editor
-        </button>
-      </header>
-      <main>
-        <div className="p-4">
-          <h2>Welcome to DataKiln</h2>
-          <p>Click the button above to open the enhanced query editor.</p>
-        </div>
-      </main>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MainLayout>
+        <Routes>
+          {/* Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      <EnhancedQueryEditor
-        isOpen={isEditorOpen}
-        onClose={handleCloseEditor}
-        onSave={handleSaveQuery}
-        onExecute={handleExecuteQuery}
-      />
-    </div>
+          {/* Protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workflows"
+            element={
+              <ProtectedRoute>
+                <Workflows />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/runs"
+            element={
+              <ProtectedRoute>
+                <Runs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/results"
+            element={
+              <ProtectedRoute>
+                <Results />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/selectors-lab"
+            element={
+              <ProtectedRoute>
+                <Selectors />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <ProtectedRoute>
+                <Templates />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transcript-analysis"
+            element={
+              <ProtectedRoute>
+                <Transcript />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/extension-capture"
+            element={
+              <ProtectedRoute>
+                <Extension />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </MainLayout>
+    </Router>
   )
 }
 

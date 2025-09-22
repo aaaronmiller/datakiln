@@ -706,13 +706,15 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                 <ReactFlowWrapper
                   nodes={nodes}
                   edges={edges}
-                  onNodesChange={onNodesChange as unknown as any}
-                  onEdgesChange={onEdgesChange as unknown as any}
+                  onNodesChange={onNodesChange as any}
+                  onEdgesChange={onEdgesChange as any}
                   onConnect={onConnect}
                   onNodeClick={handleNodeClick}
                   nodeTypes={queryNodeTypes}
                   fitView={true}
                   className="bg-gray-50"
+                  enablePerformanceMonitoring={true}
+                  maxNodesForOptimization={50}
                 >
                   <Controls />
                   <MiniMap />

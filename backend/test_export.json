@@ -1,0 +1,176 @@
+{
+  "selectors": [
+    {
+      "key": "google_search_button",
+      "selector": "input[value='Google Search']",
+      "selector_type": "css",
+      "description": "Google search button",
+      "provider": "gemini_deep_research",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787968",
+      "updated_at": "2025-09-21 18:09:22.788324"
+    },
+    {
+      "key": "perplexity_search_input",
+      "selector": "textarea[data-testid='search-input']",
+      "selector_type": "css",
+      "description": "Perplexity search input",
+      "provider": "perplexity",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787970",
+      "updated_at": "2025-09-21 18:09:22.788552"
+    },
+    {
+      "key": "perplexity_send_button",
+      "selector": "button[data-testid='send-button']",
+      "selector_type": "css",
+      "description": "Perplexity send button",
+      "provider": "perplexity",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787973",
+      "updated_at": "2025-09-21 18:09:22.788785"
+    },
+    {
+      "key": "contenteditable_input",
+      "selector": "[contenteditable='true']",
+      "selector_type": "css",
+      "description": "Generic contenteditable element for prompt input",
+      "provider": null,
+      "context": "prompt_input",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787975",
+      "updated_at": "2025-09-21 18:09:22.789037"
+    },
+    {
+      "key": "submit_button",
+      "selector": "button[type='submit']",
+      "selector_type": "css",
+      "description": "Generic submit button",
+      "provider": null,
+      "context": "forms",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787976",
+      "updated_at": "2025-09-21 18:09:22.789247"
+    },
+    {
+      "key": "text_input",
+      "selector": "input[type='text']",
+      "selector_type": "css",
+      "description": "Generic text input field",
+      "provider": null,
+      "context": "forms",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787978",
+      "updated_at": "2025-09-21 18:09:22.789456"
+    },
+    {
+      "key": "main_content",
+      "selector": "main, [role='main'], .main-content, #main",
+      "selector_type": "css",
+      "description": "Main content area",
+      "provider": null,
+      "context": "content",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787979",
+      "updated_at": "2025-09-21 18:09:22.789661"
+    },
+    {
+      "key": "article_content",
+      "selector": "article, .article, .post-content",
+      "selector_type": "css",
+      "description": "Article content",
+      "provider": null,
+      "context": "content",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:22.787980",
+      "updated_at": "2025-09-21 18:09:22.789864"
+    },
+    {
+      "key": "custom_button",
+      "selector": "button.custom",
+      "selector_type": "css",
+      "description": "Custom button",
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.237138",
+      "updated_at": "2025-09-21 18:09:25.237140"
+    },
+    {
+      "key": "bulk1",
+      "selector": "div.bulk1",
+      "selector_type": "css",
+      "description": null,
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.244610",
+      "updated_at": "2025-09-21 18:09:25.244615"
+    },
+    {
+      "key": "bulk2",
+      "selector": "div.bulk2",
+      "selector_type": "css",
+      "description": null,
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.244612",
+      "updated_at": "2025-09-21 18:09:25.244846"
+    },
+    {
+      "key": "export_test",
+      "selector": "div.test",
+      "selector_type": "css",
+      "description": "Export test selector",
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.249007",
+      "updated_at": "2025-09-21 18:09:25.249009"
+    }
+  ],
+  "provider_mappings": {
+    "gemini_deep_research": [
+      "google_search_button"
+    ],
+    "perplexity": [
+      "perplexity_search_input",
+      "perplexity_send_button"
+    ]
+  },
+  "context_mappings": {
+    "search": [
+      "google_search_button",
+      "perplexity_search_input",
+      "perplexity_send_button"
+    ],
+    "prompt_input": [
+      "contenteditable_input"
+    ],
+    "forms": [
+      "submit_button",
+      "text_input"
+    ],
+    "content": [
+      "main_content",
+      "article_content"
+    ]
+  },
+  "exported_at": "2025-09-21T18:09:25.249325"
+}

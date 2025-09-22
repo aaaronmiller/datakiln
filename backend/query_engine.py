@@ -8,9 +8,10 @@ import time
 import psutil
 import os
 
-from executor import WorkflowExecutor, ExecutionContext
+from dag_executor import DAGExecutor
 from providers import ProviderManager, GeminiProvider, PerplexityProvider
 from dom_selectors import default_registry as selectors_registry
+from app.models.workflow import Workflow, Node, Edge
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +22,7 @@ class QueryEngine:
     """Enhanced query engine with node system integration"""
 
     def __init__(self):
-        self.workflow_executor = WorkflowExecutor()
+        self.dag_executor = DAGExecutor()
         self.provider_manager = ProviderManager()
         self.performance_monitor = PerformanceMonitor()
         self.graph_validator = GraphValidator()
@@ -77,18 +78,29 @@ class QueryEngine:
                 "start_time": datetime.now().isoformat()
             })
 
-            # Execute workflow
-            result = await self.workflow_executor.execute_workflow(
-                workflow=workflow_config,
-                on_state_change=self._on_execution_state_change,
-                **execution_options
-            )
+            # Store execution options in workflow config for nodes to access
+            if "execution_data" not in workflow_config:
+                workflow_config["execution_data"] = {}
+            workflow_config["execution_data"]["execution_options"] = execution_options
+
+            # Convert workflow config to Workflow object for DAGExecutor
+            workflow_obj = self._dict_to_workflow(workflow_config)
+
+            # Execute workflow using DAG executor
+            context = {
+                "selectors_registry": selectors_registry,
+                "provider_manager": self.provider_manager,
+                "execution_options": execution_options
+            }
+
+            result = await self.dag_executor.execute_workflow(workflow_obj, context)
 
             # Add performance metrics
             execution_time = time.time() - start_time
             result["performance"] = self.performance_monitor.get_metrics()
             result["execution_time"] = execution_time
             result["execution_id"] = execution_id
+            result["success"] = True
 
             logger.info(f"Query execution completed in {execution_time:.2f}s")
             return result
@@ -310,6 +322,61 @@ class QueryEngine:
                 "error": str(e),
                 "original_workflow": workflow
             }
+
+    def _dict_to_workflow(self, workflow_dict: Dict[str, Any]) -> Workflow:
+        """Convert workflow dict to Workflow object"""
+        from datetime import datetime
+        nodes = []
+        for node_id, node_config in workflow_dict.get("nodes", {}).items():
+            # Ensure required fields are present
+            node_data = {
+                "id": node_id,
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+                **node_config
+            }
+            node = Node(**node_data)
+            nodes.append(node)
+
+        edges = []
+        # Convert connections to edges if they exist
+        connections = workflow_dict.get("connections", [])
+        for conn in connections:
+            edge = Edge(
+                id=f"{conn['from']}_{conn['to']}",
+                from_=conn["from"],
+                to=conn["to"],
+                meta=conn.get("meta", {})
+            )
+            edges.append(edge)
+
+        # Also check for next relationships in nodes
+        for node in nodes:
+            if hasattr(node, 'next') and node.next:
+                if isinstance(node.next, list):
+                    for next_node in node.next:
+                        if next_node:
+                            edge = Edge(
+                                id=f"{node.id}_{next_node}",
+                                from_=node.id,
+                                to=next_node
+                            )
+                            edges.append(edge)
+                elif isinstance(node.next, str):
+                    edge = Edge(
+                        id=f"{node.id}_{node.next}",
+                        from_=node.id,
+                        to=node.next
+                    )
+                    edges.append(edge)
+
+        return Workflow(
+            id=workflow_dict.get("id", "temp_workflow"),
+            name=workflow_dict.get("name", "Converted Workflow"),
+            description=workflow_dict.get("description"),
+            nodes=nodes,
+            edges=edges
+        )
 
     def _on_execution_state_change(self, state: str, context: Dict[str, Any]):
         """Handle execution state changes"""

@@ -110,10 +110,10 @@ test_integration() {
     fi
 
     # Run integration tests
-    if [ -f "tests/integration_test.py" ]; then
+    if [ -f "backend/tests/test_integration.py" ]; then
         cd backend
         source venv/bin/activate
-        python -m pytest tests/integration_test.py -v
+        python -m pytest tests/test_integration.py -v
         cd ..
 
         print_status "Integration tests passed"

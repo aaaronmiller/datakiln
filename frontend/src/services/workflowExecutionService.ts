@@ -6,13 +6,15 @@ interface WorkflowExecutionOptions {
 }
 
 interface WorkflowExecutionResult {
-  success: boolean
+  success?: boolean
+  run_id?: string
   execution_id?: string
   execution_time?: number
   data?: unknown[]
   error?: string
   performance?: unknown
   timestamp?: string
+  message?: string
 }
 
 interface WorkflowGraph {

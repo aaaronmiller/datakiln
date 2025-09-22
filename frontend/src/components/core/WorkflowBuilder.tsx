@@ -1,6 +1,5 @@
 import * as React from "react"
 import {
-  ReactFlow,
   MiniMap,
   Controls,
   Background,
@@ -14,13 +13,14 @@ import {
 import '@xyflow/react/dist/style.css'
 import { Button } from "../ui/button"
 import TaskNode from "./TaskNode"
-import QueryNode from "./QueryNode"
+import QueryNode from "./QueryNode-fixed"
 import QueryEditor from "./QueryEditor"
+import { ReactFlowWrapper } from "../ui/react-flow-wrapper"
 import { useWorkflowStore, WorkflowNode } from "../../stores/workflowStore"
 
 const nodeTypes: NodeTypes = {
   taskNode: TaskNode,
-  queryNode: QueryNode,
+  queryNode: QueryNode as any, // Type compatibility issue - will be resolved with proper typing
 }
 
 const WorkflowBuilder: React.FC = () => {
@@ -240,20 +240,22 @@ const WorkflowBuilder: React.FC = () => {
 
       {/* Canvas */}
       <div className="flex-1">
-        <ReactFlow
+        <ReactFlowWrapper
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={onNodesChange as any}
+          onEdgesChange={onEdgesChange as any}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
           attributionPosition="top-right"
+          enablePerformanceMonitoring={true}
+          maxNodesForOptimization={30}
         >
           <Controls />
           <MiniMap />
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-        </ReactFlow>
+        </ReactFlowWrapper>
       </div>
 
       <QueryEditor

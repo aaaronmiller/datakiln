@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Literal
 from pydantic import Field
 from .base_node import BaseNode
 import json
@@ -10,8 +10,105 @@ class TransformNode(BaseNode):
 
     type: str = "transform"
 
+    # Parameter validation schema
+    params_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "transform_type": {
+                "type": "string",
+                "enum": ["markdown", "extract_citations", "merge", "filter", "json_transform", "text_clean", "field_ops", "type_convert"],
+                "description": "Type of transformation to perform"
+            },
+            "input_key": {
+                "type": "string",
+                "description": "Key in inputs to transform"
+            },
+            "output_key": {
+                "type": "string",
+                "default": "transformed",
+                "description": "Key for transformed output"
+            },
+            "merge_keys": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Keys to merge for merge transform"
+            },
+            "filter_condition": {
+                "type": "string",
+                "description": "Filter condition (e.g., 'len > 100')"
+            },
+            "json_path": {
+                "type": "string",
+                "description": "JSON path for extraction (e.g., '$.items[*].name')"
+            },
+            "regex_pattern": {
+                "type": "string",
+                "description": "Regex pattern for text operations"
+            },
+            "replacement": {
+                "type": "string",
+                "description": "Replacement string for regex operations"
+            },
+            "markdown_format": {
+                "type": "string",
+                "enum": ["plain", "github", "html"],
+                "default": "plain",
+                "description": "Markdown output format"
+            },
+            "clean_operations": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["lowercase", "uppercase", "trim", "normalize_whitespace", "remove_urls", "remove_emails"]
+                },
+                "description": "Text cleaning operations to apply"
+            },
+            "field_operations": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "operation": {
+                            "type": "string",
+                            "enum": ["add", "remove", "rename"]
+                        },
+                        "field": {"type": "string"},
+                        "value": {},  # Any type for add operation
+                        "new_name": {"type": "string"}  # For rename operation
+                    },
+                    "required": ["operation", "field"]
+                },
+                "description": "Field operations to perform"
+            },
+            "type_conversions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "field": {"type": "string"},
+                        "target_type": {
+                            "type": "string",
+                            "enum": ["string", "number", "boolean", "integer", "float"]
+                        }
+                    },
+                    "required": ["field", "target_type"]
+                },
+                "description": "Type conversion operations"
+            }
+        },
+        "required": ["transform_type"],
+        "dependencies": {
+            "merge_keys": {"properties": {"transform_type": {"enum": ["merge"]}}},
+            "filter_condition": {"properties": {"transform_type": {"enum": ["filter"]}}},
+            "json_path": {"properties": {"transform_type": {"enum": ["json_transform"]}}},
+            "regex_pattern": {"properties": {"transform_type": {"enum": ["text_clean"]}}},
+            "field_operations": {"properties": {"transform_type": {"enum": ["field_ops"]}}},
+            "type_conversions": {"properties": {"transform_type": {"enum": ["type_convert"]}}}
+        }
+    }
+
     # Transform operation type
-    transform_type: Literal["markdown", "extract_citations", "merge", "filter", "json_transform", "text_clean"] = Field(
+    transform_type: Literal["markdown", "extract_citations", "merge", "filter", "json_transform", "text_clean", "field_ops", "type_convert"] = Field(
         ..., description="Type of transformation to perform"
     )
 
@@ -34,6 +131,16 @@ class TransformNode(BaseNode):
     # Text cleaning parameters
     clean_operations: List[Literal["lowercase", "uppercase", "trim", "normalize_whitespace", "remove_urls", "remove_emails"]] = Field(
         default_factory=list, description="Text cleaning operations to apply"
+    )
+
+    # Field operation parameters
+    field_operations: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Field operations to perform"
+    )
+
+    # Type conversion parameters
+    type_conversions: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Type conversion operations"
     )
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -64,6 +171,12 @@ class TransformNode(BaseNode):
 
             elif self.transform_type == "text_clean":
                 result[self.output_key] = self._clean_text(input_data)
+
+            elif self.transform_type == "field_ops":
+                result[self.output_key] = self._apply_field_operations(input_data)
+
+            elif self.transform_type == "type_convert":
+                result[self.output_key] = self._apply_type_conversions(input_data)
 
             else:
                 raise ValueError(f"Unsupported transform type: {self.transform_type}")
@@ -130,16 +243,31 @@ class TransformNode(BaseNode):
             r'https?://[^\s<>"{}|\\^`[\]]+',  # URLs
         ]
 
-        for pattern in patterns:
+        for i, pattern in enumerate(patterns):
             matches = re.finditer(pattern, data)
             for match in matches:
-                if len(match.groups()) >= 2:
-                    # This looks like a citation
+                if i == 0:  # [text](url) - markdown links
                     citations.append({
                         "type": "citation",
                         "text": match.group(1),
-                        "url": match.group(2) if len(match.groups()) > 1 else None,
-                        "year": match.group(2) if len(match.groups()) > 1 and match.group(2).isdigit() else None
+                        "url": match.group(2)
+                    })
+                elif i == 1:  # Author (Year)
+                    citations.append({
+                        "type": "citation",
+                        "text": match.group(1).strip(),
+                        "year": match.group(2)
+                    })
+                elif i == 2:  # Author, Year
+                    citations.append({
+                        "type": "citation",
+                        "text": match.group(1).strip(),
+                        "year": match.group(2)
+                    })
+                elif i == 3:  # URLs
+                    citations.append({
+                        "type": "url",
+                        "url": match.group(0)
                     })
 
         return citations
@@ -242,3 +370,83 @@ class TransformNode(BaseNode):
                 cleaned = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '', cleaned)
 
         return cleaned
+
+    def _apply_field_operations(self, data: Any) -> Any:
+        """Apply field operations (add, remove, rename)"""
+        if not self.field_operations:
+            return data
+
+        if isinstance(data, list):
+            return [self._apply_field_ops_to_item(item) for item in data]
+        elif isinstance(data, dict):
+            return self._apply_field_ops_to_item(data)
+        else:
+            return data
+
+    def _apply_field_ops_to_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply field operations to a single item"""
+        if not isinstance(item, dict):
+            return item
+
+        result = item.copy()
+
+        for operation in self.field_operations:
+            op_type = operation.get("operation")
+            field = operation.get("field")
+
+            if op_type == "add":
+                value = operation.get("value")
+                result[field] = value
+            elif op_type == "remove":
+                result.pop(field, None)
+            elif op_type == "rename":
+                new_name = operation.get("new_name")
+                if field in result and new_name:
+                    result[new_name] = result.pop(field)
+
+        return result
+
+    def _apply_type_conversions(self, data: Any) -> Any:
+        """Apply type conversions"""
+        if not self.type_conversions:
+            return data
+
+        if isinstance(data, list):
+            return [self._apply_type_conversions_to_item(item) for item in data]
+        elif isinstance(data, dict):
+            return self._apply_type_conversions_to_item(data)
+        else:
+            return data
+
+    def _apply_type_conversions_to_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply type conversions to a single item"""
+        if not isinstance(item, dict):
+            return item
+
+        result = item.copy()
+
+        for conversion in self.type_conversions:
+            field = conversion.get("field")
+            target_type = conversion.get("target_type")
+
+            if field in result:
+                value = result[field]
+                try:
+                    if target_type == "string":
+                        result[field] = str(value)
+                    elif target_type == "number":
+                        result[field] = float(value) if '.' in str(value) else int(value)
+                    elif target_type == "integer":
+                        result[field] = int(value)
+                    elif target_type == "float":
+                        result[field] = float(value)
+                    elif target_type == "boolean":
+                        if isinstance(value, str):
+                            result[field] = value.lower() in ('true', '1', 'yes', 'on')
+                        else:
+                            result[field] = bool(value)
+                except (ValueError, TypeError):
+                    # Keep original value if conversion fails
+                    pass
+
+        return result

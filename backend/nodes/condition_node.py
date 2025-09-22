@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, Union, List, Literal
 from pydantic import Field
 from .base_node import BaseNode
 

@@ -32,6 +32,8 @@ interface QueryNodeData extends Record<string, unknown> {
 }
 
 const QueryNode: React.FC<NodeProps<QueryNodeData>> = ({ data, selected }) => {
+  const nodeData = data.data as QueryNodeBaseData // Extract the actual node data
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-gray-500",
@@ -53,11 +55,11 @@ const QueryNode: React.FC<NodeProps<QueryNodeData>> = ({ data, selected }) => {
   }
 
   const getQuerySummary = () => {
-    if (!data.queryGraph || data.queryGraph.nodes.length === 0) {
+    if (!nodeData.queryGraph || nodeData.queryGraph.nodes.length === 0) {
       return "No query defined"
     }
-    const nodeCount = data.queryGraph.nodes.length
-    const connectionCount = data.queryGraph.connections.length
+    const nodeCount = nodeData.queryGraph.nodes.length
+    const connectionCount = nodeData.queryGraph.connections.length
     return `${nodeCount} nodes, ${connectionCount} connections`
   }
 

@@ -43,16 +43,21 @@ class ProviderNode(BaseNode):
         None, description="Context for canvas operations"
     )
 
+    def _inject_services(self, context: Dict[str, Any]):
+        """Inject services into the node"""
+        self._provider_manager = context.get("provider_manager")
+        self._selectors_registry = context.get("selectors_registry")
+
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute AI provider request"""
         try:
-            # Get provider manager from context
-            provider_manager = context.get("provider_manager")
+            # Get provider manager from injected service or context
+            provider_manager = self._provider_manager or context.get("provider_manager")
             if not provider_manager:
                 raise ValueError("Provider manager not available in context")
 
             # Prepare provider request
-            request = self._build_provider_request()
+            request = self._build_provider_request(context)
 
             # Execute based on provider type
             if self.provider_type == "gemini_deep_research":
@@ -72,9 +77,16 @@ class ProviderNode(BaseNode):
             self.mark_failed(error_message)
             raise
 
-    def _build_provider_request(self) -> Dict[str, Any]:
+    def _build_provider_request(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Build provider-specific request"""
+        # Get query from inputs first, then execution options
+        query = self.inputs.get("query", "")
+        if not query:
+            execution_options = context.get("execution_options", {})
+            query = execution_options.get("query", "")
+
         request = {
+            "prompt": query,
             "provider_type": self.provider_type,
             "mode": self.mode,
             "model": self.model,

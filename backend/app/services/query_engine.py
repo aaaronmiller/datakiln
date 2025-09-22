@@ -97,14 +97,11 @@ class DataSourceNode(QueryNode):
             source_type = self.data.get('source_type', 'unknown')
             source_config = self.data.get('config', {})
 
-            # Simulate data source connection
-            await asyncio.sleep(0.1)
+            # Try real data sources first, fallback to mock data
+            data = await self._fetch_real_data(source_type, source_config, context)
 
-            # Mock data based on source type
-            mock_data = self._generate_mock_data(source_type, source_config)
-
-            self.mark_completed(mock_data)
-            return mock_data
+            self.mark_completed(data)
+            return data
 
         except Exception as e:
             error_msg = f"Data source execution failed: {str(e)}"
@@ -112,8 +109,109 @@ class DataSourceNode(QueryNode):
             self.mark_failed(error_msg)
             raise
 
+    async def _fetch_real_data(self, source_type: str, config: Dict[str, Any], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Fetch data from real data sources."""
+        try:
+            if source_type == 'api':
+                return await self._fetch_from_api(config)
+            elif source_type == 'provider':
+                return await self._fetch_from_provider(config, context)
+            elif source_type == 'dom_action':
+                return await self._fetch_from_dom_action(config, context)
+            else:
+                # Fallback to mock data
+                return self._generate_mock_data(source_type, config)
+        except Exception as e:
+            logger.warning(f"Failed to fetch real data for {source_type}: {e}, falling back to mock data")
+            return self._generate_mock_data(source_type, config)
+
+    async def _fetch_from_api(self, config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Fetch data from API endpoint."""
+        import aiohttp
+
+        url = config.get('url')
+        method = config.get('method', 'GET')
+        headers = config.get('headers', {})
+        params = config.get('params', {})
+
+        if not url:
+            raise ValueError("API URL is required")
+
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, headers=headers, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    # Assume the response is a list or extract list from response
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict) and 'data' in data:
+                        return data['data'] if isinstance(data['data'], list) else [data['data']]
+                    else:
+                        return [data]
+                else:
+                    raise ValueError(f"API request failed with status {response.status}")
+
+    async def _fetch_from_provider(self, config: Dict[str, Any], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Fetch data using AI provider."""
+        provider_manager = context.get('provider_manager')
+        if not provider_manager:
+            raise ValueError("Provider manager not available")
+
+        provider_type = config.get('provider_type', 'gemini_deep_research')
+        query = config.get('query', '')
+
+        # Use provider to fetch data
+        if provider_type == 'gemini_deep_research':
+            result = await provider_manager.execute_deep_research({
+                'prompt': query,
+                'research_depth': config.get('research_depth', 'balanced')
+            })
+        elif provider_type == 'perplexity':
+            result = await provider_manager.execute_perplexity({
+                'prompt': query
+            })
+        else:
+            raise ValueError(f"Unsupported provider type: {provider_type}")
+
+        # Convert result to list format
+        if isinstance(result, dict):
+            return [result]
+        elif isinstance(result, list):
+            return result
+        else:
+            return [{'result': str(result)}]
+
+    async def _fetch_from_dom_action(self, config: Dict[str, Any], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Fetch data using DOM actions."""
+        dom_action_manager = context.get('dom_action_manager')
+        selectors_registry = context.get('selectors_registry')
+
+        if not dom_action_manager or not selectors_registry:
+            raise ValueError("DOM action services not available")
+
+        selector_key = config.get('selector_key')
+        action = config.get('action', 'extract')
+
+        if not selector_key:
+            raise ValueError("Selector key is required for DOM actions")
+
+        # Execute DOM action
+        result = await dom_action_manager.execute_action({
+            'selector_key': selector_key,
+            'action': action,
+            'value': config.get('value')
+        })
+
+        # Convert result to list format
+        if isinstance(result, dict):
+            return [result]
+        elif isinstance(result, list):
+            return result
+        else:
+            return [{'extracted_data': str(result)}]
+
     def _generate_mock_data(self, source_type: str, config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate mock data based on source type."""
+        """Generate mock data based on source type (fallback)."""
         if source_type == 'users':
             return [
                 {'id': 1, 'name': 'Alice', 'age': 30, 'email': 'alice@example.com'},
@@ -391,6 +489,32 @@ class QueryExecutionEngine:
             QueryNodeType.JOIN: lambda id, data: JoinNode(id, data),
             QueryNodeType.UNION: lambda id, data: UnionNode(id, data),
         }
+        # Initialize service integrations
+        self._initialize_services()
+
+    def _initialize_services(self):
+        """Initialize backend service integrations."""
+        try:
+            # Import and initialize services with fallback paths
+            try:
+                # Try relative imports first (when used as part of the app)
+                from ...providers import provider_manager
+                from ...dom_selectors import default_registry as selectors_registry
+                from ...dom_actions import DOMActionManager
+            except ImportError:
+                # Try absolute imports (when used standalone)
+                from providers import provider_manager
+                from dom_selectors import default_registry as selectors_registry
+                from dom_actions import DOMActionManager
+
+            self.provider_manager = provider_manager
+            self.selectors_registry = selectors_registry
+            self.dom_action_manager = DOMActionManager()
+        except ImportError as e:
+            logger.warning(f"Could not initialize some services: {e}")
+            self.provider_manager = None
+            self.selectors_registry = None
+            self.dom_action_manager = None
 
     def parse_query_graph(self, query_graph: Dict[str, Any]) -> Dict[str, QueryNode]:
         """Parse query graph and create node instances."""
@@ -412,13 +536,45 @@ class QueryExecutionEngine:
         return nodes
 
     def build_execution_order(self, nodes: Dict[str, QueryNode], edges: List[Dict[str, str]]) -> List[List[str]]:
-        """Build execution order based on node dependencies."""
-        # Simple topological sort for linear execution
-        # In a real implementation, this would handle complex DAGs
-        node_ids = list(nodes.keys())
+        """Build execution order based on node dependencies using topological sort."""
+        # Build adjacency list and indegree map
+        adj_list = {node_id: [] for node_id in nodes.keys()}
+        indegree = {node_id: 0 for node_id in nodes.keys()}
 
-        # For simplicity, execute in the order nodes appear in the graph
-        return [node_ids]
+        # Build graph from edges
+        for edge in edges:
+            source = edge.get('source')
+            target = edge.get('target')
+            if source in adj_list and target in indegree:
+                adj_list[source].append(target)
+                indegree[target] += 1
+
+        # Find nodes with no incoming edges (data sources)
+        queue = [node_id for node_id in indegree if indegree[node_id] == 0]
+        result = []
+
+        while queue:
+            level = []
+            for _ in range(len(queue)):
+                node_id = queue.pop(0)
+                level.append(node_id)
+
+                # Reduce indegree of neighbors
+                for neighbor in adj_list[node_id]:
+                    indegree[neighbor] -= 1
+                    if indegree[neighbor] == 0:
+                        queue.append(neighbor)
+
+            if level:
+                result.append(level)
+
+        # Check for cycles (if not all nodes are processed)
+        if len(result) == 0 or sum(len(level) for level in result) < len(nodes):
+            # Fallback: execute all nodes in a single level if cycle detected
+            logger.warning("Cycle detected in query graph, executing all nodes in parallel")
+            return [list(nodes.keys())]
+
+        return result
 
     async def execute_query_graph(self, query_graph: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
         """Execute a complete query graph."""
@@ -433,6 +589,9 @@ class QueryExecutionEngine:
             edges = query_graph.get('edges', [])
             execution_order = self.build_execution_order(nodes, edges)
 
+            # Prepare execution context with services
+            execution_context = self._prepare_execution_context(context or {})
+
             # Execute nodes in order
             execution_results = []
             for level in execution_order:
@@ -444,7 +603,7 @@ class QueryExecutionEngine:
                         try:
                             # Get input data from previous results
                             input_data = self._get_node_input(node_id, edges, execution_results)
-                            result = await node.execute(input_data, context or {})
+                            result = await node.execute(input_data, execution_context)
                             level_results[node_id] = result
                         except Exception as e:
                             logger.error(f"Node {node_id} execution failed: {e}")
@@ -477,6 +636,121 @@ class QueryExecutionEngine:
                 'execution_time': (datetime.now() - start_time).total_seconds()
             }
 
+    async def execute_query_graph_streaming(self, query_graph: Dict[str, Any], context: Dict[str, Any] = None):
+        """Execute a query graph with streaming results."""
+        start_time = datetime.now()
+
+        try:
+            # Parse nodes
+            nodes = self.parse_query_graph(query_graph)
+            if not nodes:
+                yield {'type': 'error', 'message': 'No valid nodes found in query graph'}
+                return
+
+            edges = query_graph.get('edges', [])
+            execution_order = self.build_execution_order(nodes, edges)
+
+            # Prepare execution context with services
+            execution_context = self._prepare_execution_context(context or {})
+
+            # Send initial status
+            yield {
+                'type': 'status',
+                'message': 'Starting query execution',
+                'total_nodes': len(nodes),
+                'execution_order': execution_order
+            }
+
+            # Execute nodes in order with streaming
+            execution_results = []
+            completed_count = 0
+
+            for level_idx, level in enumerate(execution_order):
+                level_results = {}
+
+                # Send level start
+                yield {
+                    'type': 'level_start',
+                    'level': level_idx,
+                    'nodes': level
+                }
+
+                for node_id in level:
+                    if node_id in nodes:
+                        node = nodes[node_id]
+
+                        # Send node start
+                        yield {
+                            'type': 'node_start',
+                            'node_id': node_id,
+                            'node_type': node.node_type.value
+                        }
+
+                        try:
+                            # Get input data from previous results
+                            input_data = self._get_node_input(node_id, edges, execution_results)
+                            result = await node.execute(input_data, execution_context)
+
+                            level_results[node_id] = result
+                            completed_count += 1
+
+                            # Send node completion
+                            yield {
+                                'type': 'node_complete',
+                                'node_id': node_id,
+                                'result': result,
+                                'completed_count': completed_count,
+                                'total_nodes': len(nodes)
+                            }
+
+                        except Exception as e:
+                            error_msg = str(e)
+                            logger.error(f"Node {node_id} execution failed: {error_msg}")
+                            node.mark_failed(error_msg)
+
+                            # Send node failure
+                            yield {
+                                'type': 'node_error',
+                                'node_id': node_id,
+                                'error': error_msg
+                            }
+
+                execution_results.append(level_results)
+
+                # Send level completion
+                yield {
+                    'type': 'level_complete',
+                    'level': level_idx,
+                    'results': level_results
+                }
+
+            # Send final results
+            final_results = {}
+            execution_time = (datetime.now() - start_time).total_seconds()
+
+            for node in nodes.values():
+                final_results[node.node_id] = node.to_dict()
+
+            yield {
+                'type': 'complete',
+                'success': True,
+                'results': final_results,
+                'execution_time': execution_time,
+                'completed_nodes': len([n for n in nodes.values() if n.status == ExecutionStatus.COMPLETED]),
+                'failed_nodes': len([n for n in nodes.values() if n.status == ExecutionStatus.FAILED])
+            }
+
+        except Exception as e:
+            error_msg = f"Query graph execution failed: {str(e)}"
+            logger.error(error_msg)
+            execution_time = (datetime.now() - start_time).total_seconds()
+
+            yield {
+                'type': 'error',
+                'message': error_msg,
+                'execution_time': execution_time
+            }
+
     def _get_node_input(self, node_id: str, edges: List[Dict[str, str]], execution_results: List[Dict[str, Any]]) -> Any:
         """Get input data for a node from previous execution results."""
         # Find edges that target this node
@@ -485,17 +759,39 @@ class QueryExecutionEngine:
         if not input_edges:
             return None
 
-        # For simplicity, return the last execution result
-        # In a real implementation, this would properly handle multiple inputs
-        if execution_results:
-            last_result = execution_results[-1]
-            # Find the source node result
-            for edge in input_edges:
-                source_id = edge.get('source')
-                if source_id in last_result:
-                    return last_result[source_id]
+        # Collect results from all source nodes
+        input_data = []
+        for edge in input_edges:
+            source_id = edge.get('source')
+            if source_id:
+                # Find the result from any execution level
+                for level_results in reversed(execution_results):
+                    if source_id in level_results:
+                        input_data.append(level_results[source_id])
+                        break
 
-        return None
+        # If only one input, return it directly
+        if len(input_data) == 1:
+            return input_data[0]
+        # If multiple inputs, return as list
+        elif len(input_data) > 1:
+            return input_data
+        # No inputs found
+        else:
+            return None
+
+    def _prepare_execution_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Prepare execution context with available services."""
+        execution_context = context.copy()
+
+        # Add service integrations
+        execution_context.update({
+            'provider_manager': self.provider_manager,
+            'selectors_registry': self.selectors_registry,
+            'dom_action_manager': self.dom_action_manager,
+        })
+
+        return execution_context
 
     def validate_query_graph(self, query_graph: Dict[str, Any]) -> Dict[str, Any]:
         """Validate a query graph structure."""

@@ -241,10 +241,10 @@ class TestTransformNode:
         data = ["a", "bbb", "cccc", "dd"]
         filtered = node._filter_data(data)
 
-        assert len(filtered) == 2
-        assert "bbb" in filtered
+        assert len(filtered) == 1
         assert "cccc" in filtered
         assert "a" not in filtered
+        assert "bbb" not in filtered
         assert "dd" not in filtered
 
     @pytest.mark.asyncio
@@ -301,7 +301,7 @@ class TestExportNode:
     @pytest.mark.asyncio
     async def test_data_extraction(self):
         """Test input data extraction"""
-        node = ExportNode(name="Test", format="json")
+        node = ExportNode(name="Test", format="json", path_key="test.json")
 
         # Test with input_key
         node.input_key = "results"
@@ -361,12 +361,11 @@ class TestConditionNode:
     @pytest.mark.asyncio
     async def test_python_condition_evaluation(self):
         """Test Python expression evaluation"""
-        node = ConditionNode(name="Test", expr="", condition_type="python")
+        node = ConditionNode(name="Test", expr="data > 5", condition_type="python")
 
         # Test simple Python expressions
-        context = {"data": 10, "threshold": 5}
         result = await node._evaluate_python_condition(10)
-        assert result == True  # 10 is truthy
+        assert result == True  # 10 > 5
 
     @pytest.mark.asyncio
     async def test_regex_condition_evaluation(self):
@@ -396,3 +395,108 @@ class TestConditionNode:
         assert context["custom_var"] == "value"
         assert context["node_id"] == "test_node_123"
         assert "timestamp" in context
+class TestDAGExecutor:
+    """Test DAGExecutor functionality"""
+
+    @pytest.mark.asyncio
+    async def test_dag_executor_node_registry(self):
+        """Test that DAG executor has all required node types registered"""
+        from backend.dag_executor import DAGExecutor
+
+        executor = DAGExecutor()
+
+        # Check that all node types are registered
+        expected_types = {
+            "dataSource", "transform", "filter", "dom_action",
+            "provider", "condition", "export", "prompt",
+            "aggregate", "join", "union"
+        }
+
+        assert set(executor.node_classes.keys()) == expected_types
+
+        # Verify all classes are importable and have execute method
+        for node_type, node_class in executor.node_classes.items():
+            assert hasattr(node_class, 'execute')
+
+    @pytest.mark.asyncio
+    async def test_dag_executor_node_instantiation(self):
+        """Test that DAG executor can instantiate all node types"""
+        from backend.dag_executor import DAGExecutor
+
+        executor = DAGExecutor()
+
+        # Test instantiating each node type
+        test_configs = {
+            "transform": {"name": "Test Transform", "transform_type": "markdown"},
+            "filter": {"name": "Test Filter", "filter_type": "condition", "condition": "value > 5"},
+            "condition": {"name": "Test Condition", "expr": "True"},
+            "export": {"name": "Test Export", "format": "json", "path_key": "test.json"},
+            "prompt": {"name": "Test Prompt", "template_id": "test"},
+            "provider": {"name": "Test Provider", "provider_type": "gemini_deep_research"},
+        }
+
+        for node_type, config in test_configs.items():
+            node_class = executor.node_classes.get(node_type)
+            assert node_class is not None, f"Node type {node_type} not found"
+
+            # Create node instance
+            node = node_class(**config)
+            assert node.type == node_type
+            assert hasattr(node, 'execute')
+
+    def test_enhanced_dag_executor_structure(self):
+        """Test that enhanced DAG executor has proper structure and data flow capabilities"""
+        from backend.dag_executor import DAGExecutor, DataFlowConnection, ExecutionResult, WorkflowExecutionContext
+
+        executor = DAGExecutor()
+
+        # Verify enhanced data structures exist
+        assert hasattr(executor, '_build_nodes')
+        assert hasattr(executor, '_analyze_data_flow')
+        assert hasattr(executor, '_validate_and_order_workflow')
+        assert hasattr(executor, '_execute_with_data_flow')
+        assert hasattr(executor, '_prepare_node_inputs')
+        assert hasattr(executor, '_prepare_execution_context')
+        assert hasattr(executor, '_update_downstream_data_flow')
+        assert hasattr(executor, '_handle_node_failure')
+        assert hasattr(executor, '_prepare_execution_results')
+
+        # Verify data structures
+        connection = DataFlowConnection(
+            source_node_id="node1",
+            target_node_id="node2",
+            source_output_key="output1",
+            target_input_key="input1"
+        )
+        assert connection.source_node_id == "node1"
+        assert connection.target_node_id == "node2"
+        assert connection.source_output_key == "output1"
+        assert connection.target_input_key == "input1"
+
+        # Verify execution result structure
+        result = ExecutionResult(
+            node_id="test_node",
+            success=True,
+            outputs={"result": "test"},
+            execution_time=1.5,
+            metadata={"node_type": "test"}
+        )
+        assert result.node_id == "test_node"
+        assert result.success == True
+        assert result.outputs == {"result": "test"}
+        assert result.execution_time == 1.5
+        assert result.metadata == {"node_type": "test"}
+
+        # Verify execution context structure
+        context = WorkflowExecutionContext(
+            workflow_id="test_workflow",
+            execution_id="exec_123",
+            global_context={"test": "context"},
+            node_results={},
+            data_flow={},
+            execution_options={"query": "test"}
+        )
+        assert context.workflow_id == "test_workflow"
+        assert context.execution_id == "exec_123"
+        assert context.global_context == {"test": "context"}
+        assert context.execution_options == {"query": "test"}

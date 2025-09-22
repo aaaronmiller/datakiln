@@ -1,18 +1,6 @@
 {
   "selectors": [
     {
-      "key": "google_search_input",
-      "selector": "input[name='q']",
-      "selector_type": "css",
-      "description": "Google search input field",
-      "provider": "gemini_deep_research",
-      "context": "search",
-      "fallback_selectors": [],
-      "attributes": {},
-      "created_at": "2025-09-21 08:48:09.226971",
-      "updated_at": "2025-09-21 08:48:09.227111"
-    },
-    {
       "key": "google_search_button",
       "selector": "input[value='Google Search']",
       "selector_type": "css",
@@ -21,8 +9,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.226977",
-      "updated_at": "2025-09-21 08:48:09.227913"
+      "created_at": "2025-09-22 08:26:39.195529",
+      "updated_at": "2025-09-22 08:26:39.196093"
     },
     {
       "key": "perplexity_search_input",
@@ -33,8 +21,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.226979",
-      "updated_at": "2025-09-21 08:48:09.228187"
+      "created_at": "2025-09-22 08:26:39.195531",
+      "updated_at": "2025-09-22 08:26:39.196571"
     },
     {
       "key": "perplexity_send_button",
@@ -45,8 +33,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.226980",
-      "updated_at": "2025-09-21 08:48:09.228425"
+      "created_at": "2025-09-22 08:26:39.195533",
+      "updated_at": "2025-09-22 08:26:39.197478"
     },
     {
       "key": "contenteditable_input",
@@ -57,8 +45,8 @@
       "context": "prompt_input",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.226983",
-      "updated_at": "2025-09-21 08:48:09.228720"
+      "created_at": "2025-09-22 08:26:39.195534",
+      "updated_at": "2025-09-22 08:26:39.197826"
     },
     {
       "key": "submit_button",
@@ -69,8 +57,8 @@
       "context": "forms",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.227100",
-      "updated_at": "2025-09-21 08:48:09.228996"
+      "created_at": "2025-09-22 08:26:39.195536",
+      "updated_at": "2025-09-22 08:26:39.198165"
     },
     {
       "key": "text_input",
@@ -81,8 +69,8 @@
       "context": "forms",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.227102",
-      "updated_at": "2025-09-21 08:48:09.229234"
+      "created_at": "2025-09-22 08:26:39.195538",
+      "updated_at": "2025-09-22 08:26:39.198499"
     },
     {
       "key": "main_content",
@@ -93,8 +81,8 @@
       "context": "content",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.227103",
-      "updated_at": "2025-09-21 08:48:09.229461"
+      "created_at": "2025-09-22 08:26:39.195539",
+      "updated_at": "2025-09-22 08:26:39.198826"
     },
     {
       "key": "article_content",
@@ -105,8 +93,83 @@
       "context": "content",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-21 08:48:09.227105",
-      "updated_at": "2025-09-21 08:48:09.229688"
+      "created_at": "2025-09-22 08:26:39.195541",
+      "updated_at": "2025-09-22 08:26:39.199178"
+    },
+    {
+      "key": "custom_button",
+      "selector": "button.custom",
+      "selector_type": "css",
+      "description": "Custom button",
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.237138",
+      "updated_at": "2025-09-21 18:09:25.237140"
+    },
+    {
+      "key": "bulk1",
+      "selector": "div.bulk1",
+      "selector_type": "css",
+      "description": null,
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.244610",
+      "updated_at": "2025-09-21 18:09:25.244615"
+    },
+    {
+      "key": "bulk2",
+      "selector": "div.bulk2",
+      "selector_type": "css",
+      "description": null,
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.244612",
+      "updated_at": "2025-09-21 18:09:25.244846"
+    },
+    {
+      "key": "export_test",
+      "selector": "div.test",
+      "selector_type": "css",
+      "description": "Export test selector",
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.249007",
+      "updated_at": "2025-09-21 18:09:25.249009"
+    },
+    {
+      "key": "test_with_fallbacks",
+      "selector": "button.primary",
+      "selector_type": "css",
+      "description": null,
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [
+        "button.secondary",
+        "a.primary"
+      ],
+      "attributes": {},
+      "created_at": "2025-09-21 18:09:25.254605",
+      "updated_at": "2025-09-21 18:09:25.254607"
+    },
+    {
+      "key": "google_search_input",
+      "selector": "input[name='q']",
+      "selector_type": "css",
+      "description": "Google search input field",
+      "provider": "gemini_deep_research",
+      "context": "search",
+      "fallback_selectors": [],
+      "attributes": {},
+      "created_at": "2025-09-22 08:26:39.195524",
+      "updated_at": "2025-09-22 08:26:39.195554"
     }
   ],
   "provider_mappings": {
@@ -138,5 +201,5 @@
       "article_content"
     ]
   },
-  "exported_at": "2025-09-21T08:48:09.229723"
+  "exported_at": "2025-09-22T08:26:39.199253"
 }

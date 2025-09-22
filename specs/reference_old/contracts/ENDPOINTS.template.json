@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "providers": {
+    "perplexity": {
+      "type": "llm",
+      "baseUrl": "https://api.perplexity.ai",
+      "authRef": "PERPLEXITY_API_KEY",
+      "authType": "bearer",
+      "capabilities": ["search", "generate", "research"],
+      "models": ["llama-3.1-sonar-large-128k-online"],
+      "defaultModel": "llama-3.1-sonar-large-128k-online"
+    },
+    "gemini": {
+      "type": "llm",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "authRef": "GEMINI_API_KEY",
+      "authType": "api_key",
+      "capabilities": ["deepResearch", "canvas", "generate"],
+      "models": ["gemini-1.5-pro"],
+      "defaultModel": "gemini-1.5-pro"
+    },
+    "genericDom": {
+      "type": "dom",
+      "capabilities": ["query", "action", "extract"],
+      "selectors": {
+        "copy": "#copy",
+        "submit": "[type=submit]",
+        "click": "[data-action='click']",
+        "fill": "[type='text'], [type='email'], textarea",
+        "extract": "[data-extract]"
+      },
+      "defaultTimeout": 10000
+    }
+  }
+}

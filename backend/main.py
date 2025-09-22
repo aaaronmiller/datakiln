@@ -418,6 +418,47 @@ async def get_workflow_collaboration_state(workflow_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get workflow state: {str(e)}")
 
+# WebSocket connections for real-time updates
+active_websocket_connections: List[WebSocket] = []
+
+@app.websocket("/ws/dashboard")
+async def dashboard_websocket(websocket: WebSocket):
+    """WebSocket endpoint for dashboard real-time updates."""
+    await websocket.accept()
+    active_websocket_connections.append(websocket)
+
+    try:
+        while True:
+            # Keep connection alive and listen for client messages
+            data = await websocket.receive_text()
+            # For now, just echo back (could be used for client commands)
+            await websocket.send_text(f"Echo: {data}")
+    except WebSocketDisconnect:
+        if websocket in active_websocket_connections:
+            active_websocket_connections.remove(websocket)
+
+# Function to broadcast updates to all connected dashboard clients
+async def broadcast_dashboard_update(update_type: str, data: Dict[str, Any]):
+    """Broadcast dashboard updates to all connected WebSocket clients."""
+    message = {
+        "type": update_type,
+        "data": data,
+        "timestamp": datetime.now().isoformat()
+    }
+
+    disconnected_clients = []
+    for websocket in active_websocket_connections:
+        try:
+            await websocket.send_text(json.dumps(message))
+        except Exception as e:
+            logger.error(f"Failed to send WebSocket message: {e}")
+            disconnected_clients.append(websocket)
+
+    # Clean up disconnected clients
+    for client in disconnected_clients:
+        if client in active_websocket_connections:
+            active_websocket_connections.remove(client)
+
 # Version management endpoints
 @app.post("/versions/create")
 async def create_version(request: VersionCreateRequest):
@@ -612,3 +653,89 @@ async def get_version_stats():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get version stats: {str(e)}")
+
+# Search endpoints
+@app.get("/search")
+async def global_search(q: str, entity_types: Optional[str] = None, limit: int = 20):
+    """Global search across workflows, executions, results, and other entities"""
+    try:
+        # Parse entity types filter
+        entity_filter = None
+        if entity_types:
+            entity_filter = set(entity_types.split(","))
+
+        results = []
+
+        # Mock search results for demonstration
+        # In a real implementation, this would search actual data stores
+        mock_entities = [
+            {
+                "id": "wf-1",
+                "type": "workflow",
+                "title": "Research Workflow",
+                "description": "A comprehensive research workflow for data analysis",
+                "metadata": {"created_at": "2024-01-15T10:00:00Z", "author": "user1"}
+            },
+            {
+                "id": "wf-2",
+                "type": "workflow",
+                "title": "Data Processing Pipeline",
+                "description": "Automated data processing and transformation workflow",
+                "metadata": {"created_at": "2024-01-20T14:30:00Z", "author": "user2"}
+            },
+            {
+                "id": "run-1",
+                "type": "run",
+                "title": "Research Execution #123",
+                "description": "Completed research execution with comprehensive results",
+                "metadata": {"status": "completed", "workflow_id": "wf-1", "duration": "45m"}
+            },
+            {
+                "id": "run-2",
+                "type": "run",
+                "title": "Data Processing Run #456",
+                "description": "Successful data processing execution",
+                "metadata": {"status": "completed", "workflow_id": "wf-2", "duration": "12m"}
+            },
+            {
+                "id": "result-1",
+                "type": "result",
+                "title": "Research Report - AI Trends",
+                "description": "Comprehensive analysis of current AI technology trends",
+                "metadata": {"execution_id": "run-1", "format": "markdown", "size": "2.5MB"}
+            },
+            {
+                "id": "result-2",
+                "type": "result",
+                "title": "Processed Dataset Summary",
+                "description": "Summary statistics and insights from processed dataset",
+                "metadata": {"execution_id": "run-2", "format": "json", "size": "500KB"}
+            }
+        ]
+
+        # Filter and search
+        for entity in mock_entities:
+            if entity_filter and entity["type"] not in entity_filter:
+                continue
+
+            # Simple text search in title and description
+            search_text = f"{entity['title']} {entity['description']}".lower()
+            if q.lower() in search_text:
+                results.append(entity)
+
+        # Sort by relevance (simple implementation)
+        results.sort(key=lambda x: (
+            0 if q.lower() in x["title"].lower() else 1,  # Title matches first
+            x["title"].lower().find(q.lower())  # Position of match
+        ))
+
+        return {
+            "query": q,
+            "results": results[:limit],
+            "total": len(results),
+            "entity_types": list(set(r["type"] for r in results)) if results else [],
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")

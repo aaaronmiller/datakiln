@@ -1,0 +1,110 @@
+{
+  "nodes": [
+    {
+      "type": "math_operation",
+      "name": "Math Operation",
+      "description": "Perform mathematical operations on numbers",
+      "version": "1.0.0",
+      "inputs": ["numbers"],
+      "outputs": ["result"],
+      "params_schema": {
+        "type": "object",
+        "required": ["operation"],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["add", "subtract", "multiply", "divide", "average", "max", "min"],
+            "default": "add",
+            "description": "Mathematical operation to perform"
+          },
+          "numbers": {
+            "type": "array",
+            "items": {"type": "number"},
+            "description": "List of numbers to operate on"
+          }
+        }
+      },
+      "implementation": "from nodes.examples.math_node import MathNode\n\ndef create_math_node(**kwargs):\n    operation = kwargs.get('operation', 'add')\n    return MathNode(operation=operation, **kwargs)",
+      "metadata": {
+        "author": "System",
+        "category": "math",
+        "tags": ["math", "calculation", "numbers"],
+        "icon": "🔢",
+        "color": "bg-blue-500"
+      }
+    },
+    {
+      "type": "text_processor",
+      "name": "Text Processor",
+      "description": "Process and transform text data",
+      "version": "1.0.0",
+      "inputs": ["text"],
+      "outputs": ["processed_text"],
+      "params_schema": {
+        "type": "object",
+        "required": ["operation"],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["uppercase", "lowercase", "capitalize", "reverse", "length"],
+            "default": "uppercase",
+            "description": "Text processing operation"
+          },
+          "text": {
+            "type": "string",
+            "description": "Input text to process"
+          }
+        }
+      },
+      "implementation": "from nodes.base_node import BaseNode\nfrom typing import Dict, Any\n\nclass TextProcessorNode(BaseNode):\n    def __init__(self, operation: str = 'uppercase', **kwargs):\n        super().__init__(\n            name=f'Text {operation.title()}',\n            type='text_processor',\n            description=f'Process text with {operation} operation',\n            **kwargs\n        )\n        self.operation = operation\n\n    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:\n        text = self.inputs.get('text', '')\n        if not isinstance(text, str):\n            text = str(text)\n        \n        if self.operation == 'uppercase':\n            result = text.upper()\n        elif self.operation == 'lowercase':\n            result = text.lower()\n        elif self.operation == 'capitalize':\n            result = text.capitalize()\n        elif self.operation == 'reverse':\n            result = text[::-1]\n        elif self.operation == 'length':\n            result = len(text)\n        else:\n            result = text\n        \n        self.mark_completed({'processed_text': result})\n        return {'processed_text': result}\n\ndef create_text_processor_node(**kwargs):\n    operation = kwargs.get('operation', 'uppercase')\n    return TextProcessorNode(operation=operation, **kwargs)",
+      "metadata": {
+        "author": "System",
+        "category": "text",
+        "tags": ["text", "processing", "string"],
+        "icon": "📝",
+        "color": "bg-green-500"
+      }
+    },
+    {
+      "type": "data_validator",
+      "name": "Data Validator",
+      "description": "Validate data against custom rules",
+      "version": "1.0.0",
+      "inputs": ["data"],
+      "outputs": ["is_valid", "errors"],
+      "params_schema": {
+        "type": "object",
+        "required": ["rules"],
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {"type": "string"},
+                "type": {"enum": ["string", "number", "boolean", "array", "object"]},
+                "required": {"type": "boolean", "default": false},
+                "min_length": {"type": "integer"},
+                "max_length": {"type": "integer"},
+                "pattern": {"type": "string"}
+              }
+            },
+            "description": "Validation rules to apply"
+          },
+          "data": {
+            "type": "object",
+            "description": "Data object to validate"
+          }
+        }
+      },
+      "implementation": "from nodes.base_node import BaseNode\nfrom typing import Dict, Any, List\n\nclass DataValidatorNode(BaseNode):\n    def __init__(self, rules: List[Dict[str, Any]] = None, **kwargs):\n        super().__init__(\n            name='Data Validator',\n            type='data_validator',\n            description='Validate data against custom rules',\n            **kwargs\n        )\n        self.rules = rules or []\n\n    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:\n        data = self.inputs.get('data', {})\n        if not isinstance(data, dict):\n            self.mark_completed({'is_valid': False, 'errors': ['Input must be an object']})\n            return {'is_valid': False, 'errors': ['Input must be an object']}\n        \n        errors = []\n        \n        for rule in self.rules:\n            field = rule.get('field')\n            if not field:\n                continue\n                \n            value = data.get(field)\n            \n            # Check required\n            if rule.get('required', False) and (field not in data or value is None):\n                errors.append(f'Field {field} is required')\n                continue\n            \n            if value is None:\n                continue\n            \n            # Type validation\n            expected_type = rule.get('type')\n            if expected_type:\n                if expected_type == 'string' and not isinstance(value, str):\n                    errors.append(f'Field {field} must be a string')\n                elif expected_type == 'number' and not isinstance(value, (int, float)):\n                    errors.append(f'Field {field} must be a number')\n                elif expected_type == 'boolean' and not isinstance(value, bool):\n                    errors.append(f'Field {field} must be a boolean')\n                elif expected_type == 'array' and not isinstance(value, list):\n                    errors.append(f'Field {field} must be an array')\n                elif expected_type == 'object' and not isinstance(value, dict):\n                    errors.append(f'Field {field} must be an object')\n            \n            # Length validation for strings\n            if isinstance(value, str):\n                min_len = rule.get('min_length')\n                max_len = rule.get('max_length')\n                if min_len is not None and len(value) < min_len:\n                    errors.append(f'Field {field} must be at least {min_len} characters')\n                if max_len is not None and len(value) > max_len:\n                    errors.append(f'Field {field} must be at most {max_len} characters')\n                \n                # Pattern validation\n                pattern = rule.get('pattern')\n                if pattern and not __import__('re').match(pattern, value):\n                    errors.append(f'Field {field} does not match required pattern')\n        \n        is_valid = len(errors) == 0\n        self.mark_completed({'is_valid': is_valid, 'errors': errors})\n        return {'is_valid': is_valid, 'errors': errors}\n\ndef create_data_validator_node(**kwargs):\n    rules = kwargs.get('rules', [])\n    return DataValidatorNode(rules=rules, **kwargs)",
+      "metadata": {
+        "author": "System",
+        "category": "validation",
+        "tags": ["validation", "data", "rules"],
+        "icon": "✅",
+        "color": "bg-yellow-500"
+      }
+    }
+  ]
+}

@@ -1,0 +1,284 @@
+/**
+ * Integration tests for QueryEditor component
+ * Tests serialization, state management, and API interactions
+ */
+
+import { render, screen } from '@testing-library/react'
+import QueryEditor from './QueryEditor'
+
+// Mock the services and hooks
+jest.mock('../../services/nodeRegistryService')
+jest.mock('../../hooks/useQueryGraphPersistence')
+jest.mock('../../services/queryGraphPersistenceService')
+
+describe('QueryEditor Integration Tests', () => {
+  beforeEach(() => {
+    // Reset mocks
+    jest.clearAllMocks()
+  })
+
+  test('renders QueryEditor component', () => {
+    render(<QueryEditor isOpen={true} onClose={jest.fn()} onSave={jest.fn()} />)
+
+    expect(screen.getByText('Query Editor')).toBeInTheDocument()
+  })
+
+  describe('Component Rendering', () => {
+    test('renders QueryEditor with toolbar and canvas', () => {
+      renderQueryEditor()
+
+      expect(screen.getByText('Query Editor')).toBeInTheDocument()
+      expect(screen.getByText('Query Nodes')).toBeInTheDocument()
+      expect(screen.getByText('Data Source')).toBeInTheDocument()
+      expect(screen.getByText('Filter')).toBeInTheDocument()
+    })
+
+    test('renders with initial query graph', () => {
+      renderQueryEditor({ initialQueryGraph: mockQueryGraph })
+
+      expect(screen.getByText('Query Editor')).toBeInTheDocument()
+      // The ReactFlow canvas should be rendered (though we can't easily test its contents)
+    })
+  })
+
+  describe('Node Management', () => {
+    test('adds node when clicking node type button', async () => {
+      const user = userEvent.setup()
+      renderQueryEditor()
+
+      const dataSourceButton = screen.getByText('Data Source')
+      await user.click(dataSourceButton)
+
+      // Verify that the node was added to the store
+      // This would require mocking the store or checking for visual indicators
+      expect(dataSourceButton).toBeInTheDocument()
+    })
+
+    test('updates graph metadata', async () => {
+      const user = userEvent.setup()
+      renderQueryEditor()
+
+      const nameInput = screen.getByLabelText('Name')
+      await user.clear(nameInput)
+      await user.type(nameInput, 'Test Query Graph')
+
+      expect(nameInput).toHaveValue('Test Query Graph')
+    })
+  })
+
+  describe('Graph Serialization', () => {
+    test('serializes graph to expected format on save', async () => {
+      const mockOnSave = jest.fn()
+      const user = userEvent.setup()
+
+      renderQueryEditor({
+        initialQueryGraph: mockQueryGraph,
+        onSave: mockOnSave
+      })
+
+      // Add a node first
+      const dataSourceButton = screen.getByText('Data Source')
+      await user.click(dataSourceButton)
+
+      // Click save
+      const saveButton = screen.getByText('💾 Save Query')
+      await user.click(saveButton)
+
+      // Verify onSave was called with correct format
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalled()
+        const savedGraph = mockOnSave.mock.calls[0][0]
+        expect(savedGraph).toHaveProperty('nodes')
+        expect(savedGraph).toHaveProperty('connections')
+        expect(Array.isArray(savedGraph.nodes)).toBe(true)
+        expect(Array.isArray(savedGraph.connections)).toBe(true)
+      })
+    })
+
+    test('converts ReactFlow format to backend format', () => {
+      // Test the conversion logic
+      const reactFlowNodes = [
+        {
+          id: 'node1',
+          type: 'dataSource',
+          position: { x: 100, y: 100 },
+          data: {
+            type: 'dataSource',
+            source_type: 'api',
+            config: { url: 'https://api.example.com' }
+          }
+        }
+      ]
+
+      const reactFlowEdges = [
+        {
+          id: 'edge1',
+          source: 'node1',
+          target: 'node2',
+          sourceHandle: 'output',
+          targetHandle: 'input'
+        }
+      ]
+
+      // This should match the format expected by backend
+      const expectedBackendFormat = {
+        nodes: reactFlowNodes,
+        connections: reactFlowEdges
+      }
+
+      expect(expectedBackendFormat.nodes).toEqual(reactFlowNodes)
+      expect(expectedBackendFormat.connections).toEqual(reactFlowEdges)
+    })
+  })
+
+  describe('Persistence Integration', () => {
+    test('saves graph to persistence service', async () => {
+      const mockSaveGraph = jest.fn().mockResolvedValue('graph_123')
+      mockUseQueryGraphPersistence.mockReturnValue({
+        saveGraph: mockSaveGraph,
+        loadGraph: jest.fn(),
+        isSaving: false,
+        markAsModified: jest.fn()
+      })
+
+      const user = userEvent.setup()
+      renderQueryEditor()
+
+      const saveToStorageButton = screen.getByText('💾 Save to Storage')
+      await user.click(saveToStorageButton)
+
+      await waitFor(() => {
+        expect(mockSaveGraph).toHaveBeenCalled()
+      })
+    })
+
+    test('loads graph from persistence service', () => {
+      const mockLoadGraph = jest.fn()
+      mockUseQueryGraphPersistence.mockReturnValue({
+        saveGraph: jest.fn(),
+        loadGraph: mockLoadGraph,
+        isSaving: false,
+        markAsModified: jest.fn()
+      })
+
+      renderQueryEditor({ graphId: 'existing_graph_123' })
+
+      expect(mockLoadGraph).toHaveBeenCalledWith('existing_graph_123')
+    })
+  })
+
+  describe('Error Handling', () => {
+    test('handles save errors gracefully', async () => {
+      const mockSaveGraph = jest.fn().mockRejectedValue(new Error('Save failed'))
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockUseQueryGraphPersistence.mockReturnValue({
+        saveGraph: mockSaveGraph,
+        loadGraph: jest.fn(),
+        isSaving: false,
+        markAsModified: jest.fn()
+      })
+
+      const user = userEvent.setup()
+      renderQueryEditor()
+
+      const saveToStorageButton = screen.getByText('💾 Save to Storage')
+      await user.click(saveToStorageButton)
+
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith('Failed to save query graph:', expect.any(Error))
+      })
+
+      consoleSpy.mockRestore()
+    })
+
+    test('handles load errors gracefully', () => {
+      const mockLoadGraph = jest.fn().mockRejectedValue(new Error('Load failed'))
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockUseQueryGraphPersistence.mockReturnValue({
+        saveGraph: jest.fn(),
+        loadGraph: mockLoadGraph,
+        isSaving: false,
+        markAsModified: jest.fn()
+      })
+
+      renderQueryEditor({ graphId: 'failing_graph_123' })
+
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to load query graph:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('State Management', () => {
+    test('clears graph on dialog close', () => {
+      const mockOnClose = jest.fn()
+      const { rerender } = renderQueryEditor({ isOpen: true, onClose: mockOnClose })
+
+      // Close the dialog
+      rerender(
+        <QueryStoreProvider>
+          <QueryEditor isOpen={false} onClose={mockOnClose} onSave={jest.fn()} />
+        </QueryStoreProvider>
+      )
+
+      // The component should handle cleanup
+      expect(mockOnClose).not.toHaveBeenCalled() // Should not call onClose again
+    })
+
+    test('loads initial graph when dialog opens', () => {
+      renderQueryEditor({
+        isOpen: true,
+        initialQueryGraph: mockQueryGraph
+      })
+
+      // The initial graph should be loaded
+      expect(screen.getByText('Query Editor')).toBeInTheDocument()
+    })
+  })
+})
+
+// Integration test for complete workflow
+describe('Complete QueryEditor Workflow', () => {
+  test('user can create, modify, and save a query graph', async () => {
+    const mockOnSave = jest.fn()
+    const user = userEvent.setup()
+
+    renderQueryEditor({ onSave: mockOnSave })
+
+    // Step 1: Add nodes
+    const dataSourceButton = screen.getByText('Data Source')
+    await user.click(dataSourceButton)
+    await user.click(dataSourceButton) // Add another
+
+    const filterButton = screen.getByText('Filter')
+    await user.click(filterButton)
+
+    // Step 2: Set metadata
+    const nameInput = screen.getByLabelText('Name')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'My Integration Test Graph')
+
+    const descriptionTextarea = screen.getByLabelText('Description')
+    await user.clear(descriptionTextarea)
+    await user.type(descriptionTextarea, 'A test graph for integration testing')
+
+    // Step 3: Save the graph
+    const saveButton = screen.getByText('💾 Save Query')
+    await user.click(saveButton)
+
+    // Verify the save
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nodes: expect.any(Array),
+          connections: expect.any(Array)
+        })
+      )
+    })
+
+    const savedGraph = mockOnSave.mock.calls[0][0]
+    expect(savedGraph.nodes.length).toBeGreaterThan(0)
+    expect(savedGraph.connections).toEqual([]) // No connections created in this test
+  })
+})

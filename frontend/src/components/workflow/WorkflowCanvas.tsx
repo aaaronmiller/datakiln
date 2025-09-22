@@ -1,6 +1,5 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react'
 import {
-  ReactFlow,
   Background,
   BackgroundVariant,
   Node,
@@ -19,8 +18,10 @@ import '@xyflow/react/dist/style.css'
 
 import WorkflowNode from './WorkflowNode'
 import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
+import { ErrorBoundary } from '../ui/error-boundary'
+import { ReactFlowWrapper } from '../ui/react-flow-wrapper'
 
-// Node types for React Flow
+// Node types for React Flow - memoized for performance
 const nodeTypes: NodeTypes = {
   dom_action: WorkflowNode,
   prompt: WorkflowNode,
@@ -58,6 +59,59 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   showControls = true,
 }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+  const updateTimeoutRef = useRef<NodeJS.Timeout>()
+  const [debouncedNodes, setDebouncedNodes] = useState(nodes)
+  const [debouncedEdges, setDebouncedEdges] = useState(edges)
+
+  // Debounced state updates to prevent excessive re-renders
+  useEffect(() => {
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current)
+    }
+
+    updateTimeoutRef.current = setTimeout(() => {
+      setDebouncedNodes(nodes)
+      setDebouncedEdges(edges)
+    }, 16) // ~60fps
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current)
+      }
+    }
+  }, [nodes, edges])
+
+  // Memoize node types to prevent unnecessary re-renders
+  const memoizedNodeTypes = useMemo(() => nodeTypes, [])
+
+  // Memoize toolbar buttons to prevent re-creation on every render
+  const toolbarButtons = useMemo(() => {
+    if (readonly) return null
+
+    return WORKFLOW_NODE_TYPES.map((nodeType) => (
+      <button
+        key={nodeType.type}
+        onClick={() => {
+          if (onNodeAdd && reactFlowInstance) {
+            const viewport = reactFlowInstance.getViewport()
+            onNodeAdd(nodeType.type, {
+              x: viewport.x + 100,
+              y: viewport.y + 100
+            })
+          }
+        }}
+        className={`
+          px-2 py-1 text-xs rounded border flex items-center space-x-1
+          ${nodeType.color} text-white border-transparent
+          hover:opacity-80 transition-opacity
+        `}
+        title={nodeType.description}
+      >
+        <span>{nodeType.icon}</span>
+        <span>{nodeType.label}</span>
+      </button>
+    ))
+  }, [readonly, onNodeAdd, reactFlowInstance])
 
   // Handle node selection
   const handleNodeClick = useCallback(
@@ -77,20 +131,28 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   }, [onNodeSelect])
 
   return (
-    <div className="w-full h-full relative">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
+    <ErrorBoundary fallback={<div className="p-4 text-red-500">Error loading workflow canvas</div>}>
+      <ReactFlowWrapper
+        nodes={debouncedNodes}
+        edges={debouncedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         onInit={setReactFlowInstance}
-        nodeTypes={nodeTypes}
+        nodeTypes={memoizedNodeTypes}
         fitView
         attributionPosition="bottom-left"
         className="bg-gray-50"
+        nodesDraggable={!readonly}
+        nodesConnectable={!readonly}
+        elementsSelectable={!readonly}
+        maxZoom={2}
+        minZoom={0.1}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        enablePerformanceMonitoring={true}
+        maxNodesForOptimization={50}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 
@@ -112,33 +174,11 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         {showControls && <Controls className="bg-white border border-gray-300 rounded-md" />}
 
         {/* Toolbar Panel */}
-        {!readonly && (
+        {!readonly && toolbarButtons && (
           <Panel position="top-left" className="bg-white p-2 rounded-md shadow-md border border-gray-300">
             <div className="flex flex-wrap gap-1">
               <span className="text-sm font-medium text-gray-700 mr-2">Add Node:</span>
-              {WORKFLOW_NODE_TYPES.map((nodeType) => (
-                <button
-                  key={nodeType.type}
-                  onClick={() => {
-                    if (onNodeAdd && reactFlowInstance) {
-                      const viewport = reactFlowInstance.getViewport()
-                      onNodeAdd(nodeType.type, {
-                        x: viewport.x + 100,
-                        y: viewport.y + 100
-                      })
-                    }
-                  }}
-                  className={`
-                    px-2 py-1 text-xs rounded border flex items-center space-x-1
-                    ${nodeType.color} text-white border-transparent
-                    hover:opacity-80 transition-opacity
-                  `}
-                  title={nodeType.description}
-                >
-                  <span>{nodeType.icon}</span>
-                  <span>{nodeType.label}</span>
-                </button>
-              ))}
+              {toolbarButtons}
             </div>
           </Panel>
         )}
@@ -146,17 +186,17 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         {/* Status Panel */}
         {selectedNode && (
           <Panel position="top-right" className="bg-white p-3 rounded-md shadow-md border border-gray-300">
-            <div className="text-sm">
+            <div className="text-sm space-y-2">
               <div className="font-medium text-gray-700">Selected Node</div>
               <div className="text-gray-600">ID: {selectedNode}</div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-gray-500">
                 Double-click on canvas to add nodes
               </div>
             </div>
           </Panel>
         )}
-      </ReactFlow>
-    </div>
+      </ReactFlowWrapper>
+    </ErrorBoundary>
   )
 }
 
