@@ -1,3 +1,7 @@
+---
+Type: PRD | Status: Active | Completion: 90%
+---
+
 # Functional Requirements
 
 ## Core Features

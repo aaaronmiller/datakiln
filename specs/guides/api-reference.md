@@ -1,3 +1,7 @@
+---
+Type: Reference | Status: Active | Completion: 70%
+---
+
 # API Reference
 
 ## Overview

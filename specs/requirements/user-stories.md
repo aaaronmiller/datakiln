@@ -1,3 +1,7 @@
+---
+Type: PRD | Status: Active | Completion: 80%
+---
+
 # User Stories and Acceptance Criteria
 
 ## Core User Personas

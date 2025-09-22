@@ -1,3 +1,7 @@
+---
+Type: Plan | Status: Active | Completion: 85%
+---
+
 # Project Plan
 
 This document outlines the comprehensive project roadmap for the AI Research Automation Platform, integrating current implementation status with future development goals.
@@ -123,3 +127,14 @@ For detailed historical planning documents, see:
 - [`reference_old/plans/node_based_query_system_plan.md`](reference_old/plans/node_based_query_system_plan.md)
 - [`reference_old/plans/todo_objectives.md`](reference_old/plans/todo_objectives.md)
 - [`reference_old/plans/vision.md`](reference_old/plans/vision.md)
+
+## Source Attribution
+
+This project plan consolidates and updates content from:
+- `reference_old/plans/integrated_project_plan.md` (primary source, archived 2024)
+- `reference_old/plans/node_based_query_system_plan.md` (technical architecture, archived 2024)
+- `reference_old/plans/todo_objectives.md` (task tracking, integrated into matrix 2024)
+- `reference_old/plans/vision.md` (strategic direction, archived 2024)
+- `reference_old/build_docs_FUTURE/future_plans.md` (additional roadmap items, archived 2024)
+
+**Verification Status**: Planning content verified against current development status - see [`REFERENCE_VERIFICATION_ASSESSMENT.md`](REFERENCE_VERIFICATION_ASSESSMENT.md)

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useEffect, useRef } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -45,7 +45,7 @@ interface WorkflowCanvasProps {
   showControls?: boolean
 }
 
-const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
+const WorkflowCanvas: React.FC<WorkflowCanvasProps> = React.memo(({
   nodes,
   edges,
   onNodesChange,
@@ -59,27 +59,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   showControls = true,
 }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
-  const updateTimeoutRef = useRef<NodeJS.Timeout>()
-  const [debouncedNodes, setDebouncedNodes] = useState(nodes)
-  const [debouncedEdges, setDebouncedEdges] = useState(edges)
-
-  // Debounced state updates to prevent excessive re-renders
-  useEffect(() => {
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current)
-    }
-
-    updateTimeoutRef.current = setTimeout(() => {
-      setDebouncedNodes(nodes)
-      setDebouncedEdges(edges)
-    }, 16) // ~60fps
-
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current)
-      }
-    }
-  }, [nodes, edges])
 
   // Memoize node types to prevent unnecessary re-renders
   const memoizedNodeTypes = useMemo(() => nodeTypes, [])
@@ -113,6 +92,12 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     ))
   }, [readonly, onNodeAdd, reactFlowInstance])
 
+  // Memoize MiniMap nodeColor function to prevent re-creation on every render
+  const miniMapNodeColor = useMemo(() => (node: Node) => {
+    const nodeType = WORKFLOW_NODE_TYPES.find(type => type.type === node.type)
+    return nodeType?.color.replace('bg-', '#') || '#6366f1'
+  }, [])
+
   // Handle node selection
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -133,8 +118,8 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   return (
     <ErrorBoundary fallback={<div className="p-4 text-red-500">Error loading workflow canvas</div>}>
       <ReactFlowWrapper
-        nodes={debouncedNodes}
-        edges={debouncedEdges}
+        nodes={nodes}
+        edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -152,17 +137,14 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         minZoom={0.1}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         enablePerformanceMonitoring={true}
-        maxNodesForOptimization={50}
+        maxNodesForOptimization={30}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 
         {/* Mini Map */}
         {showMinimap && (
           <MiniMap
-            nodeColor={(node) => {
-              const nodeType = WORKFLOW_NODE_TYPES.find(type => type.type === node.type)
-              return nodeType?.color.replace('bg-', '#') || '#6366f1'
-            }}
+            nodeColor={miniMapNodeColor}
             nodeStrokeWidth={3}
             zoomable
             pannable
@@ -198,7 +180,9 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
       </ReactFlowWrapper>
     </ErrorBoundary>
   )
-}
+})
+
+WorkflowCanvas.displayName = 'WorkflowCanvas'
 
 // Wrapper component with React Flow Provider
 interface WorkflowCanvasWrapperProps {

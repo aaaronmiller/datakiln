@@ -1,3 +1,7 @@
+---
+Type: Reference | Status: Active | Completion: 80%
+---
+
 # Developer Setup Guide
 
 ## Prerequisites

@@ -1,3 +1,7 @@
+---
+Type: Contract | Status: Active | Completion: 95%
+---
+
 # Engine API Contract
 
 ## Workflow Management

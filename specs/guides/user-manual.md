@@ -1,3 +1,7 @@
+---
+Type: Reference | Status: Active | Completion: 85%
+---
+
 # User Manual
 
 ## Welcome to DataKiln

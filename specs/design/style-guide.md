@@ -1,3 +1,7 @@
+---
+Type: Reference | Status: Active | Completion: 85%
+---
+
 # DataKiln UX Style Guide
 
 ## Overview

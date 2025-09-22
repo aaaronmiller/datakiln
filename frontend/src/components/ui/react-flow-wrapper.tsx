@@ -147,33 +147,33 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
             disableKeyboardA11y: true,
           }
         case 'high':
-          return {
-            onlyRenderVisibleElements: true,
-            nodesDraggable: true,
-            nodesConnectable: true,
-            elementsSelectable: true,
-            maxZoom: 1.5,
-            minZoom: 0.5,
-            zoomOnScroll: true,
-            zoomOnPinch: true,
-            panOnDrag: true,
-            panOnScroll: false,
-            disableKeyboardA11y: false,
-          }
+           return {
+             onlyRenderVisibleElements: true,
+             nodesDraggable: true,
+             nodesConnectable: true,
+             elementsSelectable: true,
+             maxZoom: 1.5,
+             minZoom: 0.5,
+             zoomOnScroll: true,
+             zoomOnPinch: true,
+             panOnDrag: true,
+             panOnScroll: false,
+             disableKeyboardA11y: true, // Disable keyboard a11y for performance
+           }
         case 'medium':
-          return {
-            onlyRenderVisibleElements: true,
-            nodesDraggable: true,
-            nodesConnectable: true,
-            elementsSelectable: true,
-            maxZoom: 2,
-            minZoom: 0.1,
-            zoomOnScroll: true,
-            zoomOnPinch: true,
-            panOnDrag: true,
-            panOnScroll: false,
-            disableKeyboardA11y: false,
-          }
+           return {
+             onlyRenderVisibleElements: true,
+             nodesDraggable: true,
+             nodesConnectable: true,
+             elementsSelectable: true,
+             maxZoom: 2,
+             minZoom: 0.1,
+             zoomOnScroll: true,
+             zoomOnPinch: true,
+             panOnDrag: true,
+             panOnScroll: false,
+             disableKeyboardA11y: true, // Disable keyboard a11y for performance
+           }
         default:
           return {
             onlyRenderVisibleElements: false,

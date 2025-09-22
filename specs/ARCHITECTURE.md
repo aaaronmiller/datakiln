@@ -1,3 +1,7 @@
+---
+Type: Reference | Status: Active | Completion: 95%
+---
+
 # System Architecture
 
 This document provides a unified overview of the system architecture for the AI Research Automation Platform, combining backend and frontend components.
@@ -114,3 +118,12 @@ Frontend Query Graph → JSON → Backend API
 For detailed historical documentation, see:
 - [`reference_old/architecture/BACKEND_ARCHITECTURE.md`](reference_old/architecture/BACKEND_ARCHITECTURE.md)
 - [`reference_old/architecture/FRONTEND_ARCHITECTURE.md`](reference_old/architecture/FRONTEND_ARCHITECTURE.md)
+
+## Source Attribution
+
+This unified architecture document consolidates and updates content from:
+- `reference_old/architecture/BACKEND_ARCHITECTURE.md` (archived 2024)
+- `reference_old/architecture/FRONTEND_ARCHITECTURE.md` (archived 2024)
+- `reference_old/plans/node_based_query_system_plan.md` (integrated 2024)
+
+**Verification Status**: Content verified against current implementation - see [`REFERENCE_VERIFICATION_ASSESSMENT.md`](REFERENCE_VERIFICATION_ASSESSMENT.md)

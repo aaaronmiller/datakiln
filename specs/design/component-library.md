@@ -1,3 +1,7 @@
+---
+Type: Reference | Status: Active | Completion: 90%
+---
+
 # Component Library
 
 ## Overview
