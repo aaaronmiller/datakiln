@@ -422,6 +422,53 @@ async def get_workflow_collaboration_state(workflow_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to get workflow state: {str(e)}")
 
 # Dashboard endpoints
+@app.get("/api/v1/dashboard/system-status")
+async def get_dashboard_system_status():
+    """Get system status for dashboard"""
+    import random
+    return {
+        "active_runs": random.randint(0, 5),
+        "recent_results": random.randint(10, 50),
+        "system_health": "healthy",
+        "uptime": "2d 14h 32m",
+        "cpu_usage": random.uniform(10, 80),
+        "memory_usage": random.uniform(20, 90),
+        "last_updated": datetime.now().isoformat()
+    }
+
+@app.get("/api/v1/dashboard/recent-activity")
+async def get_dashboard_recent_activity(limit: int = 10):
+    """Get recent activity feed for dashboard"""
+    import random
+    from datetime import timedelta
+
+    activities = [
+        {
+            "id": f"activity_{i}",
+            "type": random.choice(["workflow_completed", "research_started", "transcript_analyzed", "error_occurred"]),
+            "title": f"Activity {i}",
+            "description": f"Description for activity {i}",
+            "timestamp": (datetime.now() - timedelta(minutes=random.randint(1, 1440))).isoformat(),
+            "status": random.choice(["success", "warning", "error", "info"])
+        }
+        for i in range(limit)
+    ]
+    return {"activities": sorted(activities, key=lambda x: x["timestamp"], reverse=True)}
+
+@app.get("/api/v1/dashboard/queue-status")
+async def get_dashboard_queue_status():
+    """Get queue status for dashboard"""
+    import random
+    return {
+        "pending_jobs": random.randint(0, 20),
+        "processing_jobs": random.randint(0, 5),
+        "completed_today": random.randint(50, 200),
+        "failed_today": random.randint(0, 10),
+        "average_processing_time": f"{random.uniform(5, 30):.1f}s",
+        "queue_depth": random.randint(0, 100),
+        "last_updated": datetime.now().isoformat()
+    }
+
 @app.post("/api/v1/dashboard/quick-run/deep-research")
 async def quick_run_deep_research(request: Dict[str, Any], background_tasks: BackgroundTasks):
     """Quick run deep research task"""

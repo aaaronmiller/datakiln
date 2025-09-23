@@ -144,7 +144,7 @@ const QueueStatusWidget: React.FC<QueueStatusWidgetProps> = ({
         </div>
 
         <div className="text-xs text-gray-500 text-center">
-          Last updated: {new Date(queueData.last_updated).toLocaleTimeString()}
+          Last updated: {queueData.last_updated ? new Date(queueData.last_updated).toLocaleTimeString() : 'Never'}
         </div>
       </CardContent>
     </Card>

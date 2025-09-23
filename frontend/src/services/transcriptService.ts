@@ -51,6 +51,31 @@ class TranscriptService {
     }
   }
 
+  async analyzeTranscript(transcriptText: string, url: string): Promise<TranscriptResult> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/transcript/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transcript: transcriptText,
+          url: url
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to analyze transcript:', error)
+      throw error
+    }
+  }
+
   extractVideoId(url: string): string | null {
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,

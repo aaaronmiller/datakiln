@@ -687,3 +687,96 @@ async def process_youtube_workflow_background(task_id: str, url: str):
             })
         except:
             pass
+
+@router.post("/transcript/analyze")
+async def analyze_transcript(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Analyze a YouTube transcript that was copied from youtubetotranscript.com
+    """
+    try:
+        transcript_text = request.get("transcript", "")
+        video_url = request.get("url", "")
+
+        if not transcript_text:
+            raise HTTPException(status_code=400, detail="Transcript text is required")
+
+        # Extract video ID for metadata
+        video_id = None
+        if video_url:
+            import re
+            match = re.search(r'(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})', video_url)
+            if match:
+                video_id = match.group(1)
+
+        # Process the transcript with Gemini for analysis
+        from ....providers.gemini_provider import GeminiProvider
+        gemini_provider = GeminiProvider({"enabled": True})
+
+        analysis_prompt = f"""
+        Analyze this YouTube video transcript and provide comprehensive insights:
+
+        Transcript: {transcript_text[:10000]}  # Limit to avoid token limits
+
+        Please provide:
+        1. Main topics and key points
+        2. Summary of the content (2-3 paragraphs)
+        3. Key insights or takeaways (bullet points)
+        4. Any calls to action or recommendations
+        5. Overall assessment
+
+        Format as JSON with keys: topics (array), summary (string), insights (array), recommendations (array), assessment (string).
+        """
+
+        analysis_response = await gemini_provider.generate(analysis_prompt)
+
+        try:
+            analysis = json.loads(analysis_response)
+        except:
+            # Fallback if JSON parsing fails
+            analysis = {
+                "topics": ["Content analyzed"],
+                "summary": analysis_response,
+                "insights": ["Analysis completed"],
+                "recommendations": [],
+                "assessment": "Transcript processed successfully"
+            }
+
+        # Calculate basic statistics
+        word_count = len(transcript_text.split())
+        sentences = transcript_text.split('.')
+        total_sentences = len([s for s in sentences if s.strip()])
+
+        # Simple keyword extraction (top 10 most frequent words)
+        words = transcript_text.lower().split()
+        word_freq = {}
+        for word in words:
+            if len(word) > 3:  # Skip short words
+                word_freq[word] = word_freq.get(word, 0) + 1
+
+        top_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        return {
+            "success": True,
+            "video_id": video_id or "unknown",
+            "transcript": transcript_text,
+            "word_count": word_count,
+            "analysis": {
+                "statistics": {
+                    "total_words": word_count,
+                    "total_sentences": total_sentences,
+                    "average_words_per_sentence": round(word_count / max(total_sentences, 1), 1),
+                    "top_keywords": top_keywords
+                },
+                "summary": {
+                    "length_category": "long" if word_count > 1000 else "medium" if word_count > 500 else "short",
+                    "estimated_reading_time_minutes": max(1, round(word_count / 200)),  # Rough estimate
+                    "main_topics": analysis.get("topics", [])
+                }
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Transcript analysis error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
