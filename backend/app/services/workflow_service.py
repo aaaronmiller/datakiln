@@ -4,9 +4,16 @@ import uuid
 import logging
 import asyncio
 import json
-from ...dag_executor import DAGExecutor
-from ...selectors import load_selectors
-from ...providers import ProviderManager, GeminiDeepResearchProvider, PerplexityProvider
+import sys
+from pathlib import Path
+
+# Add backend to path for imports
+backend_path = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(backend_path))
+
+from dag_executor import DAGExecutor
+import selectors as selector_module
+from providers import ProviderManager, GeminiDeepResearchProvider, PerplexityProvider
 from ..models.workflow import Workflow, Run, Result
 from .query_optimizer import QueryOptimizer, OptimizationLevel, get_query_optimizer
 from .artifact_service import ArtifactService, get_artifact_service

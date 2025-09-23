@@ -1,5 +1,6 @@
 import * as React from "react"
 import axios from "axios"
+import { useNavigate } from "react-router-dom"
 import { QuickRunTile, RecentActivityWidget, QueueStatusWidget, SystemStatusWidget } from "../components/dashboard"
 import { useToast } from "../hooks/use-toast"
 import websocketService from "../services/websocketService"
@@ -34,6 +35,7 @@ interface QueueStatus {
 }
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate()
   const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(null)
   const [recentActivity, setRecentActivity] = React.useState<ActivityItem[]>([])
   const [queueStatus, setQueueStatus] = React.useState<QueueStatus | null>(null)
@@ -187,7 +189,10 @@ const Dashboard: React.FC = () => {
           />
 
           {/* Additional Quick Actions */}
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+          <div
+            className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/workflows/new')}
+          >
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -201,7 +206,10 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+          <div
+            className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/results')}
+          >
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-100 rounded-lg">
                 <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

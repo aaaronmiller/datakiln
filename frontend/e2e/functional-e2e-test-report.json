@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-09-23T05:59:52.037Z",
+  "type": "functional_e2e_tests",
+  "results": {
+    "passed": 5,
+    "failed": 1,
+    "errors": [
+      {
+        "test": "Deep Research Complete Workflow",
+        "error": "Deep Research dialog did not open after clicking tile. Dialog check: {\"dialogCount\":0,\"dialogContents\":[],\"possibleDialogCount\":0,\"possibleContents\":[],\"fixedElementsCount\":3,\"fixedContents\":[{\"tagName\":\"ASIDE\",\"className\":\"\\n        fixed md:relative top-0 left-0 z-50 h-full w-64 bg-surface border-r border-border\\n        transform transition-transform duration-300 ease-in-out\\n        -translate-x-full\\n        md:translate-x-0 md:static md:z-auto md:block\\n      \",\"textContent\":\"DKDataKilnDashboardWorkflowsRunsResultsSelectors L\",\"isVisible\":true},{\"tagName\":\"DIV\",\"className\":\"fixed inset-0 z-50 flex items-center justify-center\",\"textContent\":\"Structure Your Research QueryRefine your research \",\"isVisible\":true},{\"tagName\":\"DIV\",\"className\":\"fixed inset-0 bg-black/50\",\"textContent\":\"\",\"isVisible\":true}],\"bodyClasses\":\"\",\"hasStructureText\":true,\"allText\":\"\\n    DKDataKiln⌘⇧K⌘KUDKDataKilnDashboardWorkflowsRunsResultsSelectors LabTemplatesTranscript AnalysisExtension CaptureSettingsDataKiln v1.0.0DashboardWelcome back! Here's what's happening with your workflows.RefreshQuick ActionsDeep ResearchComprehensive AI-powered research with multiple sourcesEst. time: 2-5 minQuick RunStructure Your Research QueryRefine your research query for better results. We'll suggest different approaches based on your needs.Research QueryResearch ModeFast (1-2 min)Balan\"}",
+        "stack": "Error: Deep Research dialog did not open after clicking tile. Dialog check: {\"dialogCount\":0,\"dialogContents\":[],\"possibleDialogCount\":0,\"possibleContents\":[],\"fixedElementsCount\":3,\"fixedContents\":[{\"tagName\":\"ASIDE\",\"className\":\"\\n        fixed md:relative top-0 left-0 z-50 h-full w-64 bg-surface border-r border-border\\n        transform transition-transform duration-300 ease-in-out\\n        -translate-x-full\\n        md:translate-x-0 md:static md:z-auto md:block\\n      \",\"textContent\":\"DKDataKilnDashboardWorkflowsRunsResultsSelectors L\",\"isVisible\":true},{\"tagName\":\"DIV\",\"className\":\"fixed inset-0 z-50 flex items-center justify-center\",\"textContent\":\"Structure Your Research QueryRefine your research \",\"isVisible\":true},{\"tagName\":\"DIV\",\"className\":\"fixed inset-0 bg-black/50\",\"textContent\":\"\",\"isVisible\":true}],\"bodyClasses\":\"\",\"hasStructureText\":true,\"allText\":\"\\n    DKDataKiln⌘⇧K⌘KUDKDataKilnDashboardWorkflowsRunsResultsSelectors LabTemplatesTranscript AnalysisExtension CaptureSettingsDataKiln v1.0.0DashboardWelcome back! Here's what's happening with your workflows.RefreshQuick ActionsDeep ResearchComprehensive AI-powered research with multiple sourcesEst. time: 2-5 minQuick RunStructure Your Research QueryRefine your research query for better results. We'll suggest different approaches based on your needs.Research QueryResearch ModeFast (1-2 min)Balan\"}\n    at FunctionalE2ETestSuite.testDeepResearchWorkflow (file:///Users/macuser/git/0MY_PROJECTS/datakiln/frontend/e2e/functional-e2e-test.js:214:13)\n    at async FunctionalE2ETestSuite.runFunctionalTest (file:///Users/macuser/git/0MY_PROJECTS/datakiln/frontend/e2e/functional-e2e-test.js:62:22)\n    at async FunctionalE2ETestSuite.runAllFunctionalTests (file:///Users/macuser/git/0MY_PROJECTS/datakiln/frontend/e2e/functional-e2e-test.js:458:7)"
+      }
+    ],
+    "screenshots": [
+      "functional-Deep Research Complete Workflow-failed-2025-09-23T05-59-05-049Z.png",
+      "functional-youtube-transcript-workflow-2025-09-23T05-59-20-701Z.png",
+      "functional-workflow-creation-workflow-2025-09-23T05-59-24-727Z.png",
+      "functional-navigation-workflow-2025-09-23T05-59-38-408Z.png",
+      "functional-selector-lab-workflow-2025-09-23T05-59-46-270Z.png",
+      "functional-results-browser-workflow-2025-09-23T05-59-51-594Z.png"
+    ],
+    "timings": {},
+    "functionalTests": [
+      {
+        "name": "Deep Research Complete Workflow",
+        "status": "FAILED",
+        "duration": 5865,
+        "error": "Deep Research dialog did not open after clicking tile. Dialog check: {\"dialogCount\":0,\"dialogContents\":[],\"possibleDialogCount\":0,\"possibleContents\":[],\"fixedElementsCount\":3,\"fixedContents\":[{\"tagName\":\"ASIDE\",\"className\":\"\\n        fixed md:relative top-0 left-0 z-50 h-full w-64 bg-surface border-r border-border\\n        transform transition-transform duration-300 ease-in-out\\n        -translate-x-full\\n        md:translate-x-0 md:static md:z-auto md:block\\n      \",\"textContent\":\"DKDataKilnDashboardWorkflowsRunsResultsSelectors L\",\"isVisible\":true},{\"tagName\":\"DIV\",\"className\":\"fixed inset-0 z-50 flex items-center justify-center\",\"textContent\":\"Structure Your Research QueryRefine your research \",\"isVisible\":true},{\"tagName\":\"DIV\",\"className\":\"fixed inset-0 bg-black/50\",\"textContent\":\"\",\"isVisible\":true}],\"bodyClasses\":\"\",\"hasStructureText\":true,\"allText\":\"\\n    DKDataKiln⌘⇧K⌘KUDKDataKilnDashboardWorkflowsRunsResultsSelectors LabTemplatesTranscript AnalysisExtension CaptureSettingsDataKiln v1.0.0DashboardWelcome back! Here's what's happening with your workflows.RefreshQuick ActionsDeep ResearchComprehensive AI-powered research with multiple sourcesEst. time: 2-5 minQuick RunStructure Your Research QueryRefine your research query for better results. We'll suggest different approaches based on your needs.Research QueryResearch ModeFast (1-2 min)Balan\"}"
+      },
+      {
+        "name": "YouTube Transcript Complete Workflow",
+        "status": "PASSED",
+        "duration": 15623,
+        "details": "YouTube URL entered, Open Transcript Site button clicked, new tab opened - workflow functional"
+      },
+      {
+        "name": "Workflow Creation Complete Workflow",
+        "status": "PASSED",
+        "duration": 4032,
+        "details": "New Workflow button clicked, workflow editor opened - workflow functional"
+      },
+      {
+        "name": "Navigation Complete Workflow",
+        "status": "PASSED",
+        "duration": 13677,
+        "details": "All navigation links clicked and pages loaded correctly - navigation functional"
+      },
+      {
+        "name": "Selector Lab Complete Workflow",
+        "status": "PASSED",
+        "duration": 7873,
+        "details": "URL entered, selector tool tabs clicked, tool content loaded - Selector Lab functional"
+      },
+      {
+        "name": "Results Browser Complete Workflow",
+        "status": "PASSED",
+        "duration": 5318,
+        "details": "Search input functional, tabs clickable, result cards present - Results Browser functional"
+      }
+    ]
+  },
+  "environment": {
+    "baseUrl": "http://localhost:3000",
+    "backendUrl": "http://localhost:8000",
+    "puppeteerVersion": "22.15.0",
+    "testMode": "functional"
+  },
+  "methodology": {
+    "description": "Tests actual user workflows by clicking buttons, filling forms, and verifying real interactions",
+    "difference_from_presence_tests": "Unlike presence-only tests, these verify functionality not just element existence"
+  }
+}

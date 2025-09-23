@@ -1,0 +1,65 @@
+{
+  "research_id": "70b377f3-2d11-4a15-aaaf-2afc969fb14c",
+  "nodes": {
+    "f8ff032b-9ee7-45c9-9654-574d5ace485c": {
+      "id": "f8ff032b-9ee7-45c9-9654-574d5ace485c",
+      "query": "What are the benefits of renewable energy?",
+      "parent_id": null,
+      "children": [],
+      "status": "completed",
+      "result": {
+        "query": "What are the benefits of renewable energy?",
+        "mode": "fast",
+        "initial_research": {
+          "query": "What are the benefits of renewable energy?",
+          "findings": "Research findings for: What are the benefits of renewable energy?",
+          "sources": [
+            "source1",
+            "source2"
+          ],
+          "confidence": 0.8,
+          "timestamp": "2025-09-23T02:13:09.445254"
+        },
+        "follow_ups": [
+          {
+            "question": "What are the latest developments in What are the benefits of renewable energy??",
+            "result": {
+              "query": "What are the latest developments in What are the benefits of renewable energy??",
+              "findings": "Research findings for: What are the latest developments in What are the benefits of renewable energy??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-09-23T02:13:10.947954"
+            }
+          },
+          {
+            "question": "What are the challenges associated with What are the benefits of renewable energy??",
+            "result": {
+              "query": "What are the challenges associated with What are the benefits of renewable energy??",
+              "findings": "Research findings for: What are the challenges associated with What are the benefits of renewable energy??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-09-23T02:13:11.949262"
+            }
+          }
+        ],
+        "counter_arguments": [],
+        "total_follow_ups": 2,
+        "research_depth": 1,
+        "completed_at": "2025-09-23T02:13:11.949329"
+      },
+      "created_at": "2025-09-23T02:13:08.443735",
+      "updated_at": "2025-09-23T02:13:11.949338",
+      "depth": 0,
+      "follow_ups": [],
+      "sources": [],
+      "confidence_score": 0.0
+    }
+  },
+  "created_at": "2025-09-23T02:13:11.949440"
+}

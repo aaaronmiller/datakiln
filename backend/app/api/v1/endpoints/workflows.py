@@ -4,7 +4,7 @@ from datetime import datetime
 from ....services.workflow_service import WorkflowService, get_workflow_service
 from ....services.workflow_persistence_service import get_workflow_persistence_service
 from ....models.workflow import Workflow, Run, Result
-from ....schemas.workflow import (
+from ..schemas.workflow import (
     WorkflowExecutionRequest,
     WorkflowExecutionResponse,
     WorkflowStatusResponse,

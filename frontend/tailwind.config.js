@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -52,6 +53,16 @@ export default {
           600: '#dc2626',
           700: '#b91c1c',
         },
+        // Theme-aware semantic colors
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        'surface-secondary': 'var(--color-surface-secondary)',
+        foreground: 'var(--color-text-primary)',
+        'muted': 'var(--color-surface-secondary)',
+        'muted-foreground': 'var(--color-text-muted)',
+        border: 'var(--color-border)',
+        input: 'var(--color-surface)',
+        ring: 'var(--color-primary)',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],

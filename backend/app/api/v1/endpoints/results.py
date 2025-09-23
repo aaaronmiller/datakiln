@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
-from ..services.obsidian_service import ObsidianService, get_obsidian_service
-from ..services.workflow_service import WorkflowService, get_workflow_service
+from ...services.obsidian_service import ObsidianService, get_obsidian_service
+from ...services.workflow_service import WorkflowService, get_workflow_service
 
 router = APIRouter()
 

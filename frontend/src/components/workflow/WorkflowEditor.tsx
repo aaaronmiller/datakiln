@@ -8,10 +8,12 @@ import {
   NodeChange,
   EdgeChange,
   ReactFlowProvider,
+  ReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 import WorkflowNode from './WorkflowNode'
+import NodeConfigDialog from './NodeConfigDialog'
 import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
 import { workflowValidationService } from '../../services/workflowValidationService'
 import WorkflowExecutionService from '../../services/workflowExecutionService'
@@ -31,6 +33,7 @@ const nodeTypes = {
   join: WorkflowNode,
   union: WorkflowNode,
 }
+
 
 // Generate a performance test workflow with 50+ nodes
 const generatePerformanceTestWorkflow = () => {
@@ -88,6 +91,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   onChange,
   readonly = false,
 }) => {
+  console.log('WorkflowEditorContent rendering')
   const [nodes, setNodes] = useState<Node[]>(initialNodes)
   const [edges, setEdges] = useState<Edge[]>(initialEdges)
   const { add: addNotification } = useNotifications()
@@ -95,6 +99,8 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [isExecuting, setIsExecuting] = useState(false)
+  const [configDialogOpen, setConfigDialogOpen] = useState(false)
+  const [configNode, setConfigNode] = useState<Node | null>(null)
 
   // Handle connections
   const onConnect: OnConnect = useCallback(
@@ -148,6 +154,30 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     [edges, onChange]
   )
 
+  // Handle node double click for configuration
+  const handleNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      console.log('Node double-clicked:', node)
+      setConfigNode(node)
+      setConfigDialogOpen(true)
+    },
+    []
+  )
+
+  // Handle saving node configuration
+  const handleSaveNodeConfig = useCallback(
+    (nodeId: string, data: Record<string, unknown>) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+        )
+      )
+      setConfigDialogOpen(false)
+      setConfigNode(null)
+    },
+    []
+  )
+
   // Handle edges changes
   const handleEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
@@ -182,8 +212,12 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   // Add new node
   const addNode = useCallback(
     (type: string, position: { x: number; y: number }) => {
+      console.log('Adding node:', type, 'at position:', position)
       const nodeType = WORKFLOW_NODE_TYPES.find(nt => nt.type === type)
-      if (!nodeType) return
+      if (!nodeType) {
+        console.error('Node type not found:', type)
+        return
+      }
 
       const newNode: Node = {
         id: `${type}-${Date.now()}`,
@@ -197,7 +231,9 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         },
       }
 
+      console.log('Created new node:', newNode)
       const updatedNodes = [...nodes, newNode]
+      console.log('Updated nodes count:', updatedNodes.length)
       setNodes(updatedNodes)
       onChange?.(updatedNodes, edges)
     },
@@ -225,6 +261,60 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       edges: workflowEdges,
     }
   }, [nodes, edges])
+
+  // Save the current workflow
+  const saveWorkflow = useCallback(async () => {
+    if (nodes.length === 0) {
+      addNotification({
+        type: 'warning',
+        title: 'No Workflow to Save',
+        message: 'Please add some nodes to the workflow before saving.'
+      })
+      return
+    }
+
+    try {
+      const workflow = convertToWorkflowFormat()
+      const workflowData = {
+        id: `workflow-${Date.now()}`,
+        name: `Workflow ${Date.now()}`,
+        description: 'Created in workflow editor',
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          version: 1
+        }
+      }
+
+      // Use fetch directly to call the backend
+      const response = await fetch('http://localhost:8000/workflows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(workflowData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      addNotification({
+        type: 'success',
+        title: 'Workflow Saved',
+        message: `Workflow saved successfully with ID: ${result.id}`
+      })
+    } catch (error) {
+      console.error('Workflow save error:', error)
+      addNotification({
+        type: 'error',
+        title: 'Save Failed',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      })
+    }
+  }, [nodes, addNotification, convertToWorkflowFormat])
 
   // Execute the current workflow
   const executeWorkflow = useCallback(async () => {
@@ -276,7 +366,13 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           {WORKFLOW_NODE_TYPES.map((nodeType) => (
             <button
               key={nodeType.type}
-              onClick={() => addNode(nodeType.type, { x: 100, y: 100 })}
+              onClick={() => {
+                console.log('Toolbar button clicked for:', nodeType.type)
+                const centerX = 400
+                const centerY = 300
+                const offset = nodes.length * 50
+                addNode(nodeType.type, { x: centerX + offset, y: centerY + offset })
+              }}
               className={`
                 px-3 py-1 text-sm rounded border flex items-center space-x-2
                 ${nodeType.color} text-white border-transparent
@@ -292,13 +388,18 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       )}
 
       {/* Canvas */}
-      <div className="flex-1" style={{ height: '100%', minHeight: '400px' }}>
+      <div className="flex-1 relative" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
+        {(() => {
+          console.log('Rendering ReactFlow with nodes:', nodes.length, 'edges:', edges.length)
+          return null
+        })()}
         <ReactFlowWrapper
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
+          onNodeDoubleClick={handleNodeDoubleClick}
           nodeTypes={nodeTypes}
           fitView
           attributionPosition="bottom-left"
@@ -306,8 +407,8 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           nodesDraggable={!readonly}
           nodesConnectable={!readonly}
           elementsSelectable={!readonly}
-          enablePerformanceMonitoring={true}
-          maxNodesForOptimization={50}
+          enablePerformanceMonitoring={false}
+          maxNodesForOptimization={1000}
         />
       </div>
 
@@ -319,6 +420,17 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
             {selectedNode && ` | Selected: ${selectedNode}`}
           </div>
           <div className="flex space-x-2">
+            <button
+              onClick={saveWorkflow}
+              disabled={nodes.length === 0}
+              className={`px-3 py-1 text-white rounded text-xs ${
+                nodes.length === 0
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-500 hover:bg-blue-600'
+              }`}
+            >
+              Save Workflow
+            </button>
             <button
               onClick={executeWorkflow}
               disabled={isExecuting || nodes.length === 0}
@@ -623,6 +735,14 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Node Configuration Dialog */}
+      <NodeConfigDialog
+        node={configNode}
+        open={configDialogOpen}
+        onOpenChange={setConfigDialogOpen}
+        onSave={handleSaveNodeConfig}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import React, { memo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
-import { WORKFLOW_NODE_TYPES } from '../../types/workflow'
+import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
 
 interface WorkflowNodeData {
   type: string
@@ -117,6 +117,50 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
             <div className="text-gray-600">Condition</div>
             {data.expr && (
               <div className="text-gray-500 truncate">Expr: {data.expr}</div>
+            )}
+          </div>
+        )
+
+      case 'filter':
+        return (
+          <div className="text-xs space-y-1">
+            <div className="font-medium">{data.name}</div>
+            <div className="text-gray-600">Filter</div>
+            {data.filter_type && (
+              <div className="text-gray-500">Type: {String(data.filter_type)}</div>
+            )}
+          </div>
+        )
+
+      case 'aggregate':
+        return (
+          <div className="text-xs space-y-1">
+            <div className="font-medium">{data.name}</div>
+            <div className="text-gray-600">Aggregate</div>
+            {data.functions && Array.isArray(data.functions) && (
+              <div className="text-gray-500">Functions: {data.functions.map(f => String(f)).join(', ')}</div>
+            )}
+          </div>
+        )
+
+      case 'join':
+        return (
+          <div className="text-xs space-y-1">
+            <div className="font-medium">{data.name}</div>
+            <div className="text-gray-600">Join</div>
+            {data.join_type && (
+              <div className="text-gray-500">Type: {String(data.join_type)}</div>
+            )}
+          </div>
+        )
+
+      case 'union':
+        return (
+          <div className="text-xs space-y-1">
+            <div className="font-medium">{data.name}</div>
+            <div className="text-gray-600">Union</div>
+            {data.union_mode && (
+              <div className="text-gray-500">Mode: {String(data.union_mode)}</div>
             )}
           </div>
         )

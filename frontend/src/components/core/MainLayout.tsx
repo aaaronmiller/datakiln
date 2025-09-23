@@ -34,11 +34,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Header onCommandPalette={handleCommandPalette} onToggleSidebar={toggleSidebar} />
         <div className="flex h-[calc(100vh-64px)]">
           <Sidebar isOpen={sidebar.isOpen} onClose={sidebar.close} />
-          <main className="flex-1 overflow-auto bg-white">
+          <main className="flex-1 overflow-auto bg-surface">
             <div className="p-6">
               {children}
             </div>
