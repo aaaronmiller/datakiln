@@ -52,22 +52,34 @@ class WorkflowPersistenceService:
         """Get the file path for a specific workflow version."""
         return self._versions_dir / f"{workflow_id}_v{version}.json"
 
-    def save_workflow(self, workflow: Workflow) -> str:
+    def save_workflow(self, workflow: Workflow, user_id: Optional[str] = None, expected_version: Optional[int] = None) -> str:
         """
-        Save a workflow to persistent storage.
+        Save a workflow to persistent storage with conflict detection.
 
         Args:
             workflow: The workflow to save
+            user_id: ID of the user making the change
+            expected_version: Expected current version for conflict detection
 
         Returns:
             The workflow ID
+
+        Raises:
+            ValueError: If version conflict is detected
         """
         try:
             # Ensure workflow has an ID
             if not workflow.id:
                 workflow.id = str(uuid.uuid4())
 
-            # Update metadata timestamps
+            # Load existing workflow to check for conflicts
+            existing_workflow = self.load_workflow(workflow.id)
+            if existing_workflow and expected_version is not None:
+                current_version = existing_workflow.metadata.version if existing_workflow.metadata else 1
+                if current_version != expected_version:
+                    raise ValueError(f"Version conflict detected. Current version is {current_version}, but expected {expected_version}")
+
+            # Update metadata timestamps and user info
             now = datetime.now().isoformat()
             if not workflow.metadata:
                 workflow.metadata = WorkflowMetadata()
@@ -75,6 +87,15 @@ class WorkflowPersistenceService:
             if not workflow.metadata.createdAt:
                 workflow.metadata.createdAt = now
             workflow.metadata.updatedAt = now
+
+            # Update version and author
+            if existing_workflow:
+                workflow.metadata.version = (existing_workflow.metadata.version if existing_workflow.metadata else 1) + 1
+            else:
+                workflow.metadata.version = 1
+
+            if user_id:
+                workflow.metadata.author = user_id
 
             # Convert to dict for JSON serialization
             workflow_dict = self._workflow_to_dict(workflow)
@@ -100,7 +121,7 @@ class WorkflowPersistenceService:
                 "createdAt": workflow.metadata.createdAt if workflow.metadata else now,
                 "updatedAt": workflow.metadata.updatedAt if workflow.metadata else now,
                 "version": workflow.metadata.version if workflow.metadata else 1,
-                "author": workflow.metadata.author if workflow.metadata else None,
+                "author": workflow.metadata.author if workflow.metadata else user_id,
                 "isPublic": workflow.metadata.isPublic if workflow.metadata else False,
                 "nodeCount": workflow.nodeCount,
                 "edgeCount": workflow.edgeCount,
@@ -108,7 +129,7 @@ class WorkflowPersistenceService:
             }
             self._save_workflows_index(index)
 
-            logger.info(f"Workflow saved: {workflow.id} (v{workflow.metadata.version})")
+            logger.info(f"Workflow saved: {workflow.id} (v{workflow.metadata.version}) by user {user_id or 'unknown'}")
             return workflow.id
 
         except Exception as e:
@@ -478,6 +499,74 @@ class WorkflowPersistenceService:
             nodes=nodes,
             edges=edges
         )
+
+    def detect_conflicts(self, workflow_id: str, user_version: int, user_id: str) -> Dict[str, Any]:
+        """
+        Detect conflicts for collaborative editing.
+
+        Args:
+            workflow_id: The workflow ID
+            user_version: The version the user is editing
+            user_id: The user ID
+
+        Returns:
+            Conflict detection result
+        """
+        try:
+            current_workflow = self.load_workflow(workflow_id)
+            if not current_workflow:
+                return {
+                    "has_conflict": False,
+                    "current_version": None,
+                    "user_version": user_version,
+                    "conflict_details": None
+                }
+
+            current_version = current_workflow.metadata.version if current_workflow.metadata else 1
+
+            if current_version != user_version:
+                # Get version history to show what changed
+                versions = self.get_workflow_versions(workflow_id)
+                conflicting_changes = []
+
+                for version_info in versions:
+                    if version_info.get("version", 0) > user_version:
+                        conflicting_changes.append({
+                            "version": version_info.get("version"),
+                            "updatedAt": version_info.get("updatedAt"),
+                            "author": version_info.get("author"),
+                            "changes": f"Modified {version_info.get('nodeCount', 0)} nodes, {version_info.get('edgeCount', 0)} edges"
+                        })
+
+                return {
+                    "has_conflict": True,
+                    "current_version": current_version,
+                    "user_version": user_version,
+                    "conflict_details": {
+                        "conflicting_changes": conflicting_changes,
+                        "recommendation": "Please reload the workflow and reapply your changes"
+                    }
+                }
+
+            return {
+                "has_conflict": False,
+                "current_version": current_version,
+                "user_version": user_version,
+                "conflict_details": None
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to detect conflicts for workflow {workflow_id}: {str(e)}")
+            return {
+                "has_conflict": True,
+                "error": str(e),
+                "current_version": None,
+                "user_version": user_version,
+                "conflict_details": {
+                    "error": "Unable to check for conflicts",
+                    "recommendation": "Please reload the workflow"
+                }
+            }
 
     def get_storage_stats(self) -> Dict[str, Any]:
         """Get storage statistics."""

@@ -52,9 +52,9 @@ class YouTubeTranscriptDownloader:
         return None
 
     def get_transcript(self, video_id: str) -> Optional[Dict[str, Any]]:
-        """Download transcript for a YouTube video."""
+        """Download transcript for a YouTube video with support for multiple formats."""
         try:
-            # Try multiple transcript sources
+            # Try multiple transcript sources and formats
             url = f"https://www.youtube.com/watch?v={video_id}"
 
             # Method 1: Try to get transcript from YouTube's API-like endpoint
@@ -65,15 +65,30 @@ class YouTubeTranscriptDownloader:
                 return self.parse_xml_transcript(response.text, video_id)
 
             # Method 2: Try alternative languages
-            for lang in ['en-US', 'en-GB', 'es', 'fr', 'de']:
+            for lang in ['en-US', 'en-GB', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko']:
                 transcript_url = f"https://www.youtube.com/api/timedtext?lang={lang}&v={video_id}"
                 response = self.session.get(transcript_url)
 
                 if response.status_code == 200 and len(response.text.strip()) > 0:
                     return self.parse_xml_transcript(response.text, video_id)
 
-            # Method 3: Try to extract from video page
-            return self.get_transcript_from_page(video_id)
+            # Method 3: Try different transcript formats (subtitles, captions)
+            for fmt in ['vtt', 'srt', 'ttml']:
+                transcript_url = f"https://www.youtube.com/api/timedtext?lang=en&fmt={fmt}&v={video_id}"
+                response = self.session.get(transcript_url)
+
+                if response.status_code == 200 and len(response.text.strip()) > 0:
+                    return self.parse_format_transcript(response.text, fmt, video_id)
+
+            # Method 4: Try to extract from video page (JSON embedded)
+            page_transcript = self.get_transcript_from_page(video_id)
+            if page_transcript:
+                return page_transcript
+
+            # Method 5: Try alternative endpoints
+            alt_transcript = self.get_transcript_from_alternative_sources(video_id)
+            if alt_transcript:
+                return alt_transcript
 
         except Exception as e:
             print(f"Error getting transcript for {video_id}: {e}")
@@ -119,6 +134,138 @@ class YouTubeTranscriptDownloader:
                 'word_count': len(xml_content.split()),
                 'format': 'raw'
             }
+
+    def parse_format_transcript(self, content: str, fmt: str, video_id: str) -> Dict[str, Any]:
+        """Parse different transcript formats (VTT, SRT, TTML)."""
+        try:
+            if fmt == 'vtt':
+                return self.parse_vtt_transcript(content, video_id)
+            elif fmt == 'srt':
+                return self.parse_srt_transcript(content, video_id)
+            elif fmt == 'ttml':
+                return self.parse_ttml_transcript(content, video_id)
+            else:
+                # Fallback to generic parsing
+                return self.parse_generic_transcript(content, video_id, fmt)
+
+        except Exception as e:
+            print(f"Error parsing {fmt} transcript: {e}")
+            return {
+                'video_id': video_id,
+                'transcript': content,
+                'blocks': [content],
+                'word_count': len(content.split()),
+                'format': f'raw_{fmt}'
+            }
+
+    def parse_vtt_transcript(self, content: str, video_id: str) -> Dict[str, Any]:
+        """Parse WebVTT format transcript."""
+        lines = content.split('\n')
+        text_blocks = []
+
+        for line in lines:
+            line = line.strip()
+            # Skip VTT headers and timestamps
+            if line and not line.startswith('WEBVTT') and not line.startswith('NOTE') and not '-->' in line and not line.isdigit():
+                if line:
+                    text_blocks.append(line)
+
+        transcript = ' '.join(text_blocks)
+        return {
+            'video_id': video_id,
+            'transcript': transcript,
+            'blocks': text_blocks,
+            'word_count': len(transcript.split()),
+            'format': 'vtt'
+        }
+
+    def parse_srt_transcript(self, content: str, video_id: str) -> Dict[str, Any]:
+        """Parse SRT format transcript."""
+        # SRT format: number, timestamp, text, blank line
+        blocks = content.split('\n\n')
+        text_blocks = []
+
+        for block in blocks:
+            lines = block.strip().split('\n')
+            if len(lines) >= 3:
+                # Skip the number and timestamp lines
+                text = ' '.join(lines[2:])
+                if text.strip():
+                    text_blocks.append(text.strip())
+
+        transcript = ' '.join(text_blocks)
+        return {
+            'video_id': video_id,
+            'transcript': transcript,
+            'blocks': text_blocks,
+            'word_count': len(transcript.split()),
+            'format': 'srt'
+        }
+
+    def parse_ttml_transcript(self, content: str, video_id: str) -> Dict[str, Any]:
+        """Parse TTML format transcript."""
+        # Extract text between TTML tags
+        text_matches = re.findall(r'<p[^>]*>([^<]+)</p>', content, re.IGNORECASE)
+        text_blocks = [text.strip() for text in text_matches if text.strip()]
+
+        transcript = ' '.join(text_blocks)
+        return {
+            'video_id': video_id,
+            'transcript': transcript,
+            'blocks': text_blocks,
+            'word_count': len(transcript.split()),
+            'format': 'ttml'
+        }
+
+    def parse_generic_transcript(self, content: str, video_id: str, fmt: str) -> Dict[str, Any]:
+        """Generic transcript parsing for unknown formats."""
+        # Try to extract text content using various patterns
+        text_blocks = []
+
+        # Remove HTML/XML tags
+        clean_content = re.sub(r'<[^>]+>', '', content)
+
+        # Split by common separators
+        for separator in ['\n\n', '\n', '. ', '! ', '? ']:
+            if separator in clean_content:
+                blocks = clean_content.split(separator)
+                text_blocks = [block.strip() for block in blocks if block.strip()]
+                break
+
+        if not text_blocks:
+            text_blocks = [clean_content.strip()]
+
+        transcript = ' '.join(text_blocks)
+        return {
+            'video_id': video_id,
+            'transcript': transcript,
+            'blocks': text_blocks,
+            'word_count': len(transcript.split()),
+            'format': f'generic_{fmt}'
+        }
+
+    def get_transcript_from_alternative_sources(self, video_id: str) -> Optional[Dict[str, Any]]:
+        """Try alternative sources for transcripts."""
+        try:
+            # Try different YouTube API variations
+            alt_urls = [
+                f"https://video.google.com/timedtext?lang=en&v={video_id}",
+                f"https://www.youtube.com/api/timedtext?v={video_id}&ei=123&caps=asr&opi=112496729&xoaf=5&hl=en&ip=0.0.0.0&ipbits=0&expire=1234567890&sparams=ip%2Cipbits%2Cexpire&signature=abc&key=yt8&lang=en",
+            ]
+
+            for url in alt_urls:
+                try:
+                    response = self.session.get(url, timeout=10)
+                    if response.status_code == 200 and len(response.text.strip()) > 0:
+                        return self.parse_xml_transcript(response.text, video_id)
+                except:
+                    continue
+
+            return None
+
+        except Exception as e:
+            print(f"Error trying alternative sources: {e}")
+            return None
 
     def get_transcript_from_page(self, video_id: str) -> Optional[Dict[str, Any]]:
         """Extract transcript data from YouTube page."""

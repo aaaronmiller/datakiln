@@ -9,8 +9,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195529",
-      "updated_at": "2025-09-22 08:26:39.196093"
+      "created_at": "2025-09-22 16:00:08.131179",
+      "updated_at": "2025-09-22 16:00:08.131643"
     },
     {
       "key": "perplexity_search_input",
@@ -21,8 +21,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195531",
-      "updated_at": "2025-09-22 08:26:39.196571"
+      "created_at": "2025-09-22 16:00:08.131181",
+      "updated_at": "2025-09-22 16:00:08.131957"
     },
     {
       "key": "perplexity_send_button",
@@ -33,8 +33,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195533",
-      "updated_at": "2025-09-22 08:26:39.197478"
+      "created_at": "2025-09-22 16:00:08.131183",
+      "updated_at": "2025-09-22 16:00:08.132245"
     },
     {
       "key": "contenteditable_input",
@@ -45,8 +45,8 @@
       "context": "prompt_input",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195534",
-      "updated_at": "2025-09-22 08:26:39.197826"
+      "created_at": "2025-09-22 16:00:08.131184",
+      "updated_at": "2025-09-22 16:00:08.132542"
     },
     {
       "key": "submit_button",
@@ -57,8 +57,8 @@
       "context": "forms",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195536",
-      "updated_at": "2025-09-22 08:26:39.198165"
+      "created_at": "2025-09-22 16:00:08.131186",
+      "updated_at": "2025-09-22 16:00:08.132827"
     },
     {
       "key": "text_input",
@@ -69,8 +69,8 @@
       "context": "forms",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195538",
-      "updated_at": "2025-09-22 08:26:39.198499"
+      "created_at": "2025-09-22 16:00:08.131187",
+      "updated_at": "2025-09-22 16:00:08.133111"
     },
     {
       "key": "main_content",
@@ -81,8 +81,8 @@
       "context": "content",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195539",
-      "updated_at": "2025-09-22 08:26:39.198826"
+      "created_at": "2025-09-22 16:00:08.131189",
+      "updated_at": "2025-09-22 16:00:08.133395"
     },
     {
       "key": "article_content",
@@ -93,8 +93,8 @@
       "context": "content",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195541",
-      "updated_at": "2025-09-22 08:26:39.199178"
+      "created_at": "2025-09-22 16:00:08.131190",
+      "updated_at": "2025-09-22 16:00:08.133677"
     },
     {
       "key": "custom_button",
@@ -168,8 +168,8 @@
       "context": "search",
       "fallback_selectors": [],
       "attributes": {},
-      "created_at": "2025-09-22 08:26:39.195524",
-      "updated_at": "2025-09-22 08:26:39.195554"
+      "created_at": "2025-09-22 16:00:08.131175",
+      "updated_at": "2025-09-22 16:00:08.131195"
     }
   ],
   "provider_mappings": {
@@ -201,5 +201,5 @@
       "article_content"
     ]
   },
-  "exported_at": "2025-09-22T08:26:39.199253"
+  "exported_at": "2025-09-22T16:00:08.133728"
 }

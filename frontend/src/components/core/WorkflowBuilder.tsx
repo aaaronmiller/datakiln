@@ -17,6 +17,8 @@ import QueryNode from "./QueryNode-fixed"
 import QueryEditor from "./QueryEditor"
 import { ReactFlowWrapper } from "../ui/react-flow-wrapper"
 import { useWorkflowStore, WorkflowNode } from "../../stores/workflowStore"
+import nodeRegistryService from "../../services/nodeRegistryService"
+import { workflowValidator, validateWorkflowRoundTrip } from "../../utils/schemaValidation"
 
 const nodeTypes: NodeTypes = {
   taskNode: TaskNode,
@@ -108,7 +110,14 @@ const WorkflowBuilder: React.FC = () => {
   }
 
   const getDefaultParameters = (type: string) => {
-    const defaults: Record<string, Record<string, unknown>> = {
+    // Try to get defaults from registry first
+    const defaults = nodeRegistryService.getDefaultNodeData(type)
+    if (Object.keys(defaults).length > 0) {
+      return defaults
+    }
+
+    // Fallback to hardcoded defaults
+    const fallbackDefaults: Record<string, Record<string, unknown>> = {
       'deep-research': { query: '', depth: 3, sources: 10 },
       'youtube-analysis': { videoUrl: '', analysisType: 'transcript' },
       'web-search': { query: '', maxResults: 10 },
@@ -117,43 +126,71 @@ const WorkflowBuilder: React.FC = () => {
       'export': { format: 'json', destination: '' },
       'query-builder': {}
     }
-    return defaults[type] || {}
+    return fallbackDefaults[type] || {}
   }
 
   const handleSaveWorkflow = () => {
+    // Get current workflow data
+    const workflowData = {
+      id: 'current-workflow',
+      name: 'Current Workflow',
+      nodes: storeNodes,
+      edges: storeEdges
+    }
+
+    // Validate before saving
+    const validation = workflowValidator.validateWorkflow(workflowData)
+    if (!validation.valid) {
+      alert(`Workflow validation failed:\n${validation.errors.join('\n')}`)
+      return
+    }
+
     saveWorkflow()
-    alert('Workflow saved successfully!')
+    alert('Workflow saved and validated successfully!')
   }
 
   const handleLoadWorkflow = () => {
     const saved = localStorage.getItem('workflow')
     if (saved) {
-      const workflow = JSON.parse(saved)
-      loadWorkflow(workflow)
-      setNodes(workflow.nodes.map((node: WorkflowNode) => ({
-        id: node.id,
-        type: (node.type as any) === 'query-builder' ? 'queryNode' : 'taskNode',
-        position: node.position,
-        data: {
-          ...node.data,
-          onParameterChange: (paramName: string, value: unknown) => {
-            updateNode(node.id, {
-              data: {
-                ...node.data,
-                parameters: {
-                  ...node.data.parameters,
-                  [paramName]: value,
+      try {
+        const workflow = JSON.parse(saved)
+
+        // Validate imported workflow
+        const validation = workflowValidator.validateWorkflow(workflow)
+        if (!validation.valid) {
+          alert(`Workflow validation failed:\n${validation.errors.join('\n')}`)
+          return
+        }
+
+        loadWorkflow(workflow)
+        setNodes(workflow.nodes.map((node: WorkflowNode) => ({
+          id: node.id,
+          type: (node.type as any) === 'query-builder' ? 'queryNode' : 'taskNode',
+          position: node.position,
+          data: {
+            ...node.data,
+            nodeType: node.type,
+            onParameterChange: (paramName: string, value: unknown) => {
+              updateNode(node.id, {
+                data: {
+                  ...node.data,
+                  parameters: {
+                    ...node.data.parameters,
+                    [paramName]: value,
+                  },
                 },
-              },
-            })
+              })
+            },
+            onDelete: () => deleteNode(node.id),
+            onOpenEditor: (node.type as any) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
+            isSelected: selectedNodeId === node.id,
           },
-          onDelete: () => deleteNode(node.id),
-          onOpenEditor: (node.type as any) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
-          isSelected: selectedNodeId === node.id,
-        },
-      })))
-      setEdges(workflow.edges)
-      alert('Workflow loaded successfully!')
+        })))
+        setEdges(workflow.edges)
+        alert('Workflow loaded and validated successfully!')
+      } catch (error) {
+        alert(`Failed to load workflow: ${error}`)
+      }
     } else {
       alert('No saved workflow found.')
     }

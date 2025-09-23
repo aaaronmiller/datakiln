@@ -19,6 +19,14 @@ export interface WorkflowTemplate {
   tags: string[]
 }
 
+interface TemplateNodeData {
+  type: string
+  name: string
+  [key: string]: unknown
+}
+
+type TemplateNode = Node<TemplateNodeData>
+
 interface TemplateWizardProps {
   isOpen: boolean
   onClose: () => void
@@ -242,8 +250,8 @@ const TemplateWizard: React.FC<TemplateWizardProps> = ({
     const newEdges = selectedTemplate.edges.map(edge => ({
       ...edge,
       id: `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      source: newNodes.find(n => n.data.type === selectedTemplate.nodes.find(tn => tn.id === edge.source)?.data.type)?.id || edge.source,
-      target: newNodes.find(n => n.data.type === selectedTemplate.nodes.find(tn => tn.id === edge.target)?.data.type)?.id || edge.target
+      source: newNodes.find(n => (n.data as TemplateNodeData).type === (selectedTemplate.nodes.find(tn => tn.id === edge.source)?.data as TemplateNodeData).type)?.id || edge.source,
+      target: newNodes.find(n => (n.data as TemplateNodeData).type === (selectedTemplate.nodes.find(tn => tn.id === edge.target)?.data as TemplateNodeData).type)?.id || edge.target
     }))
 
     onCreateWorkflow(newNodes, newEdges, workflowName, workflowDescription)
@@ -281,9 +289,9 @@ const TemplateWizard: React.FC<TemplateWizardProps> = ({
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem>All Categories</SelectItem>
                     {categories.map(category => (
-                      <SelectItem key={category} value={category.toLowerCase()}>
+                      <SelectItem key={category}>
                         {category}
                       </SelectItem>
                     ))}

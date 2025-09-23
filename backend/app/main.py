@@ -11,7 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 from .services.query_engine import get_query_engine
 
 # Import API routers
-from .api.v1.endpoints import dashboard, workflows, results
+from .api.v1.endpoints import dashboard, workflows, results, artifacts, extension, selectors
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +36,9 @@ app.add_middleware(
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(workflows.router, prefix="/api/v1", tags=["workflows"])
 app.include_router(results.router, prefix="/api/v1", tags=["results"])
+app.include_router(artifacts.router, prefix="/api/v1", tags=["artifacts"])
+app.include_router(extension.router, prefix="/api/v1/extension", tags=["extension"])
+app.include_router(selectors.router, prefix="/api/v1/selectors", tags=["selectors"])
 
 # Pydantic models for request/response
 class QueryGraphRequest(BaseModel):

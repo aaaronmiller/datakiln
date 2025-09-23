@@ -9,8 +9,8 @@ class ProviderNode(BaseNode):
     type: str = "provider"
 
     # Provider configuration
-    provider_type: Literal["gemini_deep_research", "gemini_canvas", "perplexity"] = Field(
-        ..., description="AI provider type"
+    provider_type: Literal["gemini_deep_research", "gemini_canvas", "perplexity", "extension"] = Field(
+        ..., description="AI provider type or data source"
     )
     mode: Optional[str] = Field(None, description="Provider-specific mode")
 
@@ -66,6 +66,8 @@ class ProviderNode(BaseNode):
                 result = await provider_manager.execute_canvas(request)
             elif self.provider_type == "perplexity":
                 result = await provider_manager.execute_perplexity(request)
+            elif self.provider_type == "extension":
+                result = await self._execute_extension_data_source(context)
             else:
                 raise ValueError(f"Unsupported provider type: {self.provider_type}")
 
@@ -113,6 +115,30 @@ class ProviderNode(BaseNode):
             })
 
         return request
+
+    async def _execute_extension_data_source(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute extension data source retrieval"""
+        from backend.app.services.extension_service import extension_service
+
+        # Get user ID from context or inputs
+        user_id = self.inputs.get("user_id", context.get("user_id", "anonymous"))
+        data_type = self.inputs.get("data_type", "chat_capture")
+
+        # Fetch extension data
+        data = await extension_service.get_workflow_data_source(user_id, data_type)
+
+        # Mark captures as processed if requested
+        if self.inputs.get("mark_processed", False) and "captures" in data:
+            capture_ids = [capture["id"] for capture in data["captures"]]
+            await extension_service.mark_data_processed(user_id, capture_ids)
+
+        return {
+            "data_source": "extension",
+            "user_id": user_id,
+            "data_type": data_type,
+            "data": data,
+            "timestamp": data.get("timestamp")
+        }
 
     def validate_configuration(self) -> Dict[str, Any]:
         """Validate provider configuration"""

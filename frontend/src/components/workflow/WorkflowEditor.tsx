@@ -26,6 +26,10 @@ const nodeTypes = {
   transform: WorkflowNode,
   export: WorkflowNode,
   condition: WorkflowNode,
+  filter: WorkflowNode,
+  aggregate: WorkflowNode,
+  join: WorkflowNode,
+  union: WorkflowNode,
 }
 
 // Generate a performance test workflow with 50+ nodes
@@ -513,6 +517,34 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
               className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
             >
               Export JSON
+            </button>
+            <button
+              onClick={() => {
+                const workflow = convertToWorkflowFormat()
+                const roundTripResult = workflowValidationService.validateRoundTrip(workflow)
+
+                if (roundTripResult.valid) {
+                  addNotification({
+                    type: 'success',
+                    title: 'Round-trip Test Passed',
+                    message: 'Export → import produces identical workflow'
+                  })
+                } else {
+                  addNotification({
+                    type: 'error',
+                    title: 'Round-trip Test Failed',
+                    message: roundTripResult.errors.join('; ')
+                  })
+                  // Log differences for debugging
+                  if (roundTripResult.original && roundTripResult.imported) {
+                    console.log('Original workflow:', roundTripResult.original)
+                    console.log('Imported workflow:', roundTripResult.imported)
+                  }
+                }
+              }}
+              className="px-3 py-1 bg-purple-500 text-white rounded text-xs hover:bg-purple-600"
+            >
+              Test Round-trip
             </button>
             <button
               onClick={() => {

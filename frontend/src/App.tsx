@@ -4,6 +4,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import MainLayout from './components/core/MainLayout'
 import Dashboard from './pages/Dashboard'
 import Workflows from './pages/Workflows'
+import WorkflowEditor from './components/workflow/WorkflowEditor'
 import Runs from './pages/Runs'
 import Results from './pages/Results'
 import Selectors from './pages/Selectors'
@@ -11,6 +12,7 @@ import Templates from './pages/Templates'
 import Transcript from './pages/Transcript'
 import Extension from './pages/Extension'
 import Settings from './pages/Settings'
+import CommandPalette from './pages/CommandPalette'
 
 function App() {
   return (
@@ -34,6 +36,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Workflows />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workflows/new"
+            element={
+              <ProtectedRoute>
+                <WorkflowEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workflows/:id/edit"
+            element={
+              <ProtectedRoute>
+                <WorkflowEditor />
               </ProtectedRoute>
             }
           />
@@ -90,6 +108,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/command-palette"
+            element={
+              <ProtectedRoute>
+                <CommandPalette />
               </ProtectedRoute>
             }
           />

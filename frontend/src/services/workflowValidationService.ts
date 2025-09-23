@@ -301,6 +301,71 @@ class WorkflowValidationService {
     }
   }
 
+  // Deep equality check for round-trip validation
+  private deepEqual(a: unknown, b: unknown): boolean {
+    if (a === b) return true
+
+    if (a == null || b == null) return a === b
+
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) return false
+      for (let i = 0; i < a.length; i++) {
+        if (!this.deepEqual(a[i], b[i])) return false
+      }
+      return true
+    }
+
+    if (typeof a === 'object' && typeof b === 'object') {
+      const keysA = Object.keys(a as Record<string, unknown>)
+      const keysB = Object.keys(b as Record<string, unknown>)
+
+      if (keysA.length !== keysB.length) return false
+
+      for (const key of keysA) {
+        if (!keysB.includes(key)) return false
+        if (!this.deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false
+      }
+      return true
+    }
+
+    return false
+  }
+
+  // Test round-trip export/import validation
+  validateRoundTrip(workflow: unknown): { valid: boolean; errors: string[]; original?: unknown; imported?: unknown } {
+    const exportResult = this.exportWorkflow(workflow)
+
+    if (!exportResult.valid || !exportResult.json) {
+      return { valid: false, errors: exportResult.errors }
+    }
+
+    try {
+      const importedWorkflow = JSON.parse(exportResult.json)
+      const importValidation = this.validateWorkflow(importedWorkflow)
+
+      if (!importValidation.valid) {
+        return { valid: false, errors: [`Import validation failed: ${importValidation.errors.join('; ')}`] }
+      }
+
+      // Check deep equality
+      if (!this.deepEqual(workflow, importedWorkflow)) {
+        return {
+          valid: false,
+          errors: ['Round-trip validation failed: exported and imported workflows are not identical'],
+          original: workflow,
+          imported: importedWorkflow
+        }
+      }
+
+      return { valid: true, errors: [], original: workflow, imported: importedWorkflow }
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [`Round-trip import failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      }
+    }
+  }
+
   // Export workflow to validated JSON
   exportWorkflow(workflow: unknown): { valid: boolean; json?: string; errors: string[]; warnings: string[] } {
     const validation = this.validateWorkflow(workflow)

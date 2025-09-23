@@ -153,17 +153,19 @@ class ValidationFeedbackService {
 
       // Update field errors
       for (const error of backendValidation.errors) {
-        if (!frontendResult.fieldErrors[error.field]) {
-          frontendResult.fieldErrors[error.field] = []
+        const fieldName = error.instancePath?.replace('/', '') || 'unknown'
+        if (!frontendResult.fieldErrors[fieldName]) {
+          frontendResult.fieldErrors[fieldName] = []
         }
-        frontendResult.fieldErrors[error.field].push(this.convertBackendError(error))
+        frontendResult.fieldErrors[fieldName].push(this.convertBackendError(error))
       }
 
       for (const warning of backendValidation.warnings) {
-        if (!frontendResult.fieldErrors[warning.field]) {
-          frontendResult.fieldErrors[warning.field] = []
+        const fieldName = warning.instancePath?.replace('/', '') || 'unknown'
+        if (!frontendResult.fieldErrors[fieldName]) {
+          frontendResult.fieldErrors[fieldName] = []
         }
-        frontendResult.fieldErrors[warning.field].push(this.convertBackendWarning(warning))
+        frontendResult.fieldErrors[fieldName].push(this.convertBackendWarning(warning))
       }
 
       frontendResult.valid = frontendResult.valid && backendValidation.valid

@@ -20,6 +20,10 @@ from ....schemas.workflow import (
 from sse_starlette.sse import EventSourceResponse
 import asyncio
 import logging
+import subprocess
+import json
+import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -277,21 +281,44 @@ async def stream_run_updates(
     workflow_service: WorkflowService = Depends(get_workflow_service)
 ):
     """
-    Streams real-time updates for a workflow run.
+    Streams real-time updates for a workflow run using Server-Sent Events.
     """
     async def event_generator():
-        while True:
+        event_queue = workflow_service.get_event_queue(run_id)
+        if not event_queue:
+            # Fallback to polling if no event queue (run not started yet or completed)
             run = workflow_service.get_run(run_id)
             if not run:
                 yield {"event": "error", "data": "Run not found"}
-                break
+                return
 
-            yield {"event": "update", "data": run.dict()}
+            # Send initial status
+            yield {"event": "runStatus", "data": run.dict()}
 
-            if run.status in ["completed", "failed"]:
-                break
+            # Poll for updates if no event queue
+            while True:
+                run = workflow_service.get_run(run_id)
+                if run.status in ["completed", "failed"]:
+                    yield {"event": "executionCompleted", "data": {"status": run.status, "run_id": run_id}}
+                    break
+                await asyncio.sleep(1)
+            return
 
-            await asyncio.sleep(1)  # Poll every second
+        # Stream events from the queue
+        try:
+            while True:
+                try:
+                    # Wait for event with timeout
+                    event = await asyncio.wait_for(event_queue.get(), timeout=30.0)
+                    yield event
+                except asyncio.TimeoutError:
+                    # Send heartbeat to keep connection alive
+                    yield {"event": "heartbeat", "data": {"timestamp": datetime.now().isoformat()}}
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error in SSE stream for run {run_id}: {e}")
+            yield {"event": "error", "data": str(e)}
 
     return EventSourceResponse(event_generator())
 
@@ -426,3 +453,74 @@ async def optimize_workflow_endpoint(
     except Exception as e:
         logger.error(f"Workflow optimization error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Optimization error: {str(e)}")
+
+@router.post("/youtube/transcript")
+async def process_youtube_transcript(url: str) -> Dict[str, Any]:
+    """
+    Process YouTube video transcript.
+    """
+    try:
+        # Get the project root directory
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        script_path = project_root / "scripts" / "youtube_transcript.py"
+
+        if not script_path.exists():
+            raise HTTPException(status_code=500, detail="Transcript processing script not found")
+
+        # Run the transcript processing script
+        result = subprocess.run(
+            ["python3", str(script_path), url],
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=60  # 60 second timeout
+        )
+
+        if result.returncode != 0:
+            logger.error(f"Transcript processing failed: {result.stderr}")
+            raise HTTPException(status_code=500, detail=f"Transcript processing failed: {result.stderr}")
+
+        # Parse the output to find the saved file
+        output_lines = result.stdout.strip().split('\n')
+        transcript_file = None
+        analysis_file = None
+
+        for line in output_lines:
+            if line.startswith("Transcript saved to:"):
+                transcript_file = line.split(":", 1)[1].strip()
+            elif line.startswith("Analysis saved to:"):
+                analysis_file = line.split(":", 1)[1].strip()
+
+        if not transcript_file:
+            raise HTTPException(status_code=500, detail="Failed to generate transcript file")
+
+        # Read the transcript data
+        with open(transcript_file, 'r', encoding='utf-8') as f:
+            transcript_data = json.load(f)
+
+        # Read analysis data if available
+        analysis_data = None
+        if analysis_file and os.path.exists(analysis_file):
+            with open(analysis_file, 'r', encoding='utf-8') as f:
+                analysis_data = json.load(f)
+
+        return {
+            "success": True,
+            "video_id": transcript_data["metadata"]["video_id"],
+            "transcript": transcript_data["transcript"],
+            "word_count": transcript_data["metadata"]["word_count"],
+            "analysis": analysis_data,
+            "files": {
+                "transcript": transcript_file,
+                "analysis": analysis_file
+            }
+        }
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Transcript processing timed out")
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse transcript data: {e}")
+        raise HTTPException(status_code=500, detail="Failed to parse transcript data")
+    except Exception as e:
+        logger.error(f"Transcript processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Transcript processing error: {str(e)}")

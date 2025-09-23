@@ -3,7 +3,7 @@ import { Node } from '@xyflow/react'
 // Workflow Node Types matching backend implementation
 export interface WorkflowNode {
   id: string
-  type: 'dom_action' | 'prompt' | 'provider' | 'transform' | 'export' | 'condition'
+  type: 'dom_action' | 'prompt' | 'provider' | 'transform' | 'export' | 'condition' | 'filter' | 'aggregate' | 'join' | 'union'
   position: { x: number; y: number }
   data: {
     label: string
@@ -235,6 +235,116 @@ export const WORKFLOW_NODE_TYPES: WorkflowNodeType[] = [
       condition_type: { type: 'select', options: ['simple', 'python', 'jsonpath', 'regex'] },
       true_next: { type: 'string' },
       false_next: { type: 'string' }
+    }
+  },
+  {
+    type: 'filter',
+    label: 'Filter',
+    icon: '🔍',
+    color: 'bg-indigo-500',
+    category: 'process',
+    description: 'Filter data based on conditions, regex, or custom logic',
+    defaultData: {
+      name: 'Filter Data',
+      filter_type: 'condition'
+    },
+    inputs: 1,
+    outputs: 1,
+    configSchema: {
+      filter_type: {
+        type: 'select',
+        required: true,
+        options: ['condition', 'regex', 'jsonpath', 'range', 'type', 'exists', 'custom']
+      },
+      input_key: { type: 'string' },
+      output_key: { type: 'string', default: 'filtered' },
+      invert_filter: { type: 'boolean', default: false },
+      condition: { type: 'string' },
+      regex_pattern: { type: 'string' },
+      regex_field: { type: 'string' },
+      jsonpath_query: { type: 'string' },
+      range_field: { type: 'string' },
+      min_value: { type: 'number' },
+      max_value: { type: 'number' },
+      allowed_types: { type: 'array', items: { type: 'string' } },
+      exists_field: { type: 'string' },
+      exists_check: { type: 'select', options: ['exists', 'not_exists', 'truthy', 'falsy'] },
+      custom_function: { type: 'string' }
+    }
+  },
+  {
+    type: 'aggregate',
+    label: 'Aggregate',
+    icon: '📊',
+    color: 'bg-teal-500',
+    category: 'process',
+    description: 'Aggregate and summarize data with statistical functions',
+    defaultData: {
+      name: 'Aggregate Data',
+      functions: ['count']
+    },
+    inputs: 1,
+    outputs: 1,
+    configSchema: {
+      input_key: { type: 'string' },
+      output_key: { type: 'string', default: 'aggregated' },
+      functions: {
+        type: 'array',
+        items: { type: 'string', enum: ['count', 'sum', 'avg', 'min', 'max', 'distinct'] }
+      },
+      group_by: { type: 'array', items: { type: 'string' } },
+      field_mappings: { type: 'object', additionalProperties: { type: 'string' } }
+    }
+  },
+  {
+    type: 'join',
+    label: 'Join',
+    icon: '🔗',
+    color: 'bg-pink-500',
+    category: 'process',
+    description: 'Join multiple data sources based on common fields',
+    defaultData: {
+      name: 'Join Data',
+      join_type: 'inner'
+    },
+    inputs: 2,
+    outputs: 1,
+    configSchema: {
+      join_type: {
+        type: 'select',
+        options: ['inner', 'left', 'right', 'full', 'cross'],
+        default: 'inner'
+      },
+      left_input_key: { type: 'string', required: true },
+      right_input_key: { type: 'string', required: true },
+      left_join_key: { type: 'string', required: true },
+      right_join_key: { type: 'string', required: true },
+      output_key: { type: 'string', default: 'joined' },
+      select_fields: { type: 'array', items: { type: 'string' } }
+    }
+  },
+  {
+    type: 'union',
+    label: 'Union',
+    icon: '➕',
+    color: 'bg-cyan-500',
+    category: 'process',
+    description: 'Combine multiple data sources into a single dataset',
+    defaultData: {
+      name: 'Union Data',
+      union_mode: 'distinct'
+    },
+    inputs: 1,
+    outputs: 1,
+    configSchema: {
+      input_keys: { type: 'array', items: { type: 'string' }, required: true },
+      output_key: { type: 'string', default: 'unioned' },
+      union_mode: {
+        type: 'select',
+        options: ['distinct', 'all', 'intersect', 'except'],
+        default: 'distinct'
+      },
+      align_fields: { type: 'boolean', default: true }
     }
   }
 ]

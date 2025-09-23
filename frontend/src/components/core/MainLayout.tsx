@@ -3,7 +3,6 @@ import Header from "./Header"
 import Sidebar from "./Sidebar"
 import CommandPalette from "./CommandPalette"
 import GlobalSearchModal from "./GlobalSearchModal"
-import { Breadcrumb } from "../ui/breadcrumb"
 import { ToastContainer } from "../ui/toast"
 import { ErrorBoundary } from "../ui/error-boundary"
 import { Loading } from "../ui/loading"
@@ -35,13 +34,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen theme-bg-background">
+      <div className="min-h-screen bg-gray-50">
         <Header onCommandPalette={handleCommandPalette} onToggleSidebar={toggleSidebar} />
-        <Breadcrumb />
-        <div className="flex">
+        <div className="flex h-[calc(100vh-64px)]">
           <Sidebar isOpen={sidebar.isOpen} onClose={sidebar.close} />
-          <main className="flex-1 p-6 md:ml-0">
-            {children}
+          <main className="flex-1 overflow-auto bg-white">
+            <div className="p-6">
+              {children}
+            </div>
           </main>
         </div>
         <CommandPalette />

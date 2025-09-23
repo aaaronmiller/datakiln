@@ -4,7 +4,7 @@ import '@xyflow/react/dist/style.css'
 
 import WorkflowEditor from './WorkflowEditor'
 import { workflowService } from '../../services/workflowService'
-import { WorkflowGraph, WorkflowNode } from '../../types/workflow-fixed'
+import { WorkflowGraph, WorkflowNode } from '../../types/workflow'
 
 interface ValidationResult {
   valid: boolean

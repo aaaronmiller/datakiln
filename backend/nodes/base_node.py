@@ -15,6 +15,7 @@ class BaseNode(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str = Field(..., description="Human-readable node name")
     type: str = Field(..., description="Node type identifier")
+    version: str = Field(default="1.0", description="Node type version")
     description: Optional[str] = Field(None, description="Node description")
 
     # Parameter validation schema
@@ -190,6 +191,7 @@ class BaseNode(BaseModel):
             "id": self.id,
             "name": self.name,
             "type": self.type,
+            "version": self.version,
             "description": self.description,
             "params_schema": self.params_schema,
             "inputs": self.inputs,

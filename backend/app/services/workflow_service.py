@@ -3,11 +3,14 @@ from datetime import datetime
 import uuid
 import logging
 import asyncio
+import json
 from ...dag_executor import DAGExecutor
 from ...selectors import load_selectors
 from ...providers import ProviderManager, GeminiDeepResearchProvider, PerplexityProvider
 from ..models.workflow import Workflow, Run, Result
 from .query_optimizer import QueryOptimizer, OptimizationLevel, get_query_optimizer
+from .artifact_service import ArtifactService, get_artifact_service
+from ..utils.schema_validator import workflow_schema_validator
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,7 @@ class WorkflowService:
         # TODO: Replace with durable store (database)
         self.runs: Dict[str, Run] = {}
         self.results: Dict[str, Result] = {}
+        self.event_queues: Dict[str, asyncio.Queue] = {}  # For SSE streaming
         self.selectors_registry = load_selectors()
 
         # Initialize provider manager
@@ -34,6 +38,9 @@ class WorkflowService:
 
         # Initialize query optimizer
         self.query_optimizer = get_query_optimizer()
+
+        # Initialize artifact service
+        self.artifact_service = get_artifact_service()
 
     async def execute_workflow(
         self,
@@ -73,6 +80,25 @@ class WorkflowService:
             execution_options=execution_options or {}
         )
         self.runs[run_id] = run
+
+        # Set up event queue for SSE streaming
+        event_queue = asyncio.Queue()
+        self.event_queues[run_id] = event_queue
+
+        # Add event callback to DAG executor
+        def event_callback(event_type: str, event_data: Dict[str, Any]):
+            """Callback to handle execution events for SSE streaming"""
+            try:
+                # Put event in queue for SSE consumers
+                asyncio.create_task(event_queue.put({
+                    "event": event_type,
+                    "data": event_data,
+                    "timestamp": datetime.now().isoformat()
+                }))
+            except Exception as e:
+                logger.error(f"Error in event callback: {e}")
+
+        self.dag_executor.add_event_callback(event_callback)
 
         execution_summary = {
             "run_id": run_id,
@@ -125,12 +151,36 @@ class WorkflowService:
             # Execute workflow using enhanced DAG executor
             execution_result = await self.dag_executor.execute_workflow(workflow, context)
 
-            # Store results with enhanced metadata
+            # Store execution result as artifact
+            execution_artifact_id = self.artifact_service.store_artifact(
+                run_id=run_id,
+                artifact_name="execution_result.json",
+                content=execution_result,
+                content_type="application/json",
+                metadata={"type": "execution_result", "workflow_id": getattr(workflow, 'id', 'unknown')}
+            )
+
+            # Create artifact index
+            artifact_index = self.artifact_service.create_artifact_index(run_id)
+
+            # Store results with artifact index
+            result_data = {
+                "execution_result": execution_result,
+                "artifact_index": artifact_index,
+                "artifacts": [
+                    {
+                        "id": execution_artifact_id,
+                        "name": "execution_result.json",
+                        "download_url": self.artifact_service.get_artifact_download_url(execution_artifact_id)
+                    }
+                ]
+            }
+
             result = Result(
                 id=str(uuid.uuid4()),
                 run_id=run_id,
                 workflow_id=getattr(workflow, 'id', 'unknown'),
-                data=execution_result
+                data=result_data
             )
             self.results[result.id] = result
 
@@ -156,6 +206,13 @@ class WorkflowService:
 
             logger.info(f"Workflow execution completed: {run_id} - {run.status}")
 
+            # Send final execution summary event
+            asyncio.create_task(event_queue.put({
+                "event": "executionCompleted",
+                "data": execution_summary,
+                "timestamp": datetime.now().isoformat()
+            }))
+
         except Exception as e:
             error_msg = f"Workflow execution failed: {str(e)}"
             logger.error(f"{error_msg} (run_id: {run_id})")
@@ -169,6 +226,21 @@ class WorkflowService:
                 "completed_at": run.completed_at.isoformat(),
                 "error": str(e)
             })
+
+            # Send execution failed event
+            asyncio.create_task(event_queue.put({
+                "event": "executionFailed",
+                "data": {"error": str(e), "run_id": run_id},
+                "timestamp": datetime.now().isoformat()
+            }))
+
+        finally:
+            # Clean up event queue after a delay to allow SSE consumers to get final events
+            async def cleanup_queue():
+                await asyncio.sleep(5)  # Give SSE consumers time to get final events
+                self.cleanup_event_queue(run_id)
+
+            asyncio.create_task(cleanup_queue())
 
         # Legacy method for backward compatibility
         async def execute_workflow_legacy(self, workflow: Workflow, execution_options: Optional[Dict[str, Any]] = None) -> str:
@@ -236,20 +308,40 @@ class WorkflowService:
             "total_results": len(self.results)
         }
 
+    def _get_supported_versions_for_node_type(self, node_type: str) -> List[str]:
+        """Get supported versions for a node type"""
+        # For now, all node types support version "1.0"
+        # In the future, this could be more sophisticated with version ranges
+        return ["1.0"]
+
     def _validate_workflow(self, workflow: Workflow) -> Dict[str, Any]:
         """Validate workflow structure and requirements"""
         errors = []
         warnings = []
 
-        # Check required attributes
+        # Convert workflow to dict for schema validation
+        workflow_dict = self._workflow_to_dict(workflow)
+
+        # Validate against JSON schema
+        schema_validation = workflow_schema_validator.validate_workflow(workflow_dict)
+        errors.extend(schema_validation['errors'])
+        warnings.extend(schema_validation['warnings'])
+
+        # Additional structural validation
         if not hasattr(workflow, 'nodes') or not workflow.nodes:
             errors.append("Workflow must have at least one node")
         else:
-            # Validate node types
+            # Validate node types and versions
             supported_types = self.dag_executor.node_classes.keys()
             for node in workflow.nodes:
                 if node.type not in supported_types:
                     errors.append(f"Unsupported node type: {node.type}")
+                else:
+                    # Validate node version
+                    supported_versions = self._get_supported_versions_for_node_type(node.type)
+                    node_version = getattr(node, 'version', '1.0')
+                    if node_version not in supported_versions:
+                        errors.append(f"Unsupported version '{node_version}' for node type '{node.type}'. Supported versions: {supported_versions}")
 
         # Check for edges if nodes exist
         if hasattr(workflow, 'edges') and workflow.edges:
@@ -313,6 +405,28 @@ class WorkflowService:
             List of Result objects for the run.
         """
         return [result for result in self.results.values() if result.run_id == run_id]
+
+    def get_event_queue(self, run_id: str) -> Optional[asyncio.Queue]:
+        """
+        Gets the event queue for a run (for SSE streaming).
+
+        Args:
+            run_id: The run ID.
+
+        Returns:
+            The asyncio.Queue for the run, or None if not found.
+        """
+        return self.event_queues.get(run_id)
+
+    def cleanup_event_queue(self, run_id: str):
+        """
+        Cleans up the event queue for a completed run.
+
+        Args:
+            run_id: The run ID.
+        """
+        if run_id in self.event_queues:
+            del self.event_queues[run_id]
 
     def _workflow_to_dict(self, workflow: Workflow) -> Dict[str, Any]:
         """Convert Workflow object to dictionary for optimization."""

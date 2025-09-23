@@ -345,6 +345,9 @@ class DAGExecutor:
         """Execute nodes with proper data flow management"""
         import time
 
+        # Check if workflow should stop on first failure
+        stop_on_failure = context.execution_options.get('stop_on_failure', True)
+
         for node_id in execution_order:
             node = nodes[node_id]
             node_start_time = time.time()
@@ -430,8 +433,14 @@ class DAGExecutor:
                     "timestamp": time.time()
                 })
 
-                # Continue execution but mark downstream nodes as affected
-                self._handle_node_failure(node_id, data_connections, context)
+                # If stop_on_failure is enabled, stop execution and mark remaining nodes as cancelled
+                if stop_on_failure:
+                    logger.info(f"Stopping workflow execution due to node {node_id} failure")
+                    self._handle_workflow_failure(node_id, execution_order, data_connections, context)
+                    break
+                else:
+                    # Continue execution but mark downstream nodes as affected
+                    self._handle_node_failure(node_id, data_connections, context)
 
     def _prepare_node_inputs(
         self,
@@ -506,6 +515,33 @@ class DAGExecutor:
         # This could be enhanced to pre-calculate data availability
         # For now, we rely on the execution order to ensure data is available when needed
         pass
+
+    def _handle_workflow_failure(
+        self,
+        failed_node_id: str,
+        execution_order: List[str],
+        data_connections: List[DataFlowConnection],
+        context: WorkflowExecutionContext
+    ) -> None:
+        """Handle workflow failure by stopping execution and marking remaining nodes as cancelled"""
+        # Find the index of the failed node in execution order
+        try:
+            failed_index = execution_order.index(failed_node_id)
+        except ValueError:
+            failed_index = -1
+
+        # Mark all remaining nodes as cancelled
+        for i in range(failed_index + 1, len(execution_order)):
+            node_id = execution_order[i]
+            if node_id not in context.node_results:
+                context.node_results[node_id] = ExecutionResult(
+                    node_id=node_id,
+                    success=False,
+                    outputs={},
+                    execution_time=0.0,
+                    error=f"Workflow stopped due to failure of upstream node {failed_node_id}",
+                    metadata={"workflow_stopped": True, "upstream_failure": failed_node_id}
+                )
 
     def _handle_node_failure(
         self,
