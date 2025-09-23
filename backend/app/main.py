@@ -15,7 +15,7 @@ from .services.research_service import initialize_research_service, shutdown_res
 from .api.v1.endpoints import dashboard
 # Temporarily disabled due to import issues:
 # from .api.v1.endpoints import workflows, results, artifacts, extension, selectors
-from .api.v1.endpoints import research
+# from .api.v1.endpoints import research
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +57,7 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboar
 # app.include_router(artifacts.router, prefix="/api/v1", tags=["artifacts"])
 # app.include_router(extension.router, prefix="/api/v1/extension", tags=["extension"])
 # app.include_router(selectors.router, prefix="/api/v1/selectors", tags=["selectors"])
-app.include_router(research.router, prefix="/api/v1/research", tags=["research"])
+# app.include_router(research.router, prefix="/api/v1/research", tags=["research"])
 
 # Pydantic models for request/response
 class QueryGraphRequest(BaseModel):

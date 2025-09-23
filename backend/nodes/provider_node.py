@@ -61,7 +61,7 @@ class ProviderNode(BaseNode):
 
             # Execute based on provider type
             if self.provider_type == "gemini_deep_research":
-                result = await provider_manager.execute_deep_research(request)
+                result = await self._execute_deep_research(request, context)
             elif self.provider_type == "gemini_canvas":
                 result = await provider_manager.execute_canvas(request)
             elif self.provider_type == "perplexity":
@@ -115,6 +115,71 @@ class ProviderNode(BaseNode):
             })
 
         return request
+
+    async def _execute_deep_research(self, request: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute deep research using the integrated research engine"""
+        try:
+            # Import research components
+            import sys
+            from pathlib import Path
+
+            # Add backend to path for imports
+            backend_path = Path(__file__).parent.parent
+            sys.path.insert(0, str(backend_path))
+
+            from research_agent import ResearchAgent, ResearchMode
+            from gemini_automation import perform_gemini_research, GeminiInterface
+
+            # Map research depth to ResearchMode
+            depth_map = {
+                "fast": ResearchMode.FAST,
+                "balanced": ResearchMode.BALANCED,
+                "comprehensive": ResearchMode.COMPREHENSIVE
+            }
+            research_mode = depth_map.get(request.get("research_depth", "balanced"), ResearchMode.BALANCED)
+
+            # Get query from request
+            query = request.get("prompt", "")
+
+            # Use the research agent for comprehensive research, or direct automation for simpler modes
+            if research_mode == ResearchMode.COMPREHENSIVE:
+                # Use full research agent with tree building
+                agent = ResearchAgent()
+                result = await agent.run_research(query, research_mode)
+                return {
+                    "research_type": "comprehensive_agent",
+                    "query": query,
+                    "mode": research_mode.value,
+                    "result": result,
+                    "research_tree": result.get("result", {}),
+                    "timestamp": result.get("created_at")
+                }
+            else:
+                # Use direct Gemini automation for faster modes
+                interface_map = {
+                    "gemini_deep_research": "deep_research",
+                    "gemini_canvas": "canvas"
+                }
+                interface = interface_map.get(self.provider_type, "deep_research")
+
+                automation_result = await perform_gemini_research(query, interface=interface, headless=True)
+
+                return {
+                    "research_type": "direct_automation",
+                    "query": query,
+                    "mode": research_mode.value,
+                    "interface": interface,
+                    "result": automation_result,
+                    "timestamp": automation_result.get("timestamp")
+                }
+
+        except Exception as e:
+            # Fallback to basic provider execution if research components fail
+            provider_manager = self._provider_manager or context.get("provider_manager")
+            if provider_manager:
+                return await provider_manager.execute_deep_research(request)
+            else:
+                raise ValueError(f"Deep research execution failed: {str(e)}")
 
     async def _execute_extension_data_source(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute extension data source retrieval"""
