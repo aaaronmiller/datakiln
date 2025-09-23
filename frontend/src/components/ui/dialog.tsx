@@ -59,3 +59,19 @@ export const DialogTitle: React.FC<DialogTitleProps> = ({ children, className = 
     </h2>
   )
 }
+
+export const DialogDescription: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <p className="text-sm text-gray-600 mt-1">
+      {children}
+    </p>
+  )
+}
+
+export const DialogFooter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <div className="flex items-center justify-end space-x-2 p-6 border-t">
+      {children}
+    </div>
+  )
+}

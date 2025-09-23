@@ -23,6 +23,7 @@ import logging
 import subprocess
 import json
 import os
+import uuid
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -524,3 +525,165 @@ async def process_youtube_transcript(url: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Transcript processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Transcript processing error: {str(e)}")
+
+@router.post("/workflows/youtube/transcript")
+async def process_youtube_transcript_workflow(url: str, background_tasks: BackgroundTasks) -> Dict[str, Any]:
+    """
+    Process YouTube video transcript with workflow integration.
+    Follows the flowchart: URL/transcript input → Gemini processing → Obsidian export
+    """
+    try:
+        from ....services.obsidian_service import get_obsidian_service
+
+        task_id = str(uuid.uuid4())
+
+        # Start background processing
+        background_tasks.add_task(
+            process_youtube_workflow_background,
+            task_id=task_id,
+            url=url
+        )
+
+        return {
+            "task_id": task_id,
+            "status": "started",
+            "message": "YouTube transcript analysis workflow started",
+            "workflow_steps": [
+                "Extract video transcript",
+                "Process with Gemini AI",
+                "Generate analysis",
+                "Export to Obsidian"
+            ]
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to start YouTube workflow: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start workflow: {str(e)}")
+
+async def process_youtube_workflow_background(task_id: str, url: str):
+    """Process YouTube transcript in background following workflow steps"""
+    try:
+        from ....services.obsidian_service import get_obsidian_service
+        from ....providers.gemini_provider import GeminiProvider
+
+        # Step 1: Extract transcript
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        script_path = project_root / "scripts" / "youtube_transcript.py"
+
+        result = subprocess.run(
+            ["python3", str(script_path), url, "--no-analysis"],
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=60
+        )
+
+        if result.returncode != 0:
+            raise Exception(f"Transcript extraction failed: {result.stderr}")
+
+        # Parse transcript file
+        output_lines = result.stdout.strip().split('\n')
+        transcript_file = None
+        for line in output_lines:
+            if line.startswith("Transcript saved to:"):
+                transcript_file = line.split(":", 1)[1].strip()
+                break
+
+        if not transcript_file:
+            raise Exception("Failed to find transcript file")
+
+        with open(transcript_file, 'r', encoding='utf-8') as f:
+            transcript_data = json.load(f)
+
+        # Step 2: Process with Gemini
+        gemini_provider = GeminiProvider({"enabled": True})
+        analysis_prompt = f"""
+        Analyze this YouTube video transcript and provide comprehensive insights:
+
+        Title: {transcript_data.get('metadata', {}).get('title', 'Unknown')}
+        Transcript: {transcript_data['transcript']}
+
+        Please provide:
+        1. Main topics and key points
+        2. Summary of the content
+        3. Key insights or takeaways
+        4. Any calls to action or recommendations
+        5. Overall assessment
+
+        Format as JSON with keys: topics, summary, insights, recommendations, assessment.
+        """
+
+        analysis_response = await gemini_provider.generate(analysis_prompt)
+
+        try:
+            analysis = json.loads(analysis_response)
+        except:
+            analysis = {
+                "topics": ["Analysis generated"],
+                "summary": analysis_response,
+                "insights": ["See summary"],
+                "recommendations": [],
+                "assessment": "Content analyzed"
+            }
+
+        # Step 3: Export to Obsidian
+        obsidian_service = get_obsidian_service()
+        obsidian_content = f"""# YouTube Video Analysis
+
+**URL:** {url}
+**Video ID:** {transcript_data['metadata']['video_id']}
+**Word Count:** {transcript_data['metadata']['word_count']}
+**Analysis Date:** {datetime.now().isoformat()}
+
+## Transcript
+{transcript_data['transcript']}
+
+## Analysis
+
+### Main Topics
+{chr(10).join(f"- {topic}" for topic in analysis.get('topics', []))}
+
+### Summary
+{analysis.get('summary', 'No summary available')}
+
+### Key Insights
+{chr(10).join(f"- {insight}" for insight in analysis.get('insights', []))}
+
+### Recommendations
+{chr(10).join(f"- {rec}" for rec in analysis.get('recommendations', []))}
+
+### Overall Assessment
+{analysis.get('assessment', 'No assessment available')}
+"""
+
+        export_result = await obsidian_service.export_content(
+            content=obsidian_content,
+            title=f"YouTube_Analysis_{transcript_data['metadata']['video_id']}",
+            folder="YouTube_Analyses"
+        )
+
+        # Broadcast completion
+        try:
+            from ....main import broadcast_dashboard_update
+            await broadcast_dashboard_update("youtube_workflow_completed", {
+                "task_id": task_id,
+                "status": "completed",
+                "url": url,
+                "video_id": transcript_data['metadata']['video_id'],
+                "obsidian_export": export_result
+            })
+        except:
+            pass
+
+    except Exception as e:
+        logger.error(f"YouTube workflow failed: {str(e)}")
+        try:
+            from ....main import broadcast_dashboard_update
+            await broadcast_dashboard_update("youtube_workflow_completed", {
+                "task_id": task_id,
+                "status": "failed",
+                "url": url,
+                "error": str(e)
+            })
+        except:
+            pass

@@ -65,15 +65,26 @@ const Dashboard: React.FC = () => {
   }, [toast])
 
   // Handle quick run actions
-  const handleQuickRun = async (type: string) => {
+  const handleQuickRun = async (type: string, data?: Record<string, unknown>) => {
     try {
       let endpoint = ''
       let successMessage = ''
+      let requestData = data || {}
 
       switch (type) {
         case 'deep-research':
           endpoint = '/api/v1/dashboard/quick-run/deep-research'
           successMessage = 'Deep research task started successfully'
+          // For deep research, send the structured query data
+          if (data) {
+            requestData = {
+              topic: data.structuredQuery || data.originalQuery,
+              mode: data.mode || 'balanced',
+              concurrency: 3,
+              retries: 2,
+              selector_profile: 'balanced'
+            }
+          }
           break
         case 'transcript-analysis':
           endpoint = '/api/v1/dashboard/quick-run/transcript-analysis'
@@ -83,7 +94,7 @@ const Dashboard: React.FC = () => {
           throw new Error('Unknown task type')
       }
 
-      const _response = await axios.post(endpoint)
+      await axios.post(endpoint, requestData)
       toast({
         title: "Success",
         description: successMessage,
