@@ -105,7 +105,7 @@ export class SchemaValidator {
      // Validate metadata properties
      const metadataSchema = this.schema.properties?.metadata
      if (metadataSchema) {
-       this.validateObject(workflow.metadata, metadataSchema, 'metadata', errors, warnings)
+       this.validateObject(workflow.metadata as Record<string, unknown>, metadataSchema, 'metadata', errors, warnings)
      }
    }
  }
@@ -257,7 +257,7 @@ export class SchemaValidator {
 
     // Check for additional properties
     if (!schema.additionalProperties) {
-      const allowedProps = new Set(Object.keys(schema.properties))
+      const allowedProps = new Set(Object.keys(schema.properties ?? {}))
       for (const prop in node) {
         if (!allowedProps.has(prop)) {
           errors.push(`${path}: Unexpected property: ${prop}`)
@@ -297,7 +297,7 @@ export class SchemaValidator {
 
     // Check for additional properties
     if (!schema.additionalProperties) {
-      const allowedProps = new Set(Object.keys(schema.properties))
+      const allowedProps = new Set(Object.keys(schema.properties ?? {}))
       for (const prop in edge) {
         if (!allowedProps.has(prop)) {
           errors.push(`${path}: Unexpected property: ${prop}`)
@@ -306,7 +306,7 @@ export class SchemaValidator {
     }
   }
 
-  private validateObject(obj: any, schema: any, path: string, errors: string[], warnings: string[]): void {
+  private validateObject(obj: Record<string, unknown>, schema: JsonSchema, path: string, errors: string[], warnings: string[]): void {
     if (typeof obj !== 'object' || obj === null) return
 
     // Check required properties
@@ -321,7 +321,7 @@ export class SchemaValidator {
     if (schema.properties) {
       for (const [prop, propSchema] of Object.entries(schema.properties)) {
         if (prop in obj) {
-          this.validateProperty(obj[prop], propSchema as any, `${path}.${prop}`, errors, warnings)
+          this.validateProperty(obj[prop], propSchema as JsonSchema, `${path}.${prop}`, errors, warnings)
         }
       }
     }
@@ -337,7 +337,7 @@ export class SchemaValidator {
     }
   }
 
-  private validateProperty(value: any, schema: any, path: string, errors: string[], warnings: string[]): void {
+  private validateProperty(value: unknown, schema: JsonSchema, path: string, errors: string[], warnings: string[]): void {
     // Basic type validation
     if (schema.type) {
       const type = schema.type
@@ -387,7 +387,7 @@ export class SchemaValidator {
     // Array validation
     if (Array.isArray(value) && schema.items) {
       value.forEach((item, index) => {
-        this.validateProperty(item, schema.items, `${path}[${index}]`, errors, warnings)
+        this.validateProperty(item, schema.items!, `${path}[${index}]`, errors, warnings)
       })
     }
   }
@@ -396,7 +396,7 @@ export class SchemaValidator {
 export const workflowValidator = new SchemaValidator()
 
 // Utility function for round-trip validation
-export function validateWorkflowRoundTrip(originalWorkflow: any, importedWorkflow: any): ValidationResult {
+export function validateWorkflowRoundTrip(originalWorkflow: Record<string, unknown>, importedWorkflow: Record<string, unknown>): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
 
@@ -415,13 +415,13 @@ export function validateWorkflowRoundTrip(originalWorkflow: any, importedWorkflo
   }
 
   // Check structural equivalence (simplified)
-  if (originalWorkflow.nodes && importedWorkflow.nodes) {
+  if (originalWorkflow.nodes && Array.isArray(originalWorkflow.nodes) && importedWorkflow.nodes && Array.isArray(importedWorkflow.nodes)) {
     if (originalWorkflow.nodes.length !== importedWorkflow.nodes.length) {
       errors.push(`Node count mismatch: ${originalWorkflow.nodes.length} vs ${importedWorkflow.nodes.length}`)
     }
   }
 
-  if (originalWorkflow.edges && importedWorkflow.edges) {
+  if (originalWorkflow.edges && Array.isArray(originalWorkflow.edges) && importedWorkflow.edges && Array.isArray(importedWorkflow.edges)) {
     if (originalWorkflow.edges.length !== importedWorkflow.edges.length) {
       errors.push(`Edge count mismatch: ${originalWorkflow.edges.length} vs ${importedWorkflow.edges.length}`)
     }
