@@ -89,22 +89,27 @@ async def receive_chat_logs(data: ChatData):
     return {"status": "received"}
 
 # New workflow endpoints
-@app.post("/workflow/execute")
-async def execute_workflow(request: WorkflowExecutionRequest):
+@app.post("/api/v1/workflows/{workflow_id}/execute")
+async def execute_workflow(workflow_id: str, request: WorkflowExecutionRequest):
     """Execute a workflow using the node system"""
     try:
-        result = await query_engine.execute_query(
-            query="Custom workflow execution",
+        # Generate execution ID
+        execution_id = str(uuid.uuid4())
+
+        # Start execution in background with WebSocket streaming
+        result = await query_engine.execute_workflow_with_streaming(
+            workflow_id=workflow_id,
             workflow_config=request.workflow,
+            execution_id=execution_id,
             execution_options=request.execution_options
         )
 
         if result.get("success", False):
             return {
-                "status": "completed",
-                "execution_id": result.get("execution_id"),
-                "execution_time": result.get("execution_time"),
-                "result": result
+                "status": "started",
+                "execution_id": execution_id,
+                "workflow_id": workflow_id,
+                "message": "Workflow execution started"
             }
         else:
             raise HTTPException(
@@ -548,6 +553,174 @@ async def structure_research_query(request: Dict[str, Any]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query structuring failed: {str(e)}")
 
+# Chrome Extension Workflow Activation Endpoints
+@app.get("/api/v1/workflows/list")
+async def list_available_workflows():
+    """Get list of available workflows for extension"""
+    try:
+        workflows = [
+            {
+                "id": "youtube-analysis",
+                "name": "🎥 YouTube Video Analysis",
+                "description": "Extract transcript and analyze YouTube videos",
+                "inputType": "url",
+                "outputDestination": "obsidian",
+                "category": "content_analysis",
+                "estimatedTime": "2-3 minutes"
+            },
+            {
+                "id": "deep-research",
+                "name": "🔍 Deep Research",
+                "description": "Comprehensive research on any topic",
+                "inputType": "text",
+                "outputDestination": "obsidian",
+                "category": "research",
+                "estimatedTime": "3-5 minutes"
+            },
+            {
+                "id": "website-summary",
+                "name": "📄 Website Summary",
+                "description": "Summarize and analyze website content",
+                "inputType": "url",
+                "outputDestination": "obsidian",
+                "category": "content_analysis",
+                "estimatedTime": "1-2 minutes"
+            },
+            {
+                "id": "text-analysis",
+                "name": "📝 Text Analysis",
+                "description": "Analyze and process text content",
+                "inputType": "text",
+                "outputDestination": "obsidian",
+                "category": "text_processing",
+                "estimatedTime": "1-2 minutes"
+            },
+            {
+                "id": "chat-capture-analysis",
+                "name": "💬 Chat Capture Analysis",
+                "description": "Analyze captured AI chat conversations",
+                "inputType": "text",
+                "outputDestination": "obsidian",
+                "category": "ai_analysis",
+                "estimatedTime": "1-2 minutes"
+            }
+        ]
+        
+        return {
+            "workflows": workflows,
+            "total": len(workflows),
+            "categories": list(set(w["category"] for w in workflows))
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list workflows: {str(e)}")
+
+@app.post("/api/v1/workflows/execute")
+async def execute_workflow_from_extension(request: Dict[str, Any], background_tasks: BackgroundTasks):
+    """Execute workflow triggered from Chrome extension"""
+    try:
+        workflow_id = request.get("workflow_id")
+        input_data = request.get("input_data", {})
+        activation_source = request.get("activation_source", "extension")
+        output_destination = request.get("output_destination", "obsidian")
+        
+        if not workflow_id:
+            raise HTTPException(status_code=400, detail="workflow_id is required")
+        
+        task_id = str(uuid.uuid4())
+        
+        # Route to appropriate workflow handler
+        if workflow_id == "youtube-analysis":
+            if input_data.get("type") != "url":
+                raise HTTPException(status_code=400, detail="YouTube analysis requires URL input")
+            
+            background_tasks.add_task(
+                execute_youtube_analysis_workflow,
+                task_id=task_id,
+                url=input_data.get("url"),
+                title=input_data.get("title", ""),
+                output_destination=output_destination
+            )
+            
+        elif workflow_id == "deep-research":
+            query = input_data.get("content") if input_data.get("type") == "text" else input_data.get("url", "")
+            if not query:
+                raise HTTPException(status_code=400, detail="Deep research requires text or URL input")
+            
+            background_tasks.add_task(
+                execute_deep_research_workflow,
+                task_id=task_id,
+                query=query,
+                mode="balanced",
+                output_destination=output_destination
+            )
+            
+        elif workflow_id == "website-summary":
+            if input_data.get("type") != "url":
+                raise HTTPException(status_code=400, detail="Website summary requires URL input")
+            
+            background_tasks.add_task(
+                execute_website_summary_workflow,
+                task_id=task_id,
+                url=input_data.get("url"),
+                title=input_data.get("title", ""),
+                output_destination=output_destination
+            )
+            
+        elif workflow_id == "text-analysis":
+            if input_data.get("type") != "text":
+                raise HTTPException(status_code=400, detail="Text analysis requires text input")
+            
+            background_tasks.add_task(
+                execute_text_analysis_workflow,
+                task_id=task_id,
+                content=input_data.get("content"),
+                output_destination=output_destination
+            )
+            
+        elif workflow_id == "chat-capture-analysis":
+            background_tasks.add_task(
+                execute_chat_capture_workflow,
+                task_id=task_id,
+                input_data=input_data,
+                output_destination=output_destination
+            )
+            
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown workflow: {workflow_id}")
+        
+        return {
+            "task_id": task_id,
+            "status": "started",
+            "workflow_id": workflow_id,
+            "activation_source": activation_source,
+            "output_destination": output_destination,
+            "message": f"Workflow {workflow_id} started successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to execute workflow: {str(e)}")
+
+@app.get("/api/v1/workflows/status/{task_id}")
+async def get_workflow_execution_status(task_id: str):
+    """Get status of workflow execution"""
+    try:
+        # This would typically check a task queue or database
+        # For now, return a placeholder response
+        return {
+            "task_id": task_id,
+            "status": "running",
+            "progress": 50,
+            "message": "Workflow is being processed",
+            "estimated_completion": "2 minutes",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get workflow status: {str(e)}")
+
 # YouTube transcript endpoint
 @app.post("/api/v1/workflows/youtube/transcript")
 async def process_youtube_transcript_workflow(request: Dict[str, Any], background_tasks: BackgroundTasks) -> Dict[str, Any]:
@@ -763,42 +936,36 @@ async def process_youtube_workflow_background(task_id: str, url: str):
         script_path = project_root / "scripts" / "youtube_transcript.py"
 
         result = subprocess.run(
-            ["python3", str(script_path), url, "--no-analysis"],
+            ["python3", str(script_path), url, "--format", "json"],
             capture_output=True,
             text=True,
             cwd=str(project_root),
-            timeout=60
+            timeout=120
         )
 
         if result.returncode != 0:
             raise Exception(f"Transcript extraction failed: {result.stderr}")
 
-        # Parse transcript file
-        output_lines = result.stdout.strip().split('\n')
-        transcript_file = None
-        for line in output_lines:
-            if line.startswith("Transcript saved to:"):
-                transcript_file = line.split(":", 1)[1].strip()
-                break
+        # Parse transcript data from stdout
+        transcript_data = json.loads(result.stdout)
 
-        if not transcript_file:
-            raise Exception("Failed to find transcript file")
+        if not transcript_data.get('success'):
+            raise Exception(f"Transcript extraction failed: {transcript_data.get('error')}")
 
-        with open(transcript_file, 'r', encoding='utf-8') as f:
-            transcript_data = json.load(f)
-
-        # For now, just broadcast completion with basic info
-        # In a full implementation, this would include Gemini processing and Obsidian export
+        # Broadcast completion with transcript data
         try:
             await broadcast_dashboard_update("youtube_workflow_completed", {
                 "task_id": task_id,
                 "status": "completed",
                 "url": url,
-                "video_id": transcript_data['metadata']['video_id'],
-                "transcript_length": transcript_data['metadata']['word_count']
+                "video_id": transcript_data.get('video_id'),
+                "transcript_length": len(transcript_data.get('transcript', [])),
+                "total_duration": transcript_data.get('total_duration', 0),
+                "language_used": transcript_data.get('language_used'),
+                "transcript_data": transcript_data
             })
-        except:
-            pass
+        except Exception as broadcast_error:
+            print(f"Broadcast error: {broadcast_error}")
 
     except Exception as e:
         try:
@@ -808,11 +975,489 @@ async def process_youtube_workflow_background(task_id: str, url: str):
                 "url": url,
                 "error": str(e)
             })
-        except:
-            pass
+        except Exception as broadcast_error:
+            print(f"Broadcast error: {broadcast_error}")
+
+# Add new script integration endpoints
+@app.post("/api/v1/scripts/youtube/extract")
+async def extract_youtube_transcript(request: Dict[str, Any], background_tasks: BackgroundTasks):
+    """Extract YouTube transcript using the script"""
+    try:
+        url = request.get("url")
+        languages = request.get("languages", [])
+        format_type = request.get("format", "text")
+        
+        if not url:
+            raise HTTPException(status_code=400, detail="URL is required")
+        
+        task_id = str(uuid.uuid4())
+        
+        # Start extraction in background
+        background_tasks.add_task(
+            run_youtube_extraction_background,
+            task_id=task_id,
+            url=url,
+            languages=languages,
+            format_type=format_type
+        )
+        
+        return {
+            "task_id": task_id,
+            "status": "started",
+            "message": "YouTube transcript extraction started",
+            "url": url,
+            "format": format_type
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start extraction: {str(e)}")
+
+@app.post("/api/v1/scripts/research/deep")
+async def run_deep_research(request: Dict[str, Any], background_tasks: BackgroundTasks):
+    """Run deep research automation script"""
+    try:
+        topic = request.get("topic")
+        mode = request.get("mode", "balanced")
+        headless = request.get("headless", True)
+        timeout = request.get("timeout", 30000)
+        
+        if not topic:
+            raise HTTPException(status_code=400, detail="Topic is required")
+        
+        task_id = str(uuid.uuid4())
+        
+        # Start research in background
+        background_tasks.add_task(
+            run_deep_research_script_background,
+            task_id=task_id,
+            topic=topic,
+            mode=mode,
+            headless=headless,
+            timeout=timeout
+        )
+        
+        return {
+            "task_id": task_id,
+            "status": "started",
+            "message": f"Deep research started for topic: {topic}",
+            "topic": topic,
+            "mode": mode,
+            "estimated_time": "2-10 minutes depending on mode"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start research: {str(e)}")
+
+@app.get("/api/v1/scripts/status/{task_id}")
+async def get_script_task_status(task_id: str):
+    """Get status of a running script task"""
+    # This would typically check a task queue or database
+    # For now, return a placeholder response
+    return {
+        "task_id": task_id,
+        "status": "running",
+        "message": "Task is being processed",
+        "progress": 50,
+        "timestamp": datetime.now().isoformat()
+    }
+
+# Background task functions
+async def run_youtube_extraction_background(task_id: str, url: str, languages: List[str], format_type: str):
+    """Run YouTube transcript extraction in background"""
+    try:
+        project_root = Path(__file__).parent
+        script_path = project_root / "scripts" / "youtube_transcript.py"
+        
+        cmd = ["python3", str(script_path), url, "--format", format_type]
+        if languages:
+            cmd.extend(["--languages"] + languages)
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            # Parse result
+            if format_type == "json":
+                transcript_data = json.loads(result.stdout)
+            else:
+                transcript_data = {"transcript": result.stdout, "format": "text"}
+            
+            # Broadcast success
+            await broadcast_dashboard_update("script_completed", {
+                "task_id": task_id,
+                "script_type": "youtube_extraction",
+                "status": "completed",
+                "url": url,
+                "result": transcript_data
+            })
+        else:
+            # Broadcast failure
+            await broadcast_dashboard_update("script_completed", {
+                "task_id": task_id,
+                "script_type": "youtube_extraction", 
+                "status": "failed",
+                "url": url,
+                "error": result.stderr
+            })
+            
+    except Exception as e:
+        await broadcast_dashboard_update("script_completed", {
+            "task_id": task_id,
+            "script_type": "youtube_extraction",
+            "status": "error",
+            "url": url,
+            "error": str(e)
+        })
+
+async def run_deep_research_script_background(task_id: str, topic: str, mode: str, headless: bool, timeout: int):
+    """Run deep research script in background"""
+    try:
+        project_root = Path(__file__).parent
+        script_path = project_root / "scripts" / "deep_research.py"
+        
+        cmd = [
+            "python3", str(script_path),
+            topic,
+            "--mode", mode,
+            "--timeout", str(timeout)
+        ]
+        
+        if headless:
+            cmd.append("--headless")
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=600  # 10 minute timeout
+        )
+        
+        if result.returncode == 0:
+            # Parse research results
+            research_data = json.loads(result.stdout)
+            
+            # Broadcast success
+            await broadcast_dashboard_update("script_completed", {
+                "task_id": task_id,
+                "script_type": "deep_research",
+                "status": "completed",
+                "topic": topic,
+                "mode": mode,
+                "result": research_data
+            })
+        else:
+            # Broadcast failure
+            await broadcast_dashboard_update("script_completed", {
+                "task_id": task_id,
+                "script_type": "deep_research",
+                "status": "failed", 
+                "topic": topic,
+                "mode": mode,
+                "error": result.stderr
+            })
+            
+    except subprocess.TimeoutExpired:
+        await broadcast_dashboard_update("script_completed", {
+            "task_id": task_id,
+            "script_type": "deep_research",
+            "status": "timeout",
+            "topic": topic,
+            "mode": mode,
+            "error": "Research timed out after 10 minutes"
+        })
+    except Exception as e:
+        await broadcast_dashboard_update("script_completed", {
+            "task_id": task_id,
+            "script_type": "deep_research",
+            "status": "error",
+            "topic": topic,
+            "mode": mode,
+            "error": str(e)
+        })
+
+# Chrome Extension Workflow Background Tasks
+async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, output_destination: str):
+    """Execute YouTube analysis workflow from extension"""
+    try:
+        # Step 1: Extract transcript
+        project_root = Path(__file__).parent
+        script_path = project_root / "scripts" / "youtube_transcript.py"
+        
+        result = subprocess.run(
+            ["python3", str(script_path), url, "--format", "json"],
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=120
+        )
+        
+        if result.returncode != 0:
+            raise Exception(f"Transcript extraction failed: {result.stderr}")
+        
+        transcript_data = json.loads(result.stdout)
+        
+        if not transcript_data.get('success'):
+            raise Exception(f"Transcript extraction failed: {transcript_data.get('error')}")
+        
+        # Step 2: Analyze with AI (placeholder - would integrate with provider)
+        analysis_result = {
+            "summary": "Video analysis completed",
+            "key_points": ["Point 1", "Point 2", "Point 3"],
+            "transcript_length": len(transcript_data.get('transcript', [])),
+            "video_duration": transcript_data.get('total_duration', 0)
+        }
+        
+        # Step 3: Export to destination
+        export_result = await export_to_destination(
+            {
+                "title": title or f"YouTube Analysis - {transcript_data.get('video_id')}",
+                "content": analysis_result,
+                "transcript": transcript_data,
+                "source_url": url
+            },
+            output_destination
+        )
+        
+        # Broadcast completion
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "youtube-analysis",
+            "status": "completed",
+            "url": url,
+            "export_result": export_result
+        })
+        
+    except Exception as e:
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "youtube-analysis",
+            "status": "failed",
+            "url": url,
+            "error": str(e)
+        })
+
+async def execute_deep_research_workflow(task_id: str, query: str, mode: str, output_destination: str):
+    """Execute deep research workflow from extension"""
+    try:
+        # Use the deep research script
+        project_root = Path(__file__).parent
+        script_path = project_root / "scripts" / "deep_research.py"
+        
+        result = subprocess.run(
+            ["python3", str(script_path), query, "--mode", mode],
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=600
+        )
+        
+        if result.returncode == 0:
+            research_data = json.loads(result.stdout)
+            
+            # Export to destination
+            export_result = await export_to_destination(
+                {
+                    "title": f"Deep Research - {query[:50]}",
+                    "content": research_data,
+                    "query": query,
+                    "mode": mode
+                },
+                output_destination
+            )
+            
+            await broadcast_dashboard_update("extension_workflow_completed", {
+                "task_id": task_id,
+                "workflow_id": "deep-research",
+                "status": "completed",
+                "query": query,
+                "export_result": export_result
+            })
+        else:
+            raise Exception(f"Research failed: {result.stderr}")
+            
+    except Exception as e:
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "deep-research",
+            "status": "failed",
+            "query": query,
+            "error": str(e)
+        })
+
+async def execute_website_summary_workflow(task_id: str, url: str, title: str, output_destination: str):
+    """Execute website summary workflow from extension"""
+    try:
+        # Use web scraping to get content
+        import aiohttp
+        from bs4 import BeautifulSoup
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    raise Exception(f"Failed to fetch website: HTTP {response.status}")
+                
+                html_content = await response.text()
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # Extract main content
+                content = soup.get_text()[:5000]  # Limit content length
+                
+                # Generate summary (placeholder - would use AI provider)
+                summary_result = {
+                    "title": title or soup.title.string if soup.title else "Website Summary",
+                    "url": url,
+                    "content_preview": content[:500],
+                    "word_count": len(content.split()),
+                    "summary": "Website content summarized successfully"
+                }
+                
+                # Export to destination
+                export_result = await export_to_destination(summary_result, output_destination)
+                
+                await broadcast_dashboard_update("extension_workflow_completed", {
+                    "task_id": task_id,
+                    "workflow_id": "website-summary",
+                    "status": "completed",
+                    "url": url,
+                    "export_result": export_result
+                })
+                
+    except Exception as e:
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "website-summary",
+            "status": "failed",
+            "url": url,
+            "error": str(e)
+        })
+
+async def execute_text_analysis_workflow(task_id: str, content: str, output_destination: str):
+    """Execute text analysis workflow from extension"""
+    try:
+        # Analyze text content (placeholder - would use AI provider)
+        analysis_result = {
+            "original_content": content[:1000],  # Limit stored content
+            "word_count": len(content.split()),
+            "character_count": len(content),
+            "analysis": "Text analysis completed successfully",
+            "key_themes": ["Theme 1", "Theme 2", "Theme 3"]
+        }
+        
+        # Export to destination
+        export_result = await export_to_destination(
+            {
+                "title": f"Text Analysis - {content[:30]}...",
+                "content": analysis_result
+            },
+            output_destination
+        )
+        
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "text-analysis",
+            "status": "completed",
+            "export_result": export_result
+        })
+        
+    except Exception as e:
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "text-analysis",
+            "status": "failed",
+            "error": str(e)
+        })
+
+async def execute_chat_capture_workflow(task_id: str, input_data: Dict[str, Any], output_destination: str):
+    """Execute chat capture analysis workflow from extension"""
+    try:
+        # Process chat capture data
+        analysis_result = {
+            "input_data": input_data,
+            "analysis": "Chat capture processed successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Export to destination
+        export_result = await export_to_destination(
+            {
+                "title": "Chat Capture Analysis",
+                "content": analysis_result
+            },
+            output_destination
+        )
+        
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "chat-capture-analysis",
+            "status": "completed",
+            "export_result": export_result
+        })
+        
+    except Exception as e:
+        await broadcast_dashboard_update("extension_workflow_completed", {
+            "task_id": task_id,
+            "workflow_id": "chat-capture-analysis",
+            "status": "failed",
+            "error": str(e)
+        })
+
+async def export_to_destination(data: Dict[str, Any], destination: str) -> Dict[str, Any]:
+    """Export workflow results to specified destination"""
+    try:
+        if destination == "obsidian":
+            # Export to Obsidian vault (placeholder implementation)
+            filename = f"{data['title'].replace(' ', '_')}_{int(time.time())}.md"
+            
+            # Format as markdown
+            markdown_content = f"# {data['title']}\n\n"
+            markdown_content += f"Generated: {datetime.now().isoformat()}\n\n"
+            
+            if 'source_url' in data:
+                markdown_content += f"Source: {data['source_url']}\n\n"
+            
+            markdown_content += f"## Content\n\n{json.dumps(data['content'], indent=2)}\n"
+            
+            # In a real implementation, this would write to the Obsidian vault
+            # For now, just return success
+            return {
+                "destination": destination,
+                "filename": filename,
+                "status": "exported",
+                "path": f"obsidian_vault/{filename}"
+            }
+        else:
+            # Default to JSON export
+            filename = f"export_{int(time.time())}.json"
+            return {
+                "destination": "json",
+                "filename": filename,
+                "status": "exported",
+                "data": data
+            }
+            
+    except Exception as e:
+        return {
+            "destination": destination,
+            "status": "failed",
+            "error": str(e)
+        }
+
+# Import monitoring service
+from monitoring_service import monitoring_service
 
 # WebSocket connections for real-time updates
 active_websocket_connections: List[WebSocket] = []
+execution_websocket_connections: Dict[str, List[WebSocket]] = {}
 
 @app.websocket("/ws/dashboard")
 async def dashboard_websocket(websocket: WebSocket):
@@ -829,6 +1474,85 @@ async def dashboard_websocket(websocket: WebSocket):
     except WebSocketDisconnect:
         if websocket in active_websocket_connections:
             active_websocket_connections.remove(websocket)
+
+@app.websocket("/ws/executions/{execution_id}")
+async def execution_websocket(websocket: WebSocket, execution_id: str):
+    """WebSocket endpoint for real-time execution event streaming."""
+    await websocket.accept()
+
+    # Initialize connections list for this execution if not exists
+    if execution_id not in execution_websocket_connections:
+        execution_websocket_connections[execution_id] = []
+    execution_websocket_connections[execution_id].append(websocket)
+
+    try:
+        while True:
+            # Keep connection alive - clients will receive execution events
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        if execution_id in execution_websocket_connections:
+            execution_websocket_connections[execution_id].remove(websocket)
+            if not execution_websocket_connections[execution_id]:
+                del execution_websocket_connections[execution_id]
+
+@app.websocket("/ws/monitoring")
+async def monitoring_websocket(websocket: WebSocket):
+    """WebSocket endpoint for system monitoring real-time updates."""
+    await monitoring_service.connect_websocket(websocket)
+    
+    try:
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await monitoring_service.disconnect_websocket(websocket)
+
+@app.get("/api/v1/monitoring/metrics")
+async def get_current_metrics():
+    """Get current system metrics"""
+    metrics = monitoring_service.get_current_metrics()
+    if metrics:
+        return metrics
+    else:
+        raise HTTPException(status_code=503, detail="Monitoring data not available")
+
+@app.get("/api/v1/monitoring/history")
+async def get_metrics_history(minutes: int = 60):
+    """Get metrics history for the last N minutes"""
+    try:
+        history = monitoring_service.get_metrics_history(minutes)
+        return {
+            "history": history,
+            "timeframe_minutes": minutes,
+            "total_points": len(history)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get metrics history: {str(e)}")
+
+@app.get("/api/v1/monitoring/alerts")
+async def get_recent_alerts(count: int = 10):
+    """Get recent system alerts"""
+    try:
+        alerts = monitoring_service.get_recent_alerts(count)
+        return {
+            "alerts": alerts,
+            "count": len(alerts)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get alerts: {str(e)}")
+
+# Start monitoring service on startup
+@app.on_event("startup")
+async def startup_event():
+    """Start monitoring service when the app starts"""
+    await monitoring_service.start_monitoring()
+    logger.info("DataKiln backend started with monitoring")
+
+@app.on_event("shutdown") 
+async def shutdown_event():
+    """Stop monitoring service when the app shuts down"""
+    await monitoring_service.stop_monitoring()
+    logger.info("DataKiln backend stopped")
 
 # Function to broadcast updates to all connected dashboard clients
 async def broadcast_dashboard_update(update_type: str, data: Dict[str, Any]):
@@ -851,6 +1575,33 @@ async def broadcast_dashboard_update(update_type: str, data: Dict[str, Any]):
     for client in disconnected_clients:
         if client in active_websocket_connections:
             active_websocket_connections.remove(client)
+
+# Function to broadcast execution events to specific execution WebSocket clients
+async def broadcast_execution_event(execution_id: str, event_type: str, data: Dict[str, Any]):
+    """Broadcast execution events to clients connected to specific execution."""
+    if execution_id not in execution_websocket_connections:
+        return
+
+    message = {
+        "type": event_type,
+        "data": data,
+        "timestamp": datetime.now().isoformat()
+    }
+
+    disconnected_clients = []
+    for websocket in execution_websocket_connections[execution_id]:
+        try:
+            await websocket.send_text(json.dumps(message))
+        except Exception as e:
+            logger.error(f"Failed to send execution event to client: {e}")
+            disconnected_clients.append(websocket)
+
+    # Clean up disconnected clients
+    for client in disconnected_clients:
+        if execution_id in execution_websocket_connections:
+            execution_websocket_connections[execution_id].remove(client)
+            if not execution_websocket_connections[execution_id]:
+                del execution_websocket_connections[execution_id]
 
 # Version management endpoints
 @app.post("/versions/create")

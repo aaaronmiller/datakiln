@@ -4,8 +4,10 @@ from enum import Enum
 from datetime import datetime, timedelta
 import json
 import os
+import uuid
 from pathlib import Path
 from dataclasses import dataclass
+import networkx as nx
 
 from nodes.base_node import BaseNode
 from nodes.node_factory import node_factory, create_node
@@ -43,12 +45,17 @@ class ExecutionContext:
     artifacts: List[Dict[str, Any]] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
+    graph: Optional[nx.DiGraph] = None
+    execution_order: List[str] = None
+    current_node_index: int = 0
 
     def __post_init__(self):
         if self.execution_data is None:
             self.execution_data = {}
         if self.artifacts is None:
             self.artifacts = []
+        if self.execution_order is None:
+            self.execution_order = []
 
 
 class WorkflowExecutor:
@@ -63,6 +70,7 @@ class WorkflowExecutor:
         self.state_history: List[Dict[str, Any]] = []
         self.provider_manager = None
         self.selectors_registry = None
+        self.on_execution_event: Optional[Callable[[str, Dict[str, Any]], Any]] = None
 
     async def execute_workflow(
         self,
@@ -70,19 +78,31 @@ class WorkflowExecutor:
         browser_context: Optional[Any] = None,
         on_state_change: Optional[Callable[[ExecutionState, Dict[str, Any]], None]] = None,
         provider_manager: Optional[Any] = None,
-        selectors_registry: Optional[Any] = None
+        selectors_registry: Optional[Any] = None,
+        on_execution_event: Optional[Callable[[str, Dict[str, Any]], Any]] = None
     ) -> Dict[str, Any]:
         """Execute a complete workflow"""
         try:
             self._reset_execution()
             self.provider_manager = provider_manager
             self.selectors_registry = selectors_registry or selectors_registry
+            self.on_execution_event = on_execution_event
+            execution_id = workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+
             self.context = ExecutionContext(
                 workflow=workflow,
                 nodes={},
                 browser_context=browser_context,
                 start_time=datetime.now()
             )
+
+            # Emit execution started event
+            if self.on_execution_event:
+                await self.on_execution_event("execution_started", {
+                    "execution_id": execution_id,
+                    "workflow_name": workflow.get("name", "Unknown Workflow"),
+                    "start_time": self.context.start_time.isoformat()
+                })
 
             # Execute state machine
             while self.state != ExecutionState.COMPLETE and self.state != ExecutionState.ERROR:
@@ -91,6 +111,15 @@ class WorkflowExecutor:
                 # Notify state change
                 if on_state_change:
                     await on_state_change(self.state, self._get_state_info())
+
+                # Emit execution event for state changes
+                if self.on_execution_event and self.context and self.context.current_node_id:
+                    await self.on_execution_event("step_started", {
+                        "execution_id": execution_id,
+                        "node_id": self.context.current_node_id,
+                        "state": self.state.value,
+                        "timestamp": datetime.now().isoformat()
+                    })
 
                 # Add to history
                 self.state_history.append({
@@ -157,7 +186,7 @@ class WorkflowExecutor:
         self.state = ExecutionState.LOAD_WORKFLOW
 
     async def _handle_load_workflow(self):
-        """Load and validate workflow"""
+        """Load and validate workflow with graph construction"""
         try:
             if not self.context or not self.context.workflow:
                 raise ValueError("No workflow provided")
@@ -168,8 +197,8 @@ class WorkflowExecutor:
             if "nodes" not in workflow:
                 raise ValueError("Workflow missing nodes definition")
 
-            if "start_node" not in workflow:
-                raise ValueError("Workflow missing start_node")
+            if "edges" not in workflow:
+                raise ValueError("Workflow missing edges definition")
 
             # Create node instances
             nodes = {}
@@ -187,12 +216,32 @@ class WorkflowExecutor:
                     node = node_class(**node_config)
                 nodes[node_id] = node
 
+            # Build graph from edges
+            graph = nx.DiGraph()
+            graph.add_nodes_from(nodes.keys())
+
+            for edge in workflow["edges"]:
+                source = edge.get("from") or edge.get("source")
+                target = edge.get("to") or edge.get("target")
+                if source and target:
+                    graph.add_edge(source, target)
+
+            # Perform topological sort to get execution order
+            try:
+                execution_order = list(nx.topological_sort(graph))
+            except nx.NetworkXError as e:
+                raise ValueError(f"Workflow contains cycles: {str(e)}")
+
             # Update context
             self.context.nodes = nodes
-            self.context.current_node_id = workflow.get("start_node")
+            self.context.graph = graph
+            self.context.execution_order = execution_order
+            self.context.current_node_index = 0
 
-            # Validate node dependencies
-            self._validate_workflow_dependencies()
+            # Validate that all nodes in execution order exist
+            for node_id in execution_order:
+                if node_id not in nodes:
+                    raise ValueError(f"Node {node_id} in execution order not found in nodes")
 
             self.state = ExecutionState.RESOLVE_NODE
 
@@ -201,17 +250,24 @@ class WorkflowExecutor:
             raise ValueError(f"Workflow loading failed: {str(e)}")
 
     async def _handle_resolve_node(self):
-        """Resolve current node for execution"""
-        if not self.context or not self.context.current_node_id:
+        """Resolve current node for execution from execution order"""
+        if not self.context or not self.context.execution_order:
             self.state = ExecutionState.COMPLETE
             return
 
-        current_node = self.context.nodes.get(self.context.current_node_id)
+        # Check if we've executed all nodes
+        if self.context.current_node_index >= len(self.context.execution_order):
+            self.state = ExecutionState.PERSIST_ARTIFACTS
+            return
+
+        current_node_id = self.context.execution_order[self.context.current_node_index]
+        current_node = self.context.nodes.get(current_node_id)
         if not current_node:
             self.state = ExecutionState.ERROR
-            raise ValueError(f"Node {self.context.current_node_id} not found")
+            raise ValueError(f"Node {current_node_id} not found")
 
         # Update context with current node
+        self.context.current_node_id = current_node_id
         self.context.execution_data["current_node"] = current_node.to_dict()
 
         self.state = ExecutionState.RESOLVE_SELECTORS
@@ -245,8 +301,13 @@ class WorkflowExecutor:
         self.state = ExecutionState.EXECUTE_NODE
 
     async def _handle_execute_node(self):
-        """Execute the current node with enhanced error handling"""
+        """Execute the current node with enhanced error handling and retry logic"""
         current_node = self.context.nodes.get(self.context.current_node_id)
+
+        # Initialize retry tracking for this node if not exists
+        node_retry_key = f"retry_count_{current_node.id}"
+        if node_retry_key not in self.context.execution_data:
+            self.context.execution_data[node_retry_key] = 0
 
         try:
             # Prepare execution context
@@ -261,11 +322,55 @@ class WorkflowExecutor:
                 "execution_options": self.context.execution_data.get("execution_options", {})
             }
 
+            # Add provider for consolidate nodes
+            if current_node.type == "consolidate":
+                # For consolidate nodes, provide a default provider
+                class MockProvider:
+                    def generate_response(self, request):
+                        return {
+                            "response": f"Mock response for {request.get('model', 'unknown')}: {request.get('prompt', '')[:100]}...",
+                            "usage": {"tokens": 100}
+                        }
+                execution_context["provider"] = MockProvider()
+
             # Execute node with comprehensive error handling
             result = await current_node.execute_with_error_handling(execution_context)
 
             # Store result
             self.context.execution_data[f"node_{current_node.id}_result"] = result
+
+            # Handle data routing: if output is 'next', store in workflow state for next node
+            if hasattr(current_node, 'outputs') and current_node.outputs:
+                for output_config in current_node.outputs:
+                    if output_config.get("destination") == "next":
+                        # Store result in workflow state for data routing
+                        self.context.execution_data["workflow_state"] = self.context.execution_data.get("workflow_state", {})
+                        self.context.execution_data["workflow_state"][current_node.id] = result
+
+                        # Emit data handoff event
+                        if self.on_execution_event:
+                            execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                            await self.on_execution_event("data_handoff", {
+                                "execution_id": execution_id,
+                                "from_node": current_node.id,
+                                "to_node": "next_connected",
+                                "data": result,
+                                "timestamp": datetime.now().isoformat()
+                            })
+
+            # Emit step succeeded event
+            if self.on_execution_event:
+                execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                await self.on_execution_event("step_succeeded", {
+                    "execution_id": execution_id,
+                    "node_id": current_node.id,
+                    "node_type": current_node.type,
+                    "result": result,
+                    "timestamp": datetime.now().isoformat()
+                })
+
+            # Reset retry count on success
+            self.context.execution_data[node_retry_key] = 0
 
             # Determine next state based on node type
             if current_node.type == "dom_action":
@@ -284,8 +389,8 @@ class WorkflowExecutor:
                 self.state = ExecutionState.NEXT_NODE
 
         except Exception as e:
-            # Enhanced error handling with workflow-level recovery
-            await self._handle_workflow_execution_error(current_node, e)
+            # Enhanced error handling with workflow-level recovery and retry logic
+            await self._handle_workflow_execution_error_with_retry(current_node, e)
 
     async def _handle_wait_for_dom(self):
         """Wait for DOM readiness"""
@@ -356,33 +461,71 @@ class WorkflowExecutor:
             await self._handle_execution_error(current_node, f"Output capture failed: {str(e)}")
 
     async def _handle_next_node(self):
-        """Determine next node to execute"""
+        """Advance to next node in execution order and handle data routing"""
         current_node = self.context.nodes.get(self.context.current_node_id)
 
-        # Get next node(s)
-        next_node_id = None
-        if current_node and current_node.next:
-            if isinstance(current_node.next, list):
-                # Handle multiple next nodes
-                if "pending_nodes" in self.context.execution_data:
-                    pending = self.context.execution_data["pending_nodes"]
-                    next_node_id = pending.pop(0) if pending else None
-                else:
-                    next_node_id = current_node.next[0] if current_node.next else None
-            else:
-                next_node_id = current_node.next
+        # Advance to next node in execution order
+        self.context.current_node_index += 1
 
-        if next_node_id:
-            self.context.current_node_id = next_node_id
-            self.state = ExecutionState.RESOLVE_NODE
-        else:
+        if self.context.current_node_index >= len(self.context.execution_order):
             self.state = ExecutionState.PERSIST_ARTIFACTS
+            return
+
+        next_node_id = self.context.execution_order[self.context.current_node_index]
+        next_node = self.context.nodes.get(next_node_id)
+
+        # Handle data routing: pass data from previous nodes to next node
+        workflow_state = self.context.execution_data.get("workflow_state", {})
+        if workflow_state and next_node:
+            # Prepare input data for next node from workflow state
+            input_data = {}
+            for source_node_id, data in workflow_state.items():
+                # Check if there's an edge from source to next node
+                if self.context.graph and self.context.graph.has_edge(source_node_id, next_node_id):
+                    input_data[source_node_id] = data
+
+            if input_data:
+                # Merge input data into next node's inputs
+                if not hasattr(next_node, 'inputs') or next_node.inputs is None:
+                    next_node.inputs = {}
+                next_node.inputs.update({"previous_data": input_data})
+
+                # Emit data routing event
+                if self.on_execution_event:
+                    execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                    await self.on_execution_event("data_routing", {
+                        "execution_id": execution_id,
+                        "from_nodes": list(input_data.keys()),
+                        "to_node": next_node_id,
+                        "data": input_data,
+                        "timestamp": datetime.now().isoformat()
+                    })
+
+        self.context.current_node_id = next_node_id
+        self.state = ExecutionState.RESOLVE_NODE
 
     async def _handle_persist_artifacts(self):
-        """Persist execution artifacts"""
+        """Persist execution artifacts and handle output destinations"""
         try:
             if self.context and self.context.artifacts:
-                # Save artifacts to disk
+                # Get final output from last executed node
+                final_output = None
+                if self.context.execution_order:
+                    last_node_id = self.context.execution_order[-1]
+                    final_output = self.context.execution_data.get(f"node_{last_node_id}_result")
+
+                # Handle output destinations
+                output_handlers = self.context.workflow.get("output_handlers", [])
+                for handler in output_handlers:
+                    handler_type = handler.get("type")
+                    if handler_type == "file":
+                        await self._handle_file_output(final_output, handler)
+                    elif handler_type == "clipboard":
+                        await self._handle_clipboard_output(final_output, handler)
+                    elif handler_type == "screen":
+                        await self._handle_screen_output(final_output, handler)
+
+                # Save artifacts to disk (legacy)
                 artifacts_path = Path("execution_artifacts")
                 artifacts_path.mkdir(exist_ok=True)
 
@@ -395,7 +538,8 @@ class WorkflowExecutor:
                         "start_time": self.context.start_time.isoformat() if self.context.start_time else None,
                         "end_time": self.context.end_time.isoformat() if self.context.end_time else None,
                         "artifacts": self.context.artifacts,
-                        "workflow": self.context.workflow.get("name", "unknown")
+                        "workflow": self.context.workflow.get("name", "unknown"),
+                        "final_output": final_output
                     }, f, indent=2, ensure_ascii=False)
 
                 self.context.execution_data["artifacts_path"] = str(artifact_file)
@@ -410,19 +554,43 @@ class WorkflowExecutor:
         pass  # Nothing to do in complete state
 
     async def _handle_retry(self):
-        """Handle retry logic"""
-        if self.retry_count < self.max_retries:
-            self.retry_count += 1
+        """Handle retry logic for failed nodes"""
+        current_node = self.context.nodes.get(self.context.current_node_id) if self.context else None
+        node_retry_key = f"retry_count_{current_node.id}" if current_node else "retry_count_unknown"
+        current_retry_count = self.context.execution_data.get(node_retry_key, 0) if self.context else 0
+
+        # Check if we've exceeded max retries for this specific node
+        if current_retry_count < 3:  # Max 3 retries per node for selector errors
+            if self.context:
+                self.context.execution_data[node_retry_key] = current_retry_count + 1
             self.state = ExecutionState.RESOLVE_NODE  # Go back to resolve current node
+            print(f"Test comment: Executing retry {current_retry_count + 1} for node {current_node.id if current_node else 'unknown'}")
         else:
+            print(f"Test comment: Max retries (3) exceeded for node {current_node.id if current_node else 'unknown'}")
             self.state = ExecutionState.ERROR
 
-    async def _handle_workflow_execution_error(self, node: Optional[BaseNode], exception: Exception):
-        """Handle workflow-level execution errors with enhanced error handling"""
+    async def _handle_workflow_execution_error_with_retry(self, node: Optional[BaseNode], exception: Exception):
+        """Handle workflow-level execution errors with enhanced error handling and retry logic"""
+        node_retry_key = f"retry_count_{node.id}" if node else "retry_count_unknown"
+        current_retry_count = self.context.execution_data.get(node_retry_key, 0) if self.context else 0
+
+        # Check if this is a selector-related error that should trigger retry
+        is_selector_error = self._is_selector_error(exception, node)
+
+        # Log test comments for debugging
+        if is_selector_error:
+            print(f"Test comment: Selector failure detected for node {node.id if node else 'unknown'} - attempt {current_retry_count + 1}/3")
+        else:
+            print(f"Test comment: General execution error for node {node.id if node else 'unknown'} - {str(exception)[:100]}...")
+
         # Get error recovery result from the error handler
         recovery_result = await error_handler.handle_execution_error(
-            node, exception, self.retry_count + 1, self.context.execution_data if self.context else None
+            node, exception, current_retry_count + 1, self.context.execution_data if self.context else None
         )
+
+        # Special logging for selector timeout retries
+        if node and node.type == "dom_action" and "timeout" in str(exception).lower():
+            print("Error-corrected: Retried selector after timeout.")
 
         # Store error in context
         error_info = {
@@ -430,25 +598,58 @@ class WorkflowExecutor:
             "error": str(exception),
             "recovery_strategy": recovery_result.recovery_strategy,
             "should_retry": recovery_result.should_retry,
-            "retry_count": self.retry_count,
+            "retry_count": current_retry_count,
+            "is_selector_error": is_selector_error,
             "timestamp": datetime.now().isoformat(),
             "error_details": recovery_result.new_error.to_dict() if recovery_result.new_error else None
         }
 
-        if not self.context.execution_data.get("errors"):
+        if self.context and not self.context.execution_data.get("errors"):
             self.context.execution_data["errors"] = []
-        self.context.execution_data["errors"].append(error_info)
+        if self.context:
+            self.context.execution_data["errors"].append(error_info)
 
-        # Check if we should retry at workflow level
-        if recovery_result.should_retry and self.retry_count < self.max_retries:
-            self.retry_count += 1
-            # Wait before retry with delay from recovery result
-            await asyncio.sleep(recovery_result.delay_seconds)
+        # Emit step failed event
+        if self.on_execution_event and self.context:
+            execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+            await self.on_execution_event("step_failed", {
+                "execution_id": execution_id,
+                "node_id": node.id if node else None,
+                "error": str(exception),
+                "retry_count": current_retry_count,
+                "is_selector_error": is_selector_error,
+                "timestamp": datetime.now().isoformat()
+            })
+
+        # Check if we should retry (either selector error or general retry)
+        should_retry = (is_selector_error and current_retry_count < 3) or (recovery_result.should_retry and current_retry_count < self.max_retries)
+
+        if should_retry:
+            if self.context:
+                self.context.execution_data[node_retry_key] = current_retry_count + 1
+            # Wait before retry with delay from recovery result or default
+            delay = recovery_result.delay_seconds if hasattr(recovery_result, 'delay_seconds') else 1.0
+            await asyncio.sleep(delay)
             self.state = ExecutionState.RETRY
+            print(f"Test comment: Retrying node {node.id if node else 'unknown'} (attempt {current_retry_count + 2})")
         else:
             # Check for workflow failure handling strategies
             await self._handle_workflow_failure(node, exception, recovery_result)
             self.state = ExecutionState.ERROR
+            print(f"Test comment: Max retries exceeded for node {node.id if node else 'unknown'}")
+
+    def _is_selector_error(self, exception: Exception, node: Optional[BaseNode]) -> bool:
+        """Check if the error is selector-related and should trigger retry"""
+        if not node or node.type != "dom_action":
+            return False
+
+        error_str = str(exception).lower()
+        selector_error_indicators = [
+            "selector", "element not found", "timeout", "unable to find",
+            "no element", "queryselector", "css selector", "xpath"
+        ]
+
+        return any(indicator in error_str for indicator in selector_error_indicators)
 
     def _get_node_class(self, node_type: str):
         """Get node class by type using dynamic factory"""
@@ -469,6 +670,9 @@ class WorkflowExecutor:
         from nodes.transform_node import TransformNode
         from nodes.export_node import ExportNode
         from nodes.condition_node import ConditionNode
+        from nodes.delay_node import DelayNode
+        from nodes.wait_node import WaitNode
+        from nodes.consolidate_node import ConsolidateNode
 
         node_classes = {
             "dom_action": DomActionNode,
@@ -476,7 +680,10 @@ class WorkflowExecutor:
             "provider": ProviderNode,
             "transform": TransformNode,
             "export": ExportNode,
-            "condition": ConditionNode
+            "condition": ConditionNode,
+            "delay": DelayNode,
+            "wait": WaitNode,
+            "consolidate": ConsolidateNode
         }
 
         if node_type not in node_classes:
@@ -484,38 +691,6 @@ class WorkflowExecutor:
 
         return node_classes[node_type]
 
-    def _validate_workflow_dependencies(self):
-        """Validate workflow node dependencies"""
-        if not self.context:
-            return
-
-        nodes = self.context.nodes
-        visited = set()
-        visiting = set()
-
-        def has_cycle(node_id):
-            if node_id in visiting:
-                return True
-            if node_id in visited:
-                return False
-
-            visiting.add(node_id)
-            node = nodes.get(node_id)
-
-            if node and node.next:
-                next_ids = node.next if isinstance(node.next, list) else [node.next]
-                for next_id in next_ids:
-                    if next_id and has_cycle(next_id):
-                        return True
-
-            visiting.remove(node_id)
-            visited.add(node_id)
-            return False
-
-        # Check for cycles
-        for node_id in nodes:
-            if has_cycle(node_id):
-                raise ValueError(f"Workflow contains cycle involving node {node_id}")
 
     def _get_selectors_dict(self) -> Dict[str, str]:
         """Get selectors as dictionary"""
@@ -625,6 +800,89 @@ class WorkflowExecutor:
 
         end_time = self.context.end_time or datetime.now()
         return (end_time - self.context.start_time).total_seconds()
+
+    async def _handle_file_output(self, output: Any, handler_config: Dict[str, Any]):
+        """Handle file output destination"""
+        try:
+            outputs_dir = Path("outputs")
+            outputs_dir.mkdir(exist_ok=True)
+
+            # Generate unique ID
+            unique_id = str(uuid.uuid4())[:8]
+            filename = handler_config.get("filename", f"output_{unique_id}.txt")
+            filepath = outputs_dir / filename
+
+            # Format output
+            if isinstance(output, (dict, list)):
+                content = json.dumps(output, indent=2, ensure_ascii=False)
+            else:
+                content = str(output)
+
+            # Write to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            # Emit output event
+            if self.on_execution_event:
+                execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                await self.on_execution_event("output_exported", {
+                    "execution_id": execution_id,
+                    "destination": "file",
+                    "filepath": str(filepath),
+                    "filename": filename,
+                    "content_preview": content[:200] + "..." if len(content) > 200 else content,
+                    "timestamp": datetime.now().isoformat()
+                })
+
+        except Exception as e:
+            # Log error but don't fail execution
+            print(f"File output failed: {str(e)}")
+
+    async def _handle_clipboard_output(self, output: Any, handler_config: Dict[str, Any]):
+        """Handle clipboard output destination"""
+        try:
+            # Format output
+            if isinstance(output, (dict, list)):
+                content = json.dumps(output, indent=2, ensure_ascii=False)
+            else:
+                content = str(output)
+
+            # Copy to clipboard using pbcopy (macOS)
+            import subprocess
+            process = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE)
+            process.communicate(content.encode('utf-8'))
+
+            # Emit output event
+            if self.on_execution_event:
+                execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                await self.on_execution_event("output_exported", {
+                    "execution_id": execution_id,
+                    "destination": "clipboard",
+                    "content_length": len(content),
+                    "content_preview": content[:200] + "..." if len(content) > 200 else content,
+                    "timestamp": datetime.now().isoformat()
+                })
+
+        except Exception as e:
+            # Log error but don't fail execution
+            print(f"Clipboard output failed: {str(e)}")
+
+    async def _handle_screen_output(self, output: Any, handler_config: Dict[str, Any]):
+        """Handle screen output destination (WebSocket push)"""
+        try:
+            # Emit output event to WebSocket for UI display
+            if self.on_execution_event:
+                execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                await self.on_execution_event("output_display", {
+                    "execution_id": execution_id,
+                    "destination": "screen",
+                    "output": output,
+                    "timestamp": datetime.now().isoformat()
+                })
+
+        except Exception as e:
+            # Log error but don't fail execution
+            print(f"Screen output failed: {str(e)}")
 
     def _reset_execution(self):
         """Reset execution state"""

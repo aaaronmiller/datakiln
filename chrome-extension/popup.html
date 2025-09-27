@@ -161,6 +161,92 @@
       color: #991b1b;
       border: 1px solid #ef4444;
     }
+    .activation-mode {
+      margin-bottom: 16px;
+    }
+    .mode-selector {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .mode-button {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      color: #374151;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .mode-button:hover {
+      background: #f3f4f6;
+    }
+    .mode-button.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .mode-description {
+      font-size: 11px;
+      color: #6b7280;
+      padding: 4px 8px;
+      background: #f9fafb;
+      border-radius: 4px;
+      border-left: 3px solid #3b82f6;
+    }
+    .workflow-selector {
+      margin-bottom: 16px;
+    }
+    .selector-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    .workflow-dropdown {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      font-size: 13px;
+      color: #374151;
+    }
+    .workflow-dropdown:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .input-preview {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+    .preview-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .preview-content {
+      font-size: 12px;
+      color: #64748b;
+      max-height: 60px;
+      overflow-y: auto;
+      word-break: break-word;
+    }
+    .workflow-button.primary {
+      background: #10b981;
+      font-weight: 600;
+    }
+    .workflow-button.primary:hover {
+      background: #059669;
+    }
   </style>
 </head>
 <body>
@@ -170,10 +256,36 @@
   </div>
 
   <div class="section">
-    <div class="section-title">🎯 Quick Actions</div>
+    <div class="section-title">🎯 Workflow Activation</div>
+    <div class="activation-mode">
+      <div class="mode-selector">
+        <button class="mode-button active" id="websiteMode">🌐 Website Mode</button>
+        <button class="mode-button" id="clipboardMode">📋 Clipboard Mode</button>
+      </div>
+      <div class="mode-description" id="modeDescription">
+        Current URL will be used as input to selected workflow
+      </div>
+    </div>
+    
+    <div class="workflow-selector">
+      <label for="workflowSelect" class="selector-label">Select Workflow:</label>
+      <select id="workflowSelect" class="workflow-dropdown">
+        <option value="">Loading workflows...</option>
+      </select>
+    </div>
+    
+    <div class="input-preview" id="inputPreview">
+      <div class="preview-label">Input Preview:</div>
+      <div class="preview-content" id="previewContent">Loading...</div>
+    </div>
+    
+    <button class="workflow-button primary" id="executeWorkflow">🚀 Execute Workflow</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">⚡ Quick Actions</div>
     <button class="workflow-button" id="createWorkflow">Create New Workflow</button>
     <button class="workflow-button" id="loadTemplate">Load Template</button>
-    <button class="workflow-button" id="executeWorkflow">Execute Workflow</button>
     <button class="workflow-button danger" id="stopExecution">Stop Execution</button>
   </div>
 

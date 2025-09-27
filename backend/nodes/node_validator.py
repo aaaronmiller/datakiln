@@ -10,7 +10,8 @@ from typing import Dict, Any, List, Optional, Set
 import re
 from pathlib import Path
 
-from .node_factory import CustomNodeDefinition, NodeValidationError
+from .definitions import CustomNodeDefinition
+from .exceptions import NodeValidationError
 
 
 class NodeSchemaValidator:

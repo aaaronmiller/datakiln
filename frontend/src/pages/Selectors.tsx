@@ -7,12 +7,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Select } from "../components/ui/select"
 import { CheckCircle, XCircle, AlertCircle, Play, Globe, TestTube, BookOpen, Zap, Eye, Plus, Edit, Trash2 } from "lucide-react"
 
+interface MatchInfo {
+  matches_found?: number
+  match_type?: string
+  confidence?: string
+  attribute?: string
+  note?: string
+  url_provided?: string
+  error?: string
+}
+
 interface SelectorValidationResult {
   valid: boolean
   selector: string
   selector_type: string
   issues: string[]
-  match_info: any
+  match_info: MatchInfo
   validation_type: string
   error?: string
 }
@@ -39,38 +49,21 @@ const Selectors: React.FC = () => {
   const [registry, setRegistry] = useState<SelectorRegistryItem[]>([])
   const [selectedProvider, setSelectedProvider] = useState("gemini")
 
-  // Mock data for demonstration
+  // Load selector registry from backend
   useEffect(() => {
-    const mockRegistry: SelectorRegistryItem[] = [
-      {
-        key: "canvasToggle",
-        selector: "div.label:has-text(\"Canvas\")",
-        selector_type: "css",
-        description: "Toggle to switch to Canvas mode",
-        provider: "gemini",
-        context: "Mode switching",
-        fallback_selectors: ["[data-testid=\"canvas-toggle\"]", ".canvas-mode"]
-      },
-      {
-        key: "deepResearchToggle",
-        selector: "div.label:has-text(\"Deep Research\")",
-        selector_type: "css",
-        description: "Toggle to switch to Deep Research mode",
-        provider: "gemini",
-        context: "Mode switching",
-        fallback_selectors: ["[data-testid=\"deep-research-toggle\"]", ".deep-research-mode"]
-      },
-      {
-        key: "promptInput",
-        selector: "[contenteditable=\"true\"]",
-        selector_type: "css",
-        description: "Main prompt input area",
-        provider: "gemini",
-        context: "Input fields",
-        fallback_selectors: ["textarea.prompt-input", ".prompt-editor"]
+    const loadRegistry = async () => {
+      try {
+        const response = await fetch('/api/v1/selectors/registry')
+        if (response.ok) {
+          const data = await response.json()
+          setRegistry(data.selectors)
+        }
+      } catch (error) {
+        console.error('Failed to load selector registry:', error)
+        // Keep empty registry on error
       }
-    ]
-    setRegistry(mockRegistry)
+    }
+    loadRegistry()
   }, [])
 
   const loadWebPage = async () => {
@@ -94,19 +87,25 @@ const Selectors: React.FC = () => {
 
     setIsValidating(true)
     try {
-      // Mock validation - in real app this would call the backend
-      setTimeout(() => {
-        const isValid = selector.includes('.') || selector.includes('#') || selector.includes('[')
-        setValidationResult({
-          valid: isValid,
+      const response = await fetch('/api/v1/selectors/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           selector,
           selector_type: selectorType,
-          issues: isValid ? [] : ['Invalid selector syntax'],
-          match_info: isValid ? { matches: 1, elements: ['div.test'] } : {},
-          validation_type: 'syntax'
+          url: testUrl || undefined,
+          html_content: pageContent || undefined
         })
-        setIsValidating(false)
-      }, 500)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setValidationResult(data.validation)
     } catch (error) {
       setValidationResult({
         valid: false,
@@ -115,8 +114,9 @@ const Selectors: React.FC = () => {
         issues: ['Validation failed'],
         match_info: {},
         validation_type: 'error',
-        error: 'Network error'
+        error: error instanceof Error ? error.message : 'Network error'
       })
+    } finally {
       setIsValidating(false)
     }
   }

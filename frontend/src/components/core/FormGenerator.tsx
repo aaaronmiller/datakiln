@@ -12,7 +12,7 @@ interface JSONSchema {
 interface JSONSchemaProperty {
   type: string
   enum?: string[]
-  default?: any
+  default?: unknown
   minimum?: number
   maximum?: number
   minLength?: number
@@ -25,8 +25,8 @@ interface JSONSchemaProperty {
 
 interface FormGeneratorProps {
   schema: JSONSchema
-  values: Record<string, any>
-  onChange: (field: string, value: any) => void
+  values: Record<string, unknown>
+  onChange: (field: string, value: unknown) => void
   errors?: Record<string, string>
 }
 
@@ -36,7 +36,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
     const error = errors[fieldName]
     const fieldId = `field-${fieldName}`
 
-    const handleChange = (newValue: any) => {
+    const handleChange = (newValue: unknown) => {
       onChange(fieldName, newValue)
     }
 
@@ -53,7 +53,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
               </Label>
               <select
                 id={fieldId}
-                value={value}
+                value={value as string}
                 onChange={(e) => handleChange(e.target.value)}
                 className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${error ? "border-red-500" : ""}`}
               >
@@ -79,7 +79,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
               {isTextarea ? (
                 <Textarea
                   id={fieldId}
-                  value={value}
+                  value={value as string}
                   onChange={(e) => handleChange(e.target.value)}
                   placeholder={`Enter ${fieldName}`}
                   className={`text-sm ${error ? "border-red-500" : ""}`}
@@ -89,7 +89,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
                 <Input
                   id={fieldId}
                   type="text"
-                  value={value}
+                  value={value as string}
                   onChange={(e) => handleChange(e.target.value)}
                   placeholder={`Enter ${fieldName}`}
                   className={`text-sm ${error ? "border-red-500" : ""}`}
@@ -114,7 +114,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
             <Input
               id={fieldId}
               type="number"
-              value={value}
+              value={value as number}
               onChange={(e) => handleChange(fieldSchema.type === "integer" ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)}
               placeholder={`Enter ${fieldName}`}
               className={`text-sm ${error ? "border-red-500" : ""}`}
@@ -132,7 +132,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
             <input
               id={fieldId}
               type="checkbox"
-              checked={value}
+              checked={value as boolean}
               onChange={(e) => handleChange(e.target.checked)}
               className="h-4 w-4 rounded border border-input"
             />
@@ -157,7 +157,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
             <Input
               id={fieldId}
               type="text"
-              value={arrayValue}
+              value={arrayValue as string}
               onChange={(e) => handleChange(e.target.value.split(",").map(s => s.trim()).filter(s => s))}
               placeholder={`Enter ${fieldName} (comma-separated)`}
               className={`text-sm ${error ? "border-red-500" : ""}`}
@@ -178,7 +178,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
             </Label>
             <Textarea
               id={fieldId}
-              value={objectValue}
+              value={objectValue as string}
               onChange={(e) => {
                 try {
                   handleChange(JSON.parse(e.target.value))
@@ -205,7 +205,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ schema, values, onChange,
             <Input
               id={fieldId}
               type="text"
-              value={value}
+              value={value as string}
               onChange={(e) => handleChange(e.target.value)}
               placeholder={`Enter ${fieldName}`}
               className={`text-sm ${error ? "border-red-500" : ""}`}

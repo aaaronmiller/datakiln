@@ -114,6 +114,9 @@ class ErrorLogger:
             "context": context
         }
 
+        # Import locally to avoid circular imports
+        from .error_handler import ErrorSeverity
+
         if error.severity == ErrorSeverity.CRITICAL:
             self.logger.critical(log_message, extra=log_data)
         elif error.severity == ErrorSeverity.HIGH:

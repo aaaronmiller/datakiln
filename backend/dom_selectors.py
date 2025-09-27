@@ -6,6 +6,13 @@ import os
 from pathlib import Path
 
 
+class TimingPolicy(BaseModel):
+    """Timing policy for selector operations"""
+    default_delay_ms: int = Field(default=1000, description="Default delay before action in ms")
+    wait_for_selector_timeout_ms: int = Field(default=5000, description="Timeout for waiting for selector in ms")
+    action_timeout_ms: int = Field(default=10000, description="Timeout for action execution in ms")
+
+
 class SelectorDefinition(BaseModel):
     """Definition for a DOM selector"""
 
@@ -16,6 +23,7 @@ class SelectorDefinition(BaseModel):
     provider: Optional[str] = Field(None, description="Provider this selector is optimized for")
     context: Optional[str] = Field(None, description="Context where selector should be used")
     fallback_selectors: List[str] = Field(default_factory=list, description="Fallback selectors if primary fails")
+    timing_policy: TimingPolicy = Field(default_factory=TimingPolicy, description="Timing policy for this selector")
     attributes: Dict[str, Any] = Field(default_factory=dict, description="Additional attributes for selection")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)

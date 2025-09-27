@@ -25,8 +25,6 @@ interface TemplateNodeData {
   [key: string]: unknown
 }
 
-type TemplateNode = Node<TemplateNodeData>
-
 interface TemplateWizardProps {
   isOpen: boolean
   onClose: () => void

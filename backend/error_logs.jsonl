@@ -1,0 +1,22 @@
+2025-09-27 07:27:06,708 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:27:06,708 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:29:10,946 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:29:10,947 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:29:11,950 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:29:11,951 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:30:06,790 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:30:06,791 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:30:07,792 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:30:07,793 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:30:49,756 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:30:49,757 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:30:50,760 - node_error_logger - INFO - Node gemini-research error: 'ProviderNode' object has no attribute '_provider_manager'
+2025-09-27 07:30:50,761 - node_error_logger - INFO - Node gemini-research error: name 'asyncio' is not defined
+2025-09-27 07:31:29,103 - node_error_logger - INFO - Node gemini-research error: 'str' object has no attribute 'get'
+2025-09-27 07:31:30,107 - node_error_logger - INFO - Node gemini-research error: 'str' object has no attribute 'get'
+2025-09-27 07:32:03,292 - node_error_logger - INFO - Node gemini-research error: 'str' object has no attribute 'get'
+2025-09-27 07:32:04,295 - node_error_logger - INFO - Node gemini-research error: 'str' object has no attribute 'get'
+2025-09-27 07:39:05,842 - node_error_logger - INFO - Node perp_node error: Provider manager not available in context
+2025-09-27 07:39:05,843 - node_error_logger - INFO - Node perp_node error: name 'asyncio' is not defined
+2025-09-27 07:39:06,845 - node_error_logger - INFO - Node perp_node error: Provider manager not available in context
+2025-09-27 07:39:06,846 - node_error_logger - INFO - Node perp_node error: name 'asyncio' is not defined

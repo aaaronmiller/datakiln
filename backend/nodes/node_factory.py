@@ -17,37 +17,13 @@ import asyncio
 from dataclasses import dataclass
 
 from .base_node import BaseNode
-from .node_validator import node_validator, NodeValidationError
+from .node_validator import node_validator
+from .exceptions import NodeFactoryError, NodeValidationError, NodeRegistrationError
+from .definitions import CustomNodeDefinition
 
 
-@dataclass
-class CustomNodeDefinition:
-    """Definition for a custom node type"""
-    type: str
-    name: str
-    description: str
-    version: str
-    inputs: List[str]
-    outputs: List[str]
-    params_schema: Dict[str, Any]
-    implementation: Optional[str] = None  # Python code or module path
-    config: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
 
 
-class NodeFactoryError(Exception):
-    """Base exception for node factory errors"""
-    pass
-
-
-class NodeValidationError(NodeFactoryError):
-    """Exception raised when node validation fails"""
-    pass
-
-
-class NodeRegistrationError(NodeFactoryError):
-    """Exception raised when node registration fails"""
-    pass
 
 
 class BaseNodeFactory(ABC):

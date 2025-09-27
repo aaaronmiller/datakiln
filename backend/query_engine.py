@@ -48,6 +48,94 @@ class QueryEngine:
         except Exception as e:
             logger.warning(f"Failed to initialize some providers: {str(e)}")
 
+    async def execute_workflow_with_streaming(
+        self,
+        workflow_id: str,
+        workflow_config: Dict[str, Any],
+        execution_id: str,
+        execution_options: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Execute a workflow with real-time event streaming"""
+        from main import broadcast_execution_event
+
+        start_time = time.time()
+
+        try:
+            # Validate workflow
+            validation_result = self.graph_validator.validate_workflow(workflow_config)
+            if not validation_result["valid"]:
+                raise ValueError(f"Invalid workflow: {validation_result['errors']}")
+
+            # Set up execution options
+            if not execution_options:
+                execution_options = {}
+
+            execution_options.update({
+                "execution_id": execution_id,
+                "workflow_id": workflow_id,
+                "start_time": datetime.now().isoformat()
+            })
+
+            # Store execution options in workflow config for nodes to access
+            if "execution_data" not in workflow_config:
+                workflow_config["execution_data"] = {}
+            workflow_config["execution_data"]["execution_options"] = execution_options
+
+            # Convert workflow config to Workflow object for DAGExecutor
+            workflow_obj = self._dict_to_workflow(workflow_config)
+
+            # Create streaming callback
+            async def on_execution_event(event_type: str, event_data: Dict[str, Any]):
+                """Callback to stream execution events"""
+                await broadcast_execution_event(execution_id, event_type, event_data)
+
+            # Execute workflow using DAG executor with streaming
+            context = {
+                "selectors_registry": selectors_registry,
+                "provider_manager": self.provider_manager,
+                "execution_options": execution_options,
+                "on_execution_event": on_execution_event
+            }
+
+            result = await self.dag_executor.execute_workflow(workflow_obj, context)
+
+            # Add performance metrics
+            execution_time = time.time() - start_time
+            result["performance"] = self.performance_monitor.get_metrics()
+            result["execution_time"] = execution_time
+            result["execution_id"] = execution_id
+            result["success"] = True
+
+            # Send final completion event
+            await broadcast_execution_event(execution_id, "execution_completed", {
+                "execution_id": execution_id,
+                "success": True,
+                "execution_time": execution_time,
+                "artifacts_count": len(result.get("artifacts", []))
+            })
+
+            logger.info(f"Workflow execution completed in {execution_time:.2f}s")
+            return result
+
+        except Exception as e:
+            error_result = {
+                "success": False,
+                "error": str(e),
+                "execution_id": execution_id,
+                "execution_time": time.time() - start_time,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Send error event
+            await broadcast_execution_event(execution_id, "execution_failed", {
+                "execution_id": execution_id,
+                "error": str(e),
+                "execution_time": time.time() - start_time
+            })
+
+            logger.error(f"Workflow execution failed: {str(e)}")
+            return error_result
+
     async def execute_query(
         self,
         query: str,

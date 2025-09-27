@@ -83,7 +83,7 @@ class ValidationFeedbackService {
 
     // Apply each validation rule
     for (const rule of rules) {
-      const result = await this.validateRule(rule, formData, context)
+      const result = await this.validateRule(rule, formData)
       if (result) {
         const feedback = {
           ...result,
@@ -140,7 +140,7 @@ class ValidationFeedbackService {
   async validateNodeParameters(
     nodeId: string,
     nodeType: string,
-    parameters: Record<string, any>,
+    parameters: Record<string, unknown>,
     backendValidation?: ValidationResult
   ): Promise<NodeParameterValidation> {
     // Start with frontend validation
@@ -184,8 +184,7 @@ class ValidationFeedbackService {
    */
   private async validateRule(
     rule: ValidationRule,
-    formData: Record<string, unknown>,
-    context?: unknown
+    formData: Record<string, unknown>
   ): Promise<ValidationFeedback | null> {
     const fieldValue = formData[rule.field]
     const severity = rule.severity || ValidationSeverity.ERROR

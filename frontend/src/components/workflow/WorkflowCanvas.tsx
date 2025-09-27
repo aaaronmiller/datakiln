@@ -20,6 +20,7 @@ import WorkflowNode from './WorkflowNode'
 import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
 import { ErrorBoundary } from '../ui/error-boundary'
 import { ReactFlowWrapper } from '../ui/react-flow-wrapper'
+import { useReactFlowSync } from '../../hooks/useReactFlowSync'
 
 // Node types for React Flow - memoized for performance
 const nodeTypes: NodeTypes = {
@@ -43,6 +44,9 @@ interface WorkflowCanvasProps {
   readonly?: boolean
   showMinimap?: boolean
   showControls?: boolean
+  // Store sync props
+  setNodes?: (nodes: Node[]) => void
+  setEdges?: (edges: Edge[]) => void
 }
 
 const WorkflowCanvas: React.FC<WorkflowCanvasProps> = React.memo(({
@@ -57,8 +61,25 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = React.memo(({
   readonly = false,
   showMinimap = true,
   showControls = true,
+  setNodes,
+  setEdges,
 }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+
+  // Use sync hook for proper state management if store setters are provided
+  const { handleNodesChange, handleEdgesChange } = useReactFlowSync({
+    nodes,
+    edges,
+    setNodes: setNodes || (() => {}),
+    setEdges: setEdges || (() => {}),
+    onNodesChange,
+    onEdgesChange,
+    debounceMs: 150 // Slightly higher debounce for better performance
+  })
+
+  // Use synced handlers if store setters are available, otherwise use original handlers
+  const finalNodesChange = setNodes ? handleNodesChange : onNodesChange
+  const finalEdgesChange = setEdges ? handleEdgesChange : onEdgesChange
 
   // Memoize node types to prevent unnecessary re-renders
   const memoizedNodeTypes = useMemo(() => nodeTypes, [])
@@ -120,8 +141,8 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = React.memo(({
       <ReactFlowWrapper
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={finalNodesChange}
+        onEdgesChange={finalEdgesChange}
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}

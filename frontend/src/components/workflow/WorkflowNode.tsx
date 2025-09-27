@@ -1,6 +1,7 @@
 import React, { memo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
 import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
+import '../../styles/workflow-nodes.css'
 
 interface WorkflowNodeData {
   type: string
@@ -51,15 +52,15 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
     }
   }
 
-  const renderNodeContent = () => {
+  const renderNodeContent = (): React.ReactNode => {
     switch (data.type) {
       case 'dom_action':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Action: {data.action}</div>
-            {data.selector_key && (
-              <div className="text-gray-500 truncate">Selector: {data.selector_key}</div>
+            <div className="font-medium">{safeData.name}</div>
+            <div className="text-gray-600">Action: {safeData.action}</div>
+            {safeData.selector_key && (
+              <div className="text-gray-500 truncate">Selector: {safeData.selector_key}</div>
             )}
           </div>
         )
@@ -67,12 +68,12 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'prompt':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            {data.template_id && (
-              <div className="text-gray-500">Template: {data.template_id}</div>
+            <div className="font-medium">{safeData.name}</div>
+            {safeData.template_id && (
+              <div className="text-gray-500">Template: {safeData.template_id}</div>
             )}
-            {data.max_tokens && (
-              <div className="text-gray-400">Tokens: {data.max_tokens}</div>
+            {safeData.max_tokens && (
+              <div className="text-gray-400">Tokens: {safeData.max_tokens}</div>
             )}
           </div>
         )
@@ -80,10 +81,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'provider':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Provider: {data.provider_type}</div>
-            {data.research_depth && (
-              <div className="text-gray-500">Depth: {data.research_depth}</div>
+            <div className="font-medium">{safeData.name}</div>
+            <div className="text-gray-600">Provider: {safeData.provider_type}</div>
+            {safeData.research_depth && (
+              <div className="text-gray-500">Depth: {safeData.research_depth}</div>
             )}
           </div>
         )
@@ -91,10 +92,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'transform':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Type: {data.transform_type}</div>
-            {data.output_key && (
-              <div className="text-gray-500">Output: {data.output_key}</div>
+            <div className="font-medium">{safeData.name}</div>
+            <div className="text-gray-600">Type: {safeData.transform_type}</div>
+            {safeData.output_key && (
+              <div className="text-gray-500">Output: {safeData.output_key}</div>
             )}
           </div>
         )
@@ -102,10 +103,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'export':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Format: {data.format}</div>
-            {data.path_key && (
-              <div className="text-gray-500 truncate">Path: {data.path_key}</div>
+            <div className="font-medium">{safeData.name}</div>
+            <div className="text-gray-600">Format: {safeData.format}</div>
+            {safeData.path_key && (
+              <div className="text-gray-500 truncate">Path: {safeData.path_key}</div>
             )}
           </div>
         )
@@ -113,10 +114,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'condition':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
+            <div className="font-medium">{safeData.name}</div>
             <div className="text-gray-600">Condition</div>
-            {data.expr && (
-              <div className="text-gray-500 truncate">Expr: {data.expr}</div>
+            {safeData.expr && (
+              <div className="text-gray-500 truncate">Expr: {safeData.expr}</div>
             )}
           </div>
         )
@@ -124,10 +125,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'filter':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
+            <div className="font-medium">{safeData.name}</div>
             <div className="text-gray-600">Filter</div>
-            {data.filter_type && (
-              <div className="text-gray-500">Type: {String(data.filter_type)}</div>
+            {safeData.filter_type && typeof safeData.filter_type === 'string' && (
+              <div className="text-gray-500">Type: {safeData.filter_type}</div>
             )}
           </div>
         )
@@ -135,10 +136,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'aggregate':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
+            <div className="font-medium">{safeData.name}</div>
             <div className="text-gray-600">Aggregate</div>
-            {data.functions && Array.isArray(data.functions) && (
-              <div className="text-gray-500">Functions: {data.functions.map(f => String(f)).join(', ')}</div>
+            {data.functions && Array.isArray(data.functions) && data.functions.length > 0 && (
+              <div className="text-gray-500">Functions: {(data.functions as unknown[]).map((f: unknown) => typeof f === 'string' ? f : String(f)).join(', ')}</div>
             )}
           </div>
         )
@@ -146,10 +147,10 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'join':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
+            <div className="font-medium">{safeData.name}</div>
             <div className="text-gray-600">Join</div>
-            {data.join_type && (
-              <div className="text-gray-500">Type: {String(data.join_type)}</div>
+            {safeData.join_type && typeof safeData.join_type === 'string' && (
+              <div className="text-gray-500">Type: {safeData.join_type}</div>
             )}
           </div>
         )
@@ -157,10 +158,24 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       case 'union':
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
+            <div className="font-medium">{safeData.name}</div>
             <div className="text-gray-600">Union</div>
-            {data.union_mode && (
-              <div className="text-gray-500">Mode: {String(data.union_mode)}</div>
+            {safeData.union_mode && typeof safeData.union_mode === 'string' && (
+              <div className="text-gray-500">Mode: {safeData.union_mode}</div>
+            )}
+          </div>
+        )
+
+      case 'consolidate':
+        return (
+          <div className="text-xs space-y-1">
+            <div className="font-medium">{safeData.name}</div>
+            <div className="text-gray-600">Consolidate</div>
+            {safeData.model && typeof safeData.model === 'string' && (
+              <div className="text-gray-500">Model: {safeData.model}</div>
+            )}
+            {safeData.attachments && Array.isArray(safeData.attachments) && safeData.attachments.length > 0 && (
+              <div className="text-gray-500">{safeData.attachments.length} attachment{safeData.attachments.length !== 1 ? 's' : ''}</div>
             )}
           </div>
         )
@@ -168,7 +183,7 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       default:
         return (
           <div className="text-xs">
-            <div className="font-medium">{data.name}</div>
+            <div className="font-medium">{safeData.name}</div>
             <div className="text-gray-500">{nodeType.description}</div>
           </div>
         )
@@ -178,11 +193,15 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
   return (
     <div
       className={`
-        px-3 py-2 shadow-md rounded-md border-2 min-w-[120px]
-        ${nodeType.color} text-white
-        ${selected ? 'border-blue-300 ring-2 ring-blue-200' : 'border-gray-300'}
-        ${selected ? 'shadow-lg' : 'shadow-sm'}
+        workflow-node-${safeData.type} workflow-node-content
+        ${selected ? 'selected' : ''}
       `}
+      style={{
+        minWidth: '180px',
+        minHeight: '80px',
+        position: 'relative'
+      }}
+      title={`${safeData.name} (${nodeType.label}) - ${nodeType.description}`}
     >
       {/* Input Handles */}
       {Array.from({ length: getInputCount() }, (_, i) => (
@@ -223,13 +242,13 @@ const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) 
       ))}
 
       {/* Status Indicator */}
-      {data.status && (
+      {safeData.status && (
         <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white">
           <div
             className={`w-full h-full rounded-full ${
-              data.status === 'completed' ? 'bg-green-400' :
-              data.status === 'error' ? 'bg-red-400' :
-              data.status === 'running' ? 'bg-yellow-400' :
+              safeData.status === 'completed' ? 'bg-green-400' :
+              safeData.status === 'error' ? 'bg-red-400' :
+              safeData.status === 'running' ? 'bg-yellow-400' :
               'bg-gray-400'
             }`}
           />

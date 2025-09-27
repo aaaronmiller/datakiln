@@ -61,6 +61,7 @@ class ExecutionError:
     category: ErrorCategory
     severity: ErrorSeverity
     message: str
+    code: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
     traceback: Optional[str] = None
     timestamp: datetime = field(default_factory=datetime.now)
@@ -77,6 +78,7 @@ class ExecutionError:
             "category": self.category.value,
             "severity": self.severity.value,
             "message": self.message,
+            "code": self.code,
             "details": self.details,
             "traceback": self.traceback,
             "timestamp": self.timestamp.isoformat(),
@@ -201,6 +203,7 @@ class ErrorRecoveryResult:
     recovery_data: Optional[Dict[str, Any]] = None
     should_retry: bool = False
     delay_seconds: float = 0.0
+    recovery_strategy: Optional['RecoveryStrategy'] = None
 
 
 class ErrorHandler:
@@ -249,7 +252,8 @@ class ErrorHandler:
         return ErrorRecoveryResult(
             success=False,
             new_error=error,
-            should_retry=error.attempt_number < error.max_attempts and error.recoverable
+            should_retry=error.attempt_number < error.max_attempts and error.recoverable,
+            recovery_strategy=error.recovery_strategy
         )
 
     def _determine_recovery_strategy(
@@ -301,10 +305,11 @@ class ErrorHandler:
                 self._logger.error(f"Recovery strategy {strategy.value} failed: {str(recovery_exc)}")
                 return ErrorRecoveryResult(
                     success=False,
-                    new_error=ExecutionError.from_exception(node, recovery_exc, error.attempt_number + 1, context)
+                    new_error=ExecutionError.from_exception(node, recovery_exc, error.attempt_number + 1, context),
+                    recovery_strategy=strategy
                 )
 
-        return ErrorRecoveryResult(success=False, new_error=error)
+        return ErrorRecoveryResult(success=False, new_error=error, recovery_strategy=strategy)
 
     async def _retry_recovery(
         self,
@@ -314,7 +319,7 @@ class ErrorHandler:
     ) -> ErrorRecoveryResult:
         """Retry recovery strategy"""
         if error.attempt_number >= error.max_attempts:
-            return ErrorRecoveryResult(success=False, new_error=error)
+            return ErrorRecoveryResult(success=False, new_error=error, recovery_strategy=RecoveryStrategy.RETRY)
 
         # Calculate delay with exponential backoff
         base_delay = getattr(node, 'retry_delay', 1.0)
@@ -324,7 +329,8 @@ class ErrorHandler:
             success=True,
             should_retry=True,
             delay_seconds=delay,
-            recovery_data={"retry_attempt": error.attempt_number + 1}
+            recovery_data={"retry_attempt": error.attempt_number + 1},
+            recovery_strategy=RecoveryStrategy.RETRY
         )
 
     async def _skip_recovery(
@@ -336,7 +342,8 @@ class ErrorHandler:
         """Skip recovery strategy - mark as successful but with warning"""
         return ErrorRecoveryResult(
             success=True,
-            recovery_data={"skipped": True, "reason": "error_handling_policy"}
+            recovery_data={"skipped": True, "reason": "error_handling_policy"},
+            recovery_strategy=RecoveryStrategy.SKIP
         )
 
     async def _fail_fast_recovery(
@@ -346,7 +353,7 @@ class ErrorHandler:
         context: Optional[Dict[str, Any]] = None
     ) -> ErrorRecoveryResult:
         """Fail fast recovery strategy - immediate failure"""
-        return ErrorRecoveryResult(success=False, new_error=error)
+        return ErrorRecoveryResult(success=False, new_error=error, recovery_strategy=RecoveryStrategy.FAIL_FAST)
 
     async def _fallback_recovery(
         self,
@@ -360,10 +367,11 @@ class ErrorHandler:
         if fallback_config:
             return ErrorRecoveryResult(
                 success=True,
-                recovery_data={"fallback": True, "config": fallback_config}
+                recovery_data={"fallback": True, "config": fallback_config},
+                recovery_strategy=RecoveryStrategy.FALLBACK
             )
 
-        return ErrorRecoveryResult(success=False, new_error=error)
+        return ErrorRecoveryResult(success=False, new_error=error, recovery_strategy=RecoveryStrategy.FALLBACK)
 
     async def _circuit_breaker_recovery(
         self,
@@ -405,7 +413,8 @@ class ErrorHandler:
                     message=f"Circuit breaker opened for {circuit_key} after {circuit_state['failures']} failures",
                     recoverable=False,
                     context={"circuit_breaker": circuit_state}
-                )
+                ),
+                recovery_strategy=RecoveryStrategy.CIRCUIT_BREAKER
             )
 
         # Circuit still closed, allow retry

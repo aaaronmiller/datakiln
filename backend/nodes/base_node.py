@@ -108,6 +108,9 @@ class BaseNode(BaseModel):
         start_time = datetime.now()
 
         try:
+            # Inject services from context
+            self._inject_services(context)
+
             # Execute with timeout
             result = await execute_node_with_timeout(
                 self,

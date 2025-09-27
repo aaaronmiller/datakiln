@@ -33,10 +33,7 @@ export interface QueryGraphCollection {
   lastUpdated: string
 }
 
-// API endpoints
-const API_BASE = '/api/v1'
-
-// Backend workflow response interface
+ // Backend workflow response interface
 interface BackendWorkflowResponse {
   id: string
   name: string

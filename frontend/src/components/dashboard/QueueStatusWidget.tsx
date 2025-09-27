@@ -50,7 +50,6 @@ const QueueStatusWidget: React.FC<QueueStatusWidgetProps> = ({
     )
   }
 
-  const totalJobs = queueData.pending_jobs + queueData.processing_jobs
   const successRate = queueData.completed_today > 0
     ? ((queueData.completed_today / (queueData.completed_today + queueData.failed_today)) * 100)
     : 0

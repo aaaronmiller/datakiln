@@ -36,27 +36,29 @@ class ConditionNode(BaseNode):
     )
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute conditional evaluation"""
+        """Execute conditional evaluation with enhanced branching logic"""
         try:
             # Get data to evaluate
-            eval_data = self._get_evaluation_data()
+            eval_data = self._get_evaluation_data(context)
             if eval_data is None:
                 raise ValueError("No data available for condition evaluation")
 
             # Evaluate condition
             result = await self._evaluate_condition(eval_data)
 
-            # Determine next nodes
-            next_nodes = self.true_next if result else self.false_next
+            # Determine next nodes based on condition result
+            next_nodes = self._determine_next_nodes(result, eval_data, context)
 
-            # Store evaluation result
+            # Store evaluation result with enhanced branching info
             evaluation_result = {
                 "condition_evaluated": True,
                 "condition_result": result,
                 "next_nodes": next_nodes,
                 "evaluated_data": eval_data,
                 "expression": self.expr,
-                "condition_type": self.condition_type
+                "condition_type": self.condition_type,
+                "branch_taken": "true_branch" if result else "false_branch",
+                "recursive_trigger": self._should_trigger_recursive(eval_data, result)
             }
 
             self.mark_completed(evaluation_result)
@@ -67,10 +69,19 @@ class ConditionNode(BaseNode):
             self.mark_failed(error_message)
             raise
 
-    def _get_evaluation_data(self) -> Any:
-        """Get data for condition evaluation"""
+    def _get_evaluation_data(self, context: Dict[str, Any]) -> Any:
+        """Get data for condition evaluation from inputs or workflow context"""
+        # First check if we have a specific input key
         if self.input_key and self.input_key in self.inputs:
             return self.inputs[self.input_key]
+
+        # Check workflow state for previous node outputs
+        workflow_state = context.get("execution_data", {}).get("workflow_state", {})
+        if workflow_state:
+            # Get the most recent output from workflow state
+            for node_id, data in reversed(list(workflow_state.items())):
+                if isinstance(data, (str, int, float, bool, dict, list)):
+                    return data
 
         # Try to find suitable data from inputs
         for key, value in self.inputs.items():
@@ -78,6 +89,45 @@ class ConditionNode(BaseNode):
                 return value
 
         return self.inputs
+
+    def _determine_next_nodes(self, condition_result: bool, eval_data: Any, context: Dict[str, Any]) -> Union[str, List[str], None]:
+        """Determine which nodes to execute next based on condition result"""
+        base_next = self.true_next if condition_result else self.false_next
+
+        # Handle recursive logic for short outputs (re-prompting)
+        if self._should_trigger_recursive(eval_data, condition_result):
+            # For short outputs, route back to a prompt node for re-prompting
+            recursive_target = self._find_recursive_target(context)
+            if recursive_target:
+                return recursive_target
+
+        return base_next
+
+    def _should_trigger_recursive(self, eval_data: Any, condition_result: bool) -> bool:
+        """Check if recursive logic should be triggered (e.g., short output re-prompting)"""
+        # Common pattern: if output is too short and condition is false (meaning "output too short")
+        if not condition_result and isinstance(eval_data, str):
+            # Check if this looks like a short response that needs re-prompting
+            if len(eval_data.strip()) < 100:  # Arbitrary threshold for "short" output
+                return True
+
+        # Check for explicit recursive triggers in the expression
+        if "len(" in self.expr.lower() and "<" in self.expr:
+            return not condition_result  # If length condition failed, trigger recursive
+
+        return False
+
+    def _find_recursive_target(self, context: Dict[str, Any]) -> Optional[str]:
+        """Find an appropriate node to route back to for recursive logic"""
+        # Look for prompt nodes in the workflow
+        workflow = context.get("workflow", {})
+        nodes = workflow.get("nodes", {})
+
+        for node_id, node_config in nodes.items():
+            if node_config.get("type") in ["prompt", "provider"]:
+                return node_id
+
+        return None
 
     async def _evaluate_condition(self, data: Any) -> bool:
         """Evaluate condition based on type"""

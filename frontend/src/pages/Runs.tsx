@@ -7,7 +7,7 @@ import { Select } from '../components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Progress } from '../components/ui/progress'
-import { Play, Pause, Square, Eye, FileText, Clock, Filter, Search, Calendar, MoreVertical } from "lucide-react"
+import { Play, Square, Eye, FileText, Clock, Filter, Search, MoreVertical } from "lucide-react"
 import sseService from '../services/sseService'
 
 interface RunEvent {

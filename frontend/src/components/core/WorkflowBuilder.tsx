@@ -18,11 +18,11 @@ import QueryEditor from "./QueryEditor"
 import { ReactFlowWrapper } from "../ui/react-flow-wrapper"
 import { useWorkflowStore, WorkflowNode } from "../../stores/workflowStore"
 import nodeRegistryService from "../../services/nodeRegistryService"
-import { workflowValidator, validateWorkflowRoundTrip } from "../../utils/schemaValidation"
+import { workflowValidator } from "../../utils/schemaValidation"
 
 const nodeTypes: NodeTypes = {
   taskNode: TaskNode,
-  queryNode: QueryNode as any, // Type compatibility issue - will be resolved with proper typing
+  queryNode: QueryNode as React.ComponentType<import('@xyflow/react').NodeProps>,
 }
 
 const WorkflowBuilder: React.FC = () => {
@@ -42,7 +42,7 @@ const WorkflowBuilder: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(
     storeNodes.map((node) => ({
       id: node.id,
-      type: (node.type as any) === 'query-builder' ? 'queryNode' : 'taskNode',
+      type: (node.type as string) === 'query-builder' ? 'queryNode' : 'taskNode',
       position: node.position,
       data: {
         ...node.data,
@@ -58,7 +58,7 @@ const WorkflowBuilder: React.FC = () => {
           })
         },
         onDelete: () => deleteNode(node.id),
-        onOpenEditor: (node.type as any) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
+        onOpenEditor: (node.type as string) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
         isSelected: selectedNodeId === node.id,
       },
     }))
@@ -165,7 +165,7 @@ const WorkflowBuilder: React.FC = () => {
         loadWorkflow(workflow)
         setNodes(workflow.nodes.map((node: WorkflowNode) => ({
           id: node.id,
-          type: (node.type as any) === 'query-builder' ? 'queryNode' : 'taskNode',
+          type: (node.type as string) === 'query-builder' ? 'queryNode' : 'taskNode',
           position: node.position,
           data: {
             ...node.data,
@@ -182,7 +182,7 @@ const WorkflowBuilder: React.FC = () => {
               })
             },
             onDelete: () => deleteNode(node.id),
-            onOpenEditor: (node.type as any) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
+            onOpenEditor: (node.type as string) === 'query-builder' ? () => handleOpenQueryEditor(node.id) : undefined,
             isSelected: selectedNodeId === node.id,
           },
         })))
@@ -280,8 +280,8 @@ const WorkflowBuilder: React.FC = () => {
         <ReactFlowWrapper
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange as any}
-          onEdgesChange={onEdgesChange as any}
+          onNodesChange={onNodesChange as (changes: import('@xyflow/react').NodeChange[]) => void}
+          onEdgesChange={onEdgesChange as (changes: import('@xyflow/react').EdgeChange[]) => void}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
@@ -298,7 +298,7 @@ const WorkflowBuilder: React.FC = () => {
       <QueryEditor
         isOpen={queryEditorOpen}
         onClose={() => setQueryEditorOpen(false)}
-        initialQueryGraph={currentQueryGraph as any}
+        initialQueryGraph={currentQueryGraph as { nodes: import('@xyflow/react').Node[]; connections: import('@xyflow/react').Edge[] } | undefined}
         onSave={handleSaveQuery}
       />
     </div>

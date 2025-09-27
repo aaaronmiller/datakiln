@@ -3,7 +3,7 @@ import { Node } from '@xyflow/react'
 // Workflow Node Types matching backend implementation
 export interface WorkflowNode {
   id: string
-  type: 'dom_action' | 'prompt' | 'provider' | 'transform' | 'export' | 'condition' | 'filter' | 'aggregate' | 'join' | 'union'
+  type: 'dom_action' | 'prompt' | 'provider' | 'transform' | 'export' | 'condition' | 'filter' | 'aggregate' | 'join' | 'union' | 'ai_dom' | 'consolidate'
   position: { x: number; y: number }
   data: {
     label: string
@@ -29,6 +29,20 @@ export interface WorkflowNode {
     expr?: string
     true_next?: string | string[]
     false_next?: string | string[]
+    // AI DOM specific properties
+    provider?: 'gemini' | 'perplexity' | 'youtube_transcript'
+    actions?: Array<{
+      selector: string
+      action: 'type' | 'click' | 'wait'
+      value?: string
+      delayAfter?: number
+    }>
+    output?: 'file' | 'screen' | 'clipboard' | 'next'
+    // Consolidate node specific properties
+    model?: string
+    prepend_text?: string
+    append_text?: string
+    attachments?: string[]
     // UI properties
     color?: string
     icon?: string
@@ -345,6 +359,78 @@ export const WORKFLOW_NODE_TYPES: WorkflowNodeType[] = [
         default: 'distinct'
       },
       align_fields: { type: 'boolean', default: true }
+    }
+  },
+  {
+    type: 'ai_dom',
+    label: 'AI DOM Automation',
+    icon: '🤖',
+    color: 'bg-blue-500',
+    category: 'action',
+    description: 'Automate AI provider interactions with DOM actions',
+    defaultData: {
+      name: 'AI DOM Node',
+      provider: 'gemini',
+      actions: [],
+      output: 'clipboard'
+    },
+    inputs: 1,
+    outputs: 1,
+    configSchema: {
+      name: { type: 'string', required: true },
+      provider: {
+        type: 'select',
+        required: true,
+        options: ['gemini', 'perplexity', 'youtube_transcript']
+      },
+      actions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            selector: { type: 'string', required: true },
+            action: { type: 'select', options: ['type', 'click', 'wait'], required: true },
+            value: { type: 'string' },
+            delayAfter: { type: 'number', default: 1000 }
+          }
+        }
+      },
+      output: {
+        type: 'select',
+        required: true,
+        options: ['file', 'screen', 'clipboard', 'next']
+      }
+    }
+  },
+  {
+    type: 'consolidate',
+    label: 'Consolidate',
+    icon: '📋',
+    color: 'bg-emerald-500',
+    category: 'process',
+    description: 'Consolidate and process multiple inputs with AI models',
+    defaultData: {
+      name: 'Consolidate Node',
+      model: 'gpt-4',
+      prepend_text: '',
+      append_text: '',
+      attachments: []
+    },
+    inputs: 1,
+    outputs: 1,
+    configSchema: {
+      name: { type: 'string', required: true },
+      model: {
+        type: 'select',
+        required: true,
+        options: ['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro']
+      },
+      prepend_text: { type: 'string' },
+      append_text: { type: 'string' },
+      attachments: {
+        type: 'array',
+        items: { type: 'string' }
+      }
     }
   }
 ]

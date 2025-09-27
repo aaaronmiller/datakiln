@@ -1,4 +1,4 @@
-import nodeRegistryData from '../../../specs/contracts/NODE_REGISTRY_V1.json'
+import nodeRegistryData from '../../../old-specs/contracts/NODE_REGISTRY_V1.json'
 
 export interface CustomNodeDefinition {
   type: string
@@ -7,7 +7,11 @@ export interface CustomNodeDefinition {
   version: string
   inputs: string[]
   outputs: string[]
-  paramsSchema: Record<string, unknown>
+  paramsSchema: {
+    type: 'object'
+    required?: string[]
+    properties: Record<string, unknown>
+  }
   implementation?: string
   config?: Record<string, unknown>
   metadata?: Record<string, unknown>
@@ -74,7 +78,7 @@ class NodeRegistryService {
         version: 1,
         inputs: customNode.definition.inputs,
         outputs: customNode.definition.outputs,
-        paramsSchema: customNode.definition.paramsSchema as any // Type assertion for compatibility
+        paramsSchema: customNode.definition.paramsSchema
       }
     }
 
@@ -88,7 +92,7 @@ class NodeRegistryService {
       version: 1, // Custom nodes start at version 1
       inputs: nodeInfo.definition.inputs,
       outputs: nodeInfo.definition.outputs,
-      paramsSchema: nodeInfo.definition.paramsSchema as any // Type assertion for compatibility
+      paramsSchema: nodeInfo.definition.paramsSchema
     }))
 
     return [...builtInNodes, ...customNodes]

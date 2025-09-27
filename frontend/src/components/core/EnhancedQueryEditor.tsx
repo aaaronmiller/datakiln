@@ -706,8 +706,8 @@ const EnhancedQueryEditor: React.FC<EnhancedQueryEditorProps> = ({
                 <ReactFlowWrapper
                   nodes={nodes}
                   edges={edges}
-                  onNodesChange={onNodesChange as any}
-                  onEdgesChange={onEdgesChange as any}
+                  onNodesChange={onNodesChange as (changes: import('@xyflow/react').NodeChange[]) => void}
+                  onEdgesChange={onEdgesChange as (changes: import('@xyflow/react').EdgeChange[]) => void}
                   onConnect={onConnect}
                   onNodeClick={handleNodeClick}
                   nodeTypes={queryNodeTypes}

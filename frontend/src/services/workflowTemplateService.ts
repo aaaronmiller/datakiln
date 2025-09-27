@@ -1,4 +1,4 @@
-import { Template, QueryNode, QueryEdge } from '../types/query'
+import { Template, QueryEdge } from '../types/query'
 import { WorkflowNode } from '../stores/workflowStore'
 
 export interface WorkflowTemplate extends Template {
@@ -12,7 +12,7 @@ interface TemplateParameter {
   id: string
   name: string
   type: 'string' | 'number' | 'boolean' | 'array' | 'object'
-  defaultValue: any
+  defaultValue: unknown
   description: string
   nodeId: string
   paramKey: string
@@ -151,7 +151,7 @@ export class WorkflowTemplateService {
   }
 
   createTemplateFromWorkflow(
-    workflow: { nodes: WorkflowNode[], edges: any[] },
+    workflow: { nodes: WorkflowNode[], edges: unknown[] },
     name: string,
     description: string,
     category: string
@@ -170,7 +170,7 @@ export class WorkflowTemplateService {
       description,
       category,
       nodes: templateNodes,
-      edges: workflow.edges,
+      edges: workflow.edges as QueryEdge[],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       parameters: this.identifyTemplateParameters(workflow.nodes)
@@ -228,13 +228,13 @@ export class WorkflowTemplateService {
            !nonParameterPatterns.some(pattern => pattern.test(value))
   }
 
-  instantiateTemplate(template: WorkflowTemplate, parameterValues: Record<string, any>): { nodes: WorkflowNode[], edges: any[] } {
+  instantiateTemplate(template: WorkflowTemplate, parameterValues: Record<string, unknown>): { nodes: WorkflowNode[], edges: QueryEdge[] } {
     if (!template.nodes) {
       return { nodes: [], edges: template.edges || [] }
     }
 
     const nodes = template.nodes.map(node => {
-      const nodeParams = { ...(node.data as any).parameters }
+      const nodeParams = { ...(node.data as { parameters?: Record<string, unknown> }).parameters }
 
       // Apply parameter values
       if (template.parameters) {

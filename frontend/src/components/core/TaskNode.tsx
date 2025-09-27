@@ -8,9 +8,9 @@ import nodeRegistryService from "../../services/nodeRegistryService"
 // ReactFlow-compatible interface for node data
 interface TaskNodeData extends Record<string, unknown> {
   label: string
-  parameters: Record<string, any>
+  parameters: Record<string, unknown>
   status: 'pending' | 'running' | 'completed' | 'error'
-  onParameterChange?: (_paramName: string, _value: any) => void
+  onParameterChange?: (_paramName: string, _value: unknown) => void
   onDelete?: () => void
   isSelected?: boolean
   nodeType?: string
@@ -25,12 +25,13 @@ const TaskNode: React.FC<NodeProps> = ({ data, selected, type }) => {
   const schema = registryEntry?.paramsSchema
 
   // Validation function
-  const validateParameters = (parameters: Record<string, any>, schema: any): Record<string, string> => {
+  const validateParameters = (parameters: Record<string, unknown>, schema: unknown): Record<string, string> => {
     const errors: Record<string, string> = {}
 
-    if (!schema || !schema.properties) return errors
+    if (!schema || typeof schema !== 'object' || !('properties' in schema) || !schema.properties) return errors
 
-    const requiredFields = schema.required || []
+    const schemaObj = schema as { required?: string[]; properties: Record<string, unknown> }
+    const requiredFields = schemaObj.required || []
 
     // Check required fields
     requiredFields.forEach((field: string) => {
@@ -41,39 +42,49 @@ const TaskNode: React.FC<NodeProps> = ({ data, selected, type }) => {
     })
 
     // Check field constraints
-    Object.entries(schema.properties).forEach(([fieldName, fieldSchema]: [string, any]) => {
+    Object.entries(schemaObj.properties).forEach(([fieldName, fieldSchema]: [string, unknown]) => {
       const value = parameters[fieldName]
 
       if (value !== undefined && value !== null && value !== '') {
+        const schemaProp = fieldSchema as {
+          type?: string;
+          minimum?: number;
+          maximum?: number;
+          minLength?: number;
+          maxLength?: number;
+          pattern?: string;
+          enum?: unknown[];
+        }
+
         // Type validation
-        if (fieldSchema.type === 'number' || fieldSchema.type === 'integer') {
+        if (schemaProp.type === 'number' || schemaProp.type === 'integer') {
           const numValue = Number(value)
           if (isNaN(numValue)) {
             errors[fieldName] = 'Must be a valid number'
           } else {
-            if (fieldSchema.minimum !== undefined && numValue < fieldSchema.minimum) {
-              errors[fieldName] = `Must be at least ${fieldSchema.minimum}`
+            if (schemaProp.minimum !== undefined && numValue < schemaProp.minimum) {
+              errors[fieldName] = `Must be at least ${schemaProp.minimum}`
             }
-            if (fieldSchema.maximum !== undefined && numValue > fieldSchema.maximum) {
-              errors[fieldName] = `Must be at most ${fieldSchema.maximum}`
+            if (schemaProp.maximum !== undefined && numValue > schemaProp.maximum) {
+              errors[fieldName] = `Must be at most ${schemaProp.maximum}`
             }
           }
         }
 
-        if (fieldSchema.type === 'string') {
+        if (schemaProp.type === 'string') {
           const strValue = String(value)
-          if (fieldSchema.minLength !== undefined && strValue.length < fieldSchema.minLength) {
-            errors[fieldName] = `Must be at least ${fieldSchema.minLength} characters`
+          if (schemaProp.minLength !== undefined && strValue.length < schemaProp.minLength) {
+            errors[fieldName] = `Must be at least ${schemaProp.minLength} characters`
           }
-          if (fieldSchema.maxLength !== undefined && strValue.length > fieldSchema.maxLength) {
-            errors[fieldName] = `Must be at most ${fieldSchema.maxLength} characters`
+          if (schemaProp.maxLength !== undefined && strValue.length > schemaProp.maxLength) {
+            errors[fieldName] = `Must be at most ${schemaProp.maxLength} characters`
           }
-          if (fieldSchema.pattern && !new RegExp(fieldSchema.pattern).test(strValue)) {
+          if (schemaProp.pattern && !new RegExp(schemaProp.pattern).test(strValue)) {
             errors[fieldName] = 'Invalid format'
           }
         }
 
-        if (fieldSchema.enum && !fieldSchema.enum.includes(value)) {
+        if (schemaProp.enum && !schemaProp.enum.includes(value)) {
           errors[fieldName] = 'Invalid option selected'
         }
       }
@@ -151,7 +162,7 @@ const TaskNode: React.FC<NodeProps> = ({ data, selected, type }) => {
       <CardContent className="space-y-3">
         {schema ? (
           <FormGenerator
-            schema={schema as any}
+            schema={schema as { type: string; required?: string[]; properties: Record<string, { type: string; enum?: string[]; default?: unknown; minimum?: number; maximum?: number; minLength?: number; maxLength?: number; pattern?: string; items?: { type: string }; oneOf?: { type: string }[]; additionalProperties?: boolean | { type: string } }> }}
             values={nodeData.parameters}
             onChange={(field, value) => nodeData.onParameterChange?.(field, value)}
             errors={validationErrors}

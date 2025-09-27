@@ -6,17 +6,19 @@ import {
   Node,
   OnConnect,
   NodeChange,
-  EdgeChange,
   ReactFlowProvider,
-  ReactFlow,
+  useNodesState,
+  useEdgesState,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import '../../../../modern-workflow-node-styles.css'
 
 import WorkflowNode from './WorkflowNode'
+import AiDomNode from './AiDomNode'
 import NodeConfigDialog from './NodeConfigDialog'
+import ExecutionLogViewer from './ExecutionLogViewer'
 import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
 import { workflowValidationService } from '../../services/workflowValidationService'
-import WorkflowExecutionService from '../../services/workflowExecutionService'
 import { useNotifications } from '../../stores/uiStore'
 import { ReactFlowWrapper } from '../ui/react-flow-wrapper'
 
@@ -32,6 +34,8 @@ const nodeTypes = {
   aggregate: WorkflowNode,
   join: WorkflowNode,
   union: WorkflowNode,
+  ai_dom: AiDomNode,
+  consolidate: WorkflowNode,
 }
 
 
@@ -92,66 +96,75 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   readonly = false,
 }) => {
   console.log('WorkflowEditorContent rendering')
-  const [nodes, setNodes] = useState<Node[]>(initialNodes)
-  const [edges, setEdges] = useState<Edge[]>(initialEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const { add: addNotification } = useNotifications()
-  const executionService = React.useMemo(() => new WorkflowExecutionService(), [])
 
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [isExecuting, setIsExecuting] = useState(false)
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
   const [configNode, setConfigNode] = useState<Node | null>(null)
+  const [executionLogVisible, setExecutionLogVisible] = useState(false)
+  const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null)
+  const [showExecutionOrder, setShowExecutionOrder] = useState(false)
+  const [executionOrder, setExecutionOrder] = useState<string[]>([])
 
-  // Handle connections
+  // Handle connections with validation
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
+      // Validate connection: check if source node has 'next' output that can connect to target
+      const sourceNode = nodes.find(n => n.id === params.source)
+      const targetNode = nodes.find(n => n.id === params.target)
+
+      if (!sourceNode || !targetNode) {
+        addNotification({
+          type: 'error',
+          title: 'Connection Failed',
+          message: 'Invalid source or target node'
+        })
+        return
+      }
+
+      // Check if source node has 'next' output capability
+      const sourceOutputs = sourceNode.data?.output || sourceNode.data?.outputs
+      const canOutputNext = sourceOutputs === 'next' ||
+                            (Array.isArray(sourceOutputs) && sourceOutputs.some((o: unknown) => typeof o === 'object' && o !== null && 'destination' in o && (o as { destination: unknown }).destination === 'next')) ||
+                            sourceNode.type === 'ai_dom' // ai_dom nodes can output to next
+
+      if (!canOutputNext) {
+        addNotification({
+          type: 'error',
+          title: 'Invalid Connection',
+          message: `Node "${sourceNode.data?.name}" does not support "next" output for chaining`
+        })
+        return
+      }
+
       const newEdge = { ...params, id: `${params.source}-${params.target}` } as Edge
       const updatedEdges = addEdge(newEdge, edges)
       setEdges(updatedEdges)
       onChange?.(nodes, updatedEdges)
-    },
-    [edges, nodes, onChange, setEdges]
-  )
 
-  // Handle node changes
-  const handleNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => {
-        const updatedNodes = changes.reduce((acc, change) => {
-          if (change.type === 'select') {
-            setSelectedNode(change.selected ? change.id : null)
-          }
-          // Apply the change to the nodes array
-          switch (change.type) {
-            case 'add':
-              return [...acc, change.item]
-            case 'remove':
-              return acc.filter((node) => node.id !== change.id)
-            case 'replace':
-              return acc.map((node) =>
-                node.id === change.id ? change.item : node
-              )
-            case 'position':
-              return acc.map((node) =>
-                node.id === change.id
-                  ? { ...node, position: change.position || node.position, dragging: change.dragging }
-                  : node
-              )
-            case 'select':
-              return acc.map((node) =>
-                node.id === change.id
-                  ? { ...node, selected: change.selected }
-                  : node
-              )
-            default:
-              return acc
-          }
-        }, nds)
-        onChange?.(updatedNodes, edges)
-        return updatedNodes
+      addNotification({
+        type: 'success',
+        title: 'Connection Created',
+        message: `Connected ${sourceNode.data?.name} → ${targetNode.data?.name}`
       })
     },
-    [edges, onChange]
+    [edges, nodes, onChange, setEdges, addNotification]
+  )
+
+  // Handle node selection changes
+  const handleNodeSelectionChange = useCallback(
+    (changes: NodeChange[]) => {
+      changes.forEach((change) => {
+        if (change.type === 'select') {
+          setSelectedNode(change.selected ? change.id : null)
+        }
+      })
+      onNodesChange(changes)
+    },
+    [onNodesChange]
   )
 
   // Handle node double click for configuration
@@ -175,39 +188,9 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       setConfigDialogOpen(false)
       setConfigNode(null)
     },
-    []
+    [setNodes]
   )
 
-  // Handle edges changes
-  const handleEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      setEdges((eds) => {
-        const updatedEdges = changes.reduce((acc, change) => {
-          switch (change.type) {
-            case 'add':
-              return [...acc, change.item]
-            case 'remove':
-              return acc.filter((edge) => edge.id !== change.id)
-            case 'replace':
-              return acc.map((edge) =>
-                edge.id === change.id ? change.item : edge
-              )
-            case 'select':
-              return acc.map((edge) =>
-                edge.id === change.id
-                  ? { ...edge, selected: change.selected }
-                  : edge
-              )
-            default:
-              return acc
-          }
-        }, eds)
-        onChange?.(nodes, updatedEdges)
-        return updatedEdges
-      })
-    },
-    [nodes, onChange]
-  )
 
   // Add new node
   const addNode = useCallback(
@@ -239,6 +222,78 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     },
     [nodes, edges, onChange, setNodes]
   )
+
+  // Calculate execution order based on topological sort
+  const calculateExecutionOrder = useCallback(() => {
+    // Simple topological sort implementation
+    const edgeMap = new Map<string, string[]>()
+
+    // Build adjacency list
+    edges.forEach(edge => {
+      if (!edgeMap.has(edge.source)) {
+        edgeMap.set(edge.source, [])
+      }
+      edgeMap.get(edge.source)!.push(edge.target)
+    })
+
+    // Calculate indegree
+    const indegree = new Map<string, number>()
+    nodes.forEach(node => indegree.set(node.id, 0))
+    edges.forEach(edge => {
+      indegree.set(edge.target, (indegree.get(edge.target) || 0) + 1)
+    })
+
+    // Kahn's algorithm
+    const queue: string[] = []
+    const result: string[] = []
+
+    // Start with nodes that have no incoming edges
+    indegree.forEach((deg, nodeId) => {
+      if (deg === 0) queue.push(nodeId)
+    })
+
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!
+      result.push(nodeId)
+
+      const neighbors = edgeMap.get(nodeId) || []
+      neighbors.forEach(neighbor => {
+        indegree.set(neighbor, (indegree.get(neighbor) || 0) - 1)
+        if (indegree.get(neighbor) === 0) {
+          queue.push(neighbor)
+        }
+      })
+    }
+
+    // Add any remaining nodes (in case of cycles or disconnected nodes)
+    nodes.forEach(node => {
+      if (!result.includes(node.id)) {
+        result.push(node.id)
+      }
+    })
+
+    return result
+  }, [nodes, edges])
+
+  // Handle drag sort for execution order
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/plain', index.toString())
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'))
+    if (dragIndex === dropIndex) return
+
+    const newOrder = [...executionOrder]
+    const [draggedItem] = newOrder.splice(dragIndex, 1)
+    newOrder.splice(dropIndex, 0, draggedItem)
+    setExecutionOrder(newOrder)
+  }, [executionOrder])
 
   // Convert workflow nodes to React Flow format
   const convertToWorkflowFormat = useCallback(() => {
@@ -330,19 +385,40 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     setIsExecuting(true)
     try {
       const workflow = convertToWorkflowFormat()
-      const result = await executionService.executeWorkflow(workflow)
+      const workflowId = `workflow-${Date.now()}`
 
-      if (result.success) {
+      // Use the new API endpoint
+      const response = await fetch(`http://localhost:8000/api/v1/workflows/${workflowId}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflow,
+          execution_options: {}
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'started') {
+        setCurrentExecutionId(result.execution_id)
+        setExecutionLogVisible(true)
+
         addNotification({
           type: 'success',
           title: 'Workflow Execution Started',
-          message: `Execution started with run ID: ${result.run_id || result.execution_id}`
+          message: `Execution started with ID: ${result.execution_id}`
         })
       } else {
         addNotification({
           type: 'error',
           title: 'Execution Failed',
-          message: result.error || 'Unknown error occurred'
+          message: 'Failed to start workflow execution'
         })
       }
     } catch (error) {
@@ -355,7 +431,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     } finally {
       setIsExecuting(false)
     }
-  }, [nodes, executionService, addNotification, convertToWorkflowFormat])
+  }, [nodes, addNotification, convertToWorkflowFormat])
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -388,7 +464,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       )}
 
       {/* Canvas */}
-      <div className="flex-1 relative" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
+      <div className="flex-1 relative w-full" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
         {(() => {
           console.log('Rendering ReactFlow with nodes:', nodes.length, 'edges:', edges.length)
           return null
@@ -396,8 +472,8 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         <ReactFlowWrapper
           nodes={nodes}
           edges={edges}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={handleEdgesChange}
+          onNodesChange={handleNodeSelectionChange}
+          onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeDoubleClick={handleNodeDoubleClick}
           nodeTypes={nodeTypes}
@@ -412,6 +488,44 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         />
       </div>
 
+      {/* Execution Order Panel */}
+      {showExecutionOrder && (
+        <div className="bg-white border-t border-gray-200 px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">Execution Order (Drag to Reorder)</h3>
+            <button
+              onClick={() => setShowExecutionOrder(false)}
+              className="text-gray-400 hover:text-gray-600 text-sm"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {(executionOrder.length > 0 ? executionOrder : calculateExecutionOrder()).map((nodeId, index) => {
+              const node = nodes.find(n => n.id === nodeId)
+              return (
+                <div
+                  key={nodeId}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className="flex items-center space-x-3 p-2 bg-gray-50 rounded border cursor-move hover:bg-gray-100"
+                >
+                  <span className="text-xs text-gray-500 w-6">{index + 1}.</span>
+                  <span className="text-sm font-medium">{String(node?.data?.name || nodeId)}</span>
+                  <span className="text-xs text-gray-500">({node?.type})</span>
+                  <div className="ml-auto text-xs text-gray-400">⋮⋮</div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-3 text-xs text-gray-500">
+            Drag nodes to reorder execution sequence. This overrides automatic topological sorting.
+          </div>
+        </div>
+      )}
+
       {/* Status Bar */}
       <div className="bg-white border-t border-gray-200 px-4 py-2 text-sm text-gray-600">
         <div className="flex justify-between items-center">
@@ -420,6 +534,17 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
             {selectedNode && ` | Selected: ${selectedNode}`}
           </div>
           <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                setShowExecutionOrder(!showExecutionOrder)
+                if (!showExecutionOrder) {
+                  setExecutionOrder(calculateExecutionOrder())
+                }
+              }}
+              className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+            >
+              {showExecutionOrder ? 'Hide' : 'Show'} Execution Order
+            </button>
             <button
               onClick={saveWorkflow}
               disabled={nodes.length === 0}
@@ -742,6 +867,16 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         open={configDialogOpen}
         onOpenChange={setConfigDialogOpen}
         onSave={handleSaveNodeConfig}
+      />
+
+      {/* Execution Log Viewer */}
+      <ExecutionLogViewer
+        executionId={currentExecutionId}
+        isVisible={executionLogVisible}
+        onClose={() => {
+          setExecutionLogVisible(false)
+          setCurrentExecutionId(null)
+        }}
       />
     </div>
   )

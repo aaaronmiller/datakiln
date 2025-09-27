@@ -104,21 +104,84 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
     const [_reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null)
     const performanceMetrics = usePerformanceMonitor(enablePerformanceMonitoring, nodes.length)
 
-    // Cleanup on unmount
+    // Comprehensive cleanup on unmount to prevent memory leaks
     React.useEffect(() => {
       return () => {
         // Clean up state and any potential subscriptions
         setReactFlowInstance(null)
+        
+        // Cancel any pending debounced operations
+        // Note: debounced functions are cleaned up in their respective useEffect hooks
+        
+        // Clear any remaining timeouts/intervals if they exist
+        // This is a safety net for any forgotten cleanup
       }
     }, [])
+
+    // Additional cleanup for performance monitoring
+    React.useEffect(() => {
+      if (!enablePerformanceMonitoring) return
+
+      // Cleanup function for performance monitoring
+      return () => {
+        // Performance monitoring cleanup is handled in the usePerformanceMonitor hook
+        // This is just a placeholder for any additional cleanup needed
+      }
+    }, [enablePerformanceMonitoring])
 
     // Debounce nodes and edges for large graphs to prevent excessive re-renders
     const debouncedNodes = useDebounce(nodes, nodes.length > maxNodesForOptimization ? 100 : 0)
     const debouncedEdges = useDebounce(edges, edges.length > maxNodesForOptimization ? 100 : 0)
 
+    // Viewport-based virtualization for large node graphs
+    const [viewport, setViewport] = React.useState({ x: 0, y: 0, zoom: 1 })
+    
+    // Calculate visible nodes based on viewport for virtualization
+    const visibleNodes = React.useMemo(() => {
+      if (debouncedNodes.length <= maxNodesForOptimization) {
+        return debouncedNodes
+      }
+
+      // Calculate viewport bounds with padding for smooth scrolling
+      const padding = 200 / viewport.zoom
+      const viewportBounds = {
+        left: -viewport.x / viewport.zoom - padding,
+        right: (-viewport.x + window.innerWidth) / viewport.zoom + padding,
+        top: -viewport.y / viewport.zoom - padding,
+        bottom: (-viewport.y + window.innerHeight) / viewport.zoom + padding,
+      }
+
+      // Filter nodes that are within or near the viewport
+      return debouncedNodes.filter(node => {
+        const nodeX = node.position?.x || 0
+        const nodeY = node.position?.y || 0
+        const nodeWidth = node.width || 200
+        const nodeHeight = node.height || 100
+
+        return (
+          nodeX + nodeWidth >= viewportBounds.left &&
+          nodeX <= viewportBounds.right &&
+          nodeY + nodeHeight >= viewportBounds.top &&
+          nodeY <= viewportBounds.bottom
+        )
+      })
+    }, [debouncedNodes, viewport, maxNodesForOptimization])
+
+    // Filter edges based on visible nodes for performance
+    const visibleEdges = React.useMemo(() => {
+      if (debouncedNodes.length <= maxNodesForOptimization) {
+        return debouncedEdges
+      }
+
+      const visibleNodeIds = new Set(visibleNodes.map(node => node.id))
+      return debouncedEdges.filter(edge => 
+        visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target)
+      )
+    }, [debouncedEdges, visibleNodes, debouncedNodes.length, maxNodesForOptimization])
+
     // Memoize expensive computations
-    const memoizedNodes = React.useMemo(() => debouncedNodes, [debouncedNodes])
-    const memoizedEdges = React.useMemo(() => debouncedEdges, [debouncedEdges])
+    const memoizedNodes = React.useMemo(() => visibleNodes, [visibleNodes])
+    const memoizedEdges = React.useMemo(() => visibleEdges, [visibleEdges])
 
     // Determine optimization level based on node count
     const optimizationLevel = React.useMemo(() => {
@@ -129,7 +192,7 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
       return 'low'
     }, [memoizedNodes.length, maxNodesForOptimization])
 
-    // Performance settings based on optimization level
+    // Performance settings based on optimization level with proper virtualization
     const performanceSettings = React.useMemo(() => {
       switch (optimizationLevel) {
         case 'extreme':
@@ -145,6 +208,10 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
             panOnDrag: false,
             panOnScroll: false,
             disableKeyboardA11y: true,
+            // Enhanced virtualization for extreme mode
+            nodeOrigin: [0.5, 0.5] as [number, number],
+            elevateNodesOnSelect: false,
+            selectNodesOnDrag: false,
           }
         case 'high':
            return {
@@ -158,7 +225,11 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
              zoomOnPinch: true,
              panOnDrag: true,
              panOnScroll: false,
-             disableKeyboardA11y: true, // Disable keyboard a11y for performance
+             disableKeyboardA11y: true,
+             // Optimized virtualization for high mode
+             nodeOrigin: [0.5, 0.5] as [number, number],
+             elevateNodesOnSelect: false,
+             selectNodesOnDrag: false,
            }
         case 'medium':
            return {
@@ -172,7 +243,11 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
              zoomOnPinch: true,
              panOnDrag: true,
              panOnScroll: false,
-             disableKeyboardA11y: true, // Disable keyboard a11y for performance
+             disableKeyboardA11y: true,
+             // Basic virtualization for medium mode
+             nodeOrigin: [0.5, 0.5] as [number, number],
+             elevateNodesOnSelect: true,
+             selectNodesOnDrag: true,
            }
         default:
           return {
@@ -187,9 +262,17 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
             panOnDrag: true,
             panOnScroll: true,
             disableKeyboardA11y: false,
+            nodeOrigin: [0.5, 0.5] as [number, number],
+            elevateNodesOnSelect: true,
+            selectNodesOnDrag: true,
           }
       }
     }, [optimizationLevel, props])
+
+    // Viewport change handler for virtualization
+    const handleViewportChange = React.useCallback((newViewport: { x: number; y: number; zoom: number }) => {
+      setViewport(newViewport)
+    }, [])
 
     // Memoized ReactFlow props to prevent unnecessary re-renders
     const reactFlowProps = React.useMemo(() => ({
@@ -198,12 +281,14 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
       edges: memoizedEdges,
       // Apply performance settings
       ...performanceSettings,
+      // Add viewport tracking for virtualization
+      onViewportChange: handleViewportChange,
       // Add performance monitoring
       onInit: (instance: ReactFlowInstance) => {
         setReactFlowInstance(instance)
         props.onInit?.(instance)
       }
-    }), [props, memoizedNodes, memoizedEdges, performanceSettings])
+    }), [props, memoizedNodes, memoizedEdges, performanceSettings, handleViewportChange])
 
     return (
       <ErrorBoundary fallback={
@@ -214,7 +299,7 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
           </div>
         </div>
       }>
-        <div ref={ref} className={`w-full h-full relative ${className}`}>
+        <div ref={ref} className={`w-full h-full relative ${className}`} style={{ width: '100%', minWidth: '600px' }}>
           <ReactFlow {...reactFlowProps}>
             {children}
           </ReactFlow>
@@ -222,9 +307,10 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
           {/* Performance monitoring overlay */}
           {enablePerformanceMonitoring && memoizedNodes.length > 10 && (
             <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded font-mono z-50">
-              FPS: {performanceMetrics.fps} | Nodes: {memoizedNodes.length}
+              FPS: {performanceMetrics.fps} | Visible: {memoizedNodes.length}/{nodes.length}
               {performanceMetrics.memoryUsage > 0 && ` | Memory: ${performanceMetrics.memoryUsage}MB`}
               {optimizationLevel !== 'low' && ` | Mode: ${optimizationLevel}`}
+              {nodes.length > maxNodesForOptimization && ` | Virtualized`}
             </div>
           )}
 

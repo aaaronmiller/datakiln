@@ -7,7 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BASE_URL = 'http://localhost:3000';
-const BACKEND_URL = 'http://localhost:8000';
 const RESEARCH_QUERY = 'What are the latest developments in quantum computing?';
 
 class UXWalkthroughAnalyzer {
