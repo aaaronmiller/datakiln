@@ -464,7 +464,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       )}
 
       {/* Canvas */}
-      <div className="flex-1 relative w-full" style={{ height: '800px', minHeight: '400px' }}>
+      <div className="flex-1 relative w-full" style={{ minHeight: '400px' }}>
         {(() => {
           console.log('Rendering ReactFlow with nodes:', nodes.length, 'edges:', edges.length)
           return null

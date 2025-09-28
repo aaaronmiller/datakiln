@@ -9,13 +9,15 @@ import {
 } from '@xyflow/react'
 import { ErrorBoundary } from './error-boundary'
 
-export interface ReactFlowWrapperProps extends Omit<ReactFlowProps, 'onNodesChange' | 'onEdgesChange' | 'onConnect'> {
+export interface ReactFlowWrapperProps extends Omit<ReactFlowProps, 'onNodesChange' | 'onEdgesChange' | 'onConnect' | 'width' | 'height'> {
   onNodesChange?: OnNodesChange
   onEdgesChange?: OnEdgesChange
   onConnect?: OnConnect
   children?: React.ReactNode
   enablePerformanceMonitoring?: boolean
   maxNodesForOptimization?: number
+  width?: string | number
+  height?: string | number
 }
 
 // Debounce hook for performance optimization
@@ -99,6 +101,8 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
     edges = [],
     enablePerformanceMonitoring = false,
     maxNodesForOptimization = 30, // Lower threshold for better performance
+    width,
+    height,
     ...props
   }, ref) => {
     const [_reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null)
@@ -299,7 +303,16 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
           </div>
         </div>
       }>
-        <div ref={ref} className={`w-full h-full relative ${className}`} style={{ width: '100%', height: '100%', minWidth: '600px' }}>
+        <div
+          ref={ref}
+          className={`relative ${className}`}
+          style={{
+            width: width || '100%',
+            height: height || '100%',
+            minWidth: '600px',
+            minHeight: '400px'
+          }}
+        >
           <ReactFlow {...reactFlowProps}>
             {children}
           </ReactFlow>
