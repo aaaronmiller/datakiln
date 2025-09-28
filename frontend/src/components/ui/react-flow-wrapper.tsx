@@ -299,7 +299,7 @@ const ReactFlowWrapper = React.forwardRef<HTMLDivElement, ReactFlowWrapperProps>
           </div>
         </div>
       }>
-        <div ref={ref} className={`w-full h-full relative ${className}`} style={{ width: '100%', minWidth: '600px' }}>
+        <div ref={ref} className={`w-full h-full relative ${className}`} style={{ width: '100%', height: '100%', minWidth: '600px' }}>
           <ReactFlow {...reactFlowProps}>
             {children}
           </ReactFlow>

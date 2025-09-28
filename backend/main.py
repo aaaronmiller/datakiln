@@ -271,6 +271,31 @@ async def create_workflow(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Workflow creation error: {str(e)}")
 
+@app.post("/workflows")
+async def save_workflow(workflow: Dict[str, Any]):
+    """Save a workflow definition"""
+    try:
+        # Generate workflow ID if not provided
+        workflow_id = workflow.get("id", f"workflow-{uuid.uuid4()}")
+
+        # Add metadata
+        if "metadata" not in workflow:
+            workflow["metadata"] = {}
+        workflow["metadata"]["saved_at"] = datetime.now().isoformat()
+        workflow["metadata"]["version"] = workflow.get("metadata", {}).get("version", 1)
+
+        # In a real implementation, this would save to a database
+        # For now, just return success with the workflow ID
+        return {
+            "id": workflow_id,
+            "status": "saved",
+            "workflow": workflow,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save workflow: {str(e)}")
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

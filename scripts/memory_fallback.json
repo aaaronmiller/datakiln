@@ -1,0 +1,11 @@
+{
+  "sessionId": "fallback_1759017275020",
+  "timestamp": "2025-09-27T23:54:35.020Z",
+  "mode": "fallback",
+  "data": {
+    "fallback_mode": true,
+    "session_start": "2025-09-27T23:54:35.020Z",
+    "workspace_id": "/Users/macuser/git/0MY_PROJECTS/dalakiln_oldspecs",
+    "project_name": "DataKiln Workflow System"
+  }
+}

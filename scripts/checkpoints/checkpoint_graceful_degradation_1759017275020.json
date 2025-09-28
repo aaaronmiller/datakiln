@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-09-27T23:54:35.020Z",
+  "label": "graceful_degradation",
+  "data": {
+    "degradationLevel": "partial",
+    "availableCapabilities": [
+      "byterover"
+    ],
+    "degradedCapabilities": [
+      "cross_system_linking",
+      "full_synchronization"
+    ]
+  },
+  "sessionId": "checkpoint_1759017275020",
+  "created": false,
+  "filename": "checkpoint_graceful_degradation_1759017275020.json",
+  "filepath": "./checkpoints/checkpoint_graceful_degradation_1759017275020.json",
+  "format": "json",
+  "importable": true
+}

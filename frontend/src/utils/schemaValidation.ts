@@ -41,7 +41,7 @@ interface WorkflowEdge {
   [key: string]: unknown;
 }
 
-interface Workflow {
+interface _Workflow {
   id?: string;
   name?: string;
   description?: string;
@@ -50,6 +50,7 @@ interface Workflow {
   edges: WorkflowEdge[];
   [key: string]: unknown;
 }
+
 
 export interface ValidationResult {
   valid: boolean
@@ -151,7 +152,7 @@ export class SchemaValidator {
     }
   }
 
-  private validateNode(node: Record<string, unknown>, schema: JsonSchema, path: string, errors: string[], warnings: string[]): void {
+  private validateNode(node: Record<string, unknown>, schema: JsonSchema, path: string, errors: string[], _warnings: string[]): void {
     // Check required properties
     const required = schema.required || []
     for (const prop of required) {
@@ -238,12 +239,16 @@ export class SchemaValidator {
     }
 
     // Validate status
-     if (node.status !== undefined && typeof node.status === 'string') {
-       const validStatuses = ['pending', 'running', 'completed', 'failed']
-       if (!validStatuses.includes(node.status)) {
-         errors.push(`${path}.status: must be one of: ${validStatuses.join(', ')}`)
-       }
-     }
+    if (node.status !== undefined) {
+      if (typeof node.status !== 'string') {
+        errors.push(`${path}.status: must be a string`)
+      } else {
+        const validStatuses = ['pending', 'running', 'completed', 'failed']
+        if (!validStatuses.includes(node.status)) {
+          errors.push(`${path}.status: must be one of: ${validStatuses.join(', ')}`)
+        }
+      }
+    }
 
     // Validate execution_time
     if (node.execution_time !== undefined && typeof node.execution_time !== 'number') {
@@ -266,7 +271,7 @@ export class SchemaValidator {
     }
   }
 
-  private validateEdge(edge: Record<string, unknown>, schema: JsonSchema, path: string, errors: string[], warnings: string[]): void {
+  private validateEdge(edge: Record<string, unknown>, schema: JsonSchema, path: string, errors: string[], _warnings: string[]): void {
     // Check required properties
     const required = schema.required || []
     for (const prop of required) {

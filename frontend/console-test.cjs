@@ -55,7 +55,7 @@ async function checkConsoleErrors() {
     console.log('Checking workflows...');
     try {
       await page.goto('http://localhost:3000/#/workflows', { waitUntil: 'networkidle0', timeout: 10000 });
-      await page.waitForTimeout(3000);
+      await new Promise(resolve => setTimeout(resolve, 3000));
     } catch (e) {
       console.log('Workflows navigation failed:', e.message);
     }
@@ -63,7 +63,7 @@ async function checkConsoleErrors() {
     console.log('Checking workflow creation...');
     try {
       await page.goto('http://localhost:3000/#/workflows/new', { waitUntil: 'networkidle0', timeout: 10000 });
-      await page.waitForTimeout(5000);
+      await new Promise(resolve => setTimeout(resolve, 5000));
     } catch (e) {
       console.log('Workflow creation navigation failed:', e.message);
     }
