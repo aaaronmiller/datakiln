@@ -102,8 +102,8 @@ class E2ETestSuite {
 
     for (const item of navItems) {
       try {
-        // Look for sidebar navigation links
-        const selector = `a[href="${item.path}"]`;
+        // Look for sidebar navigation links, accounting for HashRouter
+        const selector = `a[href="#${item.path}"]`;
         await this.page.waitForSelector(selector, { timeout: 5000 });
         console.log(`Navigation item '${item.label}' found`);
       } catch (error) {

@@ -76,7 +76,7 @@ setup_backend() {
 
     # Install Playwright browsers
     echo "Installing Playwright browsers..."
-    playwright install --with-deps chromium
+    playwright install chromium
 
     # Go back to root directory
     cd ..
