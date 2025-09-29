@@ -5,15 +5,16 @@ import { QuickRunTile, RecentActivityWidget, QueueStatusWidget, SystemStatusWidg
 import { useToast } from "../hooks/use-toast"
 import websocketService from "../services/websocketService"
 
-interface SystemStatus {
-  active_runs: number
-  recent_results: number
-  system_health: string
-  uptime: string
-  cpu_usage: number
-  memory_usage: number
-  last_updated: string
-}
+// Default system status values from environment
+const getDefaultSystemStatus = () => ({
+  active_runs: 0,
+  recent_results: 0,
+  system_health: import.meta.env.VITE_DEFAULT_SYSTEM_HEALTH || 'healthy',
+  uptime: '2d 14h 32m',
+  cpu_usage: 23.5,
+  memory_usage: 67.8,
+  last_updated: new Date().toISOString()
+})
 
 interface ActivityItem {
   id: string
@@ -230,15 +231,7 @@ const Dashboard: React.FC = () => {
         {/* System Status */}
         <div className="lg:col-span-1">
           <SystemStatusWidget
-            systemData={systemStatus || {
-              active_runs: 0,
-              recent_results: 0,
-              system_health: 'healthy',
-              uptime: '2d 14h 32m',
-              cpu_usage: 23.5,
-              memory_usage: 67.8,
-              last_updated: new Date().toISOString()
-            }}
+            systemData={systemStatus || getDefaultSystemStatus()}
             isLoading={isLoading}
           />
         </div>
@@ -255,8 +248,8 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-1">
           <QueueStatusWidget
             queueData={queueStatus || {
-              pending_jobs: 3,
-              processing_jobs: 2,
+              pending_jobs: parseInt(import.meta.env.VITE_DEFAULT_QUEUE_PENDING) || 3,
+              processing_jobs: parseInt(import.meta.env.VITE_DEFAULT_QUEUE_PROCESSING) || 2,
               completed_today: 15,
               failed_today: 1,
               average_processing_time: '45s',

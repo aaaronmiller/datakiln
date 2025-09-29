@@ -1,29 +1,29 @@
 {
-  "timestamp": "2025-09-23T04:45:05.317Z",
+  "timestamp": "2025-09-28T08:45:09.784Z",
   "results": {
     "passed": 9,
     "failed": 0,
     "errors": [],
     "screenshots": [
-      "screenshot-application-launch-2025-09-23T04-44-27-703Z.png",
-      "screenshot-navigation-2025-09-23T04-44-57-786Z.png",
-      "screenshot-dashboard-2025-09-23T04-45-02-852Z.png",
-      "screenshot-deep-research-dialog-2025-09-23T04-45-02-922Z.png",
-      "screenshot-youtube-transcript-2025-09-23T04-45-04-991Z.png",
-      "screenshot-workflow-management-2025-09-23T04-45-05-058Z.png",
-      "screenshot-results-browser-2025-09-23T04-45-05-133Z.png",
-      "screenshot-selector-lab-2025-09-23T04-45-05-201Z.png"
+      "screenshot-application-launch-2025-09-28T08-44-32-176Z.png",
+      "screenshot-navigation-2025-09-28T08-45-02-257Z.png",
+      "screenshot-dashboard-2025-09-28T08-45-07-328Z.png",
+      "screenshot-deep-research-dialog-2025-09-28T08-45-07-400Z.png",
+      "screenshot-youtube-transcript-2025-09-28T08-45-09-466Z.png",
+      "screenshot-workflow-management-2025-09-28T08-45-09-539Z.png",
+      "screenshot-results-browser-2025-09-28T08-45-09-611Z.png",
+      "screenshot-selector-lab-2025-09-28T08-45-09-669Z.png"
     ],
     "timings": {
-      "Application Launch": 1079,
-      "Navigation": 30059,
-      "Dashboard Functionality": 5077,
-      "Deep Research Feature": 58,
-      "YouTube Transcript Analysis": 2071,
-      "Workflow Management": 63,
-      "Results Browser": 83,
-      "Selector Lab": 54,
-      "API Integration": 16
+      "Application Launch": 929,
+      "Navigation": 30066,
+      "Dashboard Functionality": 5081,
+      "Deep Research Feature": 57,
+      "YouTube Transcript Analysis": 2076,
+      "Workflow Management": 60,
+      "Results Browser": 71,
+      "Selector Lab": 61,
+      "API Integration": 17
     }
   },
   "environment": {

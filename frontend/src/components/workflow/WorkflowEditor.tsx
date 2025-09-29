@@ -9,11 +9,10 @@ import {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
+  useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import '../../../../modern-workflow-node-styles.css'
 
-import WorkflowNode from './WorkflowNode'
 import AiDomNode from './AiDomNode'
 import NodeConfigDialog from './NodeConfigDialog'
 import ExecutionLogViewer from './ExecutionLogViewer'
@@ -22,20 +21,9 @@ import { workflowValidationService } from '../../services/workflowValidationServ
 import { useNotifications } from '../../stores/uiStore'
 import { ReactFlowWrapper } from '../ui/react-flow-wrapper'
 
-// Node types for React Flow
+// MVP Node types - Phase 1: Only AiDomNode
 const nodeTypes = {
-  dom_action: WorkflowNode,
-  prompt: WorkflowNode,
-  provider: WorkflowNode,
-  transform: WorkflowNode,
-  export: WorkflowNode,
-  condition: WorkflowNode,
-  filter: WorkflowNode,
-  aggregate: WorkflowNode,
-  join: WorkflowNode,
-  union: WorkflowNode,
   ai_dom: AiDomNode,
-  consolidate: WorkflowNode,
 }
 
 
@@ -87,6 +75,31 @@ interface WorkflowEditorProps {
   initialEdges?: Edge[]
   onChange?: (nodes: Node[], edges: Edge[]) => void
   readonly?: boolean
+}
+
+interface AiDomNodeData {
+  name: string
+  provider: 'gemini' | 'perplexity' | 'ytt'
+  actions: Array<{
+    selector: string
+    action: 'type' | 'click' | 'wait' | 'select'
+    value?: string
+    delayAfter?: number
+  }>
+  output: 'file' | 'screen' | 'clipboard' | 'next'
+}
+
+export const defaultAiDomConfig: AiDomNodeData = {
+  name: 'AI DOM Action',
+  provider: 'gemini',
+  actions: [
+    { selector: '[contenteditable="true"]', action: 'type', value: 'Research query here', delayAfter: 1000 },
+    { selector: 'div.label:has-text("Deep Research")', action: 'click', delayAfter: 2000 },
+    { selector: 'mat-icon[fonticon="send"]', action: 'click', delayAfter: 8000 },
+    { selector: 'span.mdc-button__label:has-text("Start research")', action: 'click', delayAfter: 120000 },
+    { selector: 'span.mat-mdc-list-item-title:has-text("Copy")', action: 'click' }
+  ],
+  output: 'clipboard'
 }
 
 const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
@@ -192,35 +205,32 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   )
 
 
-  // Add new node
-  const addNode = useCallback(
-    (type: string, position: { x: number; y: number }) => {
-      console.log('Adding node:', type, 'at position:', position)
-      const nodeType = WORKFLOW_NODE_TYPES.find(nt => nt.type === type)
-      if (!nodeType) {
-        console.error('Node type not found:', type)
-        return
-      }
+  // Add new AiDomNode (Phase 1 MVP)
+  const addAiDomNode = useCallback(
+    (position: { x: number; y: number }) => {
+      console.log('Adding AiDomNode at position:', position)
 
-      const newNode: Node = {
-        id: `${type}-${Date.now()}`,
-        type,
+      const newNode: Node<AiDomNodeData> = {
+        id: `ai_dom-${Date.now()}`,
+        type: 'ai_dom',
         position,
         data: {
-          label: nodeType.label,
-          name: `${nodeType.label} ${nodes.length + 1}`,
-          type: nodeType.type,
-          ...nodeType.defaultData,
+          ...defaultAiDomConfig,
+          name: `AI DOM Action ${nodes.length + 1}`
         },
       }
 
-      console.log('Created new node:', newNode)
       const updatedNodes = [...nodes, newNode]
-      console.log('Updated nodes count:', updatedNodes.length)
       setNodes(updatedNodes)
       onChange?.(updatedNodes, edges)
+
+      addNotification({
+        type: 'success',
+        title: 'Node Added',
+        message: 'AI DOM node added to workflow'
+      })
     },
-    [nodes, edges, onChange, setNodes]
+    [nodes, edges, onChange, setNodes, addNotification]
   )
 
   // Calculate execution order based on topological sort
@@ -295,12 +305,12 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     setExecutionOrder(newOrder)
   }, [executionOrder])
 
-  // Convert workflow nodes to React Flow format
+  // Convert workflow nodes to backend format
   const convertToWorkflowFormat = useCallback(() => {
     const workflowNodes = nodes.map((node: Node) => ({
       id: node.id,
-      type: node.data?.type as string,
-      name: node.data?.name as string,
+      type: node.type,
+      name: (node.data as AiDomNodeData)?.name || 'Unnamed',
       position: node.position,
       data: node.data,
     }))
@@ -435,36 +445,29 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Toolbar */}
+      {/* Phase 1 Toolbar - Only AI DOM node */}
       {!readonly && (
         <div className="flex flex-wrap gap-2 p-4 bg-white border-b border-gray-200">
           <span className="text-sm font-medium text-gray-700">Add Node:</span>
-          {WORKFLOW_NODE_TYPES.map((nodeType) => (
-            <button
-              key={nodeType.type}
-              onClick={() => {
-                console.log('Toolbar button clicked for:', nodeType.type)
-                const centerX = 400
-                const centerY = 300
-                const offset = nodes.length * 50
-                addNode(nodeType.type, { x: centerX + offset, y: centerY + offset })
-              }}
-              className={`
-                px-3 py-1 text-sm rounded border flex items-center space-x-2
-                ${nodeType.color} text-white border-transparent
-                hover:opacity-80 transition-opacity
-              `}
-              title={nodeType.description}
-            >
-              <span>{nodeType.icon}</span>
-              <span>{nodeType.label}</span>
-            </button>
-          ))}
+          <button
+            onClick={() => {
+              console.log('Add AI DOM Node clicked')
+              const centerX = 400
+              const centerY = 300
+              const offset = nodes.length * 50
+              addAiDomNode({ x: centerX + offset, y: centerY + offset })
+            }}
+            className="px-3 py-1 text-sm rounded border bg-blue-500 text-white border-transparent hover:opacity-80 transition-opacity flex items-center space-x-2"
+            title="Add AI DOM Action Node (Gemini/Perplexity/YouTube Transcript integration)"
+          >
+            <span>🤖</span>
+            <span>AI DOM Action</span>
+          </button>
         </div>
       )}
 
       {/* Canvas */}
-      <div className="flex-1 relative w-full" style={{ minHeight: '400px' }}>
+      <div className="flex-1 relative w-full" style={{ width: '100%', height: '600px', minHeight: '400px' }}>
         {(() => {
           console.log('Rendering ReactFlow with nodes:', nodes.length, 'edges:', edges.length)
           return null
@@ -796,29 +799,20 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
                       const content = e.target?.result as string
                       try {
                         const workflow = JSON.parse(content)
-                        const validation = workflowValidationService.validateWorkflow(workflow)
-
-                        if (validation.valid) {
-                          // Import the workflow
-                          if (workflow.nodes && Array.isArray(workflow.nodes)) {
-                            const reactFlowNodes = workflow.nodes.map((node: Record<string, unknown>) => ({
-                              id: node.id as string,
-                              type: node.type as string,
-                              position: (node.position as { x: number; y: number }) || { x: Math.random() * 400, y: Math.random() * 400 },
-                              data: {
-                                ...(node.data as Record<string, unknown> || {}),
-                                type: node.type,
-                                name: (node.name as string) || ((node.data as Record<string, unknown>)?.name as string) || (node.type as string)
-                              }
-                            }))
-                            setNodes(reactFlowNodes)
-                          }
+                        if (workflow.nodes && Array.isArray(workflow.nodes)) {
+                          const reactFlowNodes = workflow.nodes.map((node: Record<string, unknown>) => ({
+                            id: node.id as string,
+                            type: node.type as string,
+                            position: (node.position as { x: number; y: number }) || { x: Math.random() * 400, y: Math.random() * 400 },
+                            data: node.data as AiDomNodeData || {}
+                          }))
+                          setNodes(reactFlowNodes)
 
                           if (workflow.edges && Array.isArray(workflow.edges)) {
                             const reactFlowEdges = workflow.edges.map((edge: Record<string, unknown>) => ({
                               id: edge.id as string,
-                              source: (edge.source || edge.from) as string,
-                              target: (edge.target || edge.to) as string,
+                              source: edge.source as string,
+                              target: edge.target as string,
                             }))
                             setEdges(reactFlowEdges)
                           }
@@ -828,24 +822,13 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
                             title: 'Import Successful',
                             message: 'Workflow imported successfully'
                           })
-
-                          // Show warnings if any
-                          if (validation.warnings.length > 0) {
-                            addNotification({
-                              type: 'warning',
-                              title: 'Import Warnings',
-                              message: validation.warnings.join('; ')
-                            })
-                          }
-                        } else {
-                          addNotification({
-                            type: 'error',
-                            title: 'Import Failed',
-                            message: 'Validation errors: ' + validation.errors.join('; ')
-                          })
                         }
                       } catch (error) {
-                        alert('Import failed - invalid JSON file')
+                        addNotification({
+                          type: 'error',
+                          title: 'Import Failed',
+                          message: 'Invalid JSON file format'
+                        })
                       }
                     }
                     reader.readAsText(file)
