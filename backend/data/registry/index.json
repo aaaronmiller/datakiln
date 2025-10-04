@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-10-03T05:20:00.000Z",
+  "templates": {
+    "llm": [
+      "gemini-chat.json",
+      "claude-chat.json",
+      "openai-chat.json"
+    ],
+    "dom": [
+      "gemini-deep-research.json",
+      "perplexity-pro-search.json"
+    ],
+    "logic": [
+      "condition.json",
+      "merge.json",
+      "user-input.json"
+    ],
+    "code": [
+      "string-extract-youtube-ids.json"
+    ],
+    "patterns": [
+      "simple-deep-research.json"
+    ]
+  },
+  "types": [
+    "string.json",
+    "boolean.json",
+    "user-feedback.json",
+    "merge-result.json"
+  ],
+  "adapters": []
+}

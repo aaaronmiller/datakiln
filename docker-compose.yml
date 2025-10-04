@@ -1,46 +1,99 @@
 version: '3.8'
 
 services:
-  # Backend API Service
+  # Backend API Service (Node.js + Fastify + Puppeteer)
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: datakiln-backend
     ports:
-      - "8000:8000"
+      - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/datakiln
-      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATA_DIR=/app/data
+      - LOG_DIR=/app/logs
+      - FILESYSTEM_ROOT=/app/data/sandboxes
+      - ALLOWED_ORIGINS=https://datakiln.example.com
+      - API_KEY_REQUIRED=true
+      - MAX_PARALLEL_WORKFLOWS=10
+      - DEFAULT_TIMEOUT_MS=300000
+      - MAX_MEMORY_MB=2048
+      - PUPPETEER_HEADLESS=true
+      - PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--disable-software-rasterizer
+      # API Keys (set these in .env file)
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - DEBUG=false
-      - LOG_LEVEL=INFO
-    depends_on:
-      - db
-      - redis
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     volumes:
-      - ./data:/app/data
-      - ./exports:/app/exports
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/logs
+      - ./backend/data/registry:/app/data/registry:ro
     networks:
       - datakiln-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # Frontend Service (React + Vite + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: datakiln-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
 
   # PostgreSQL Database
-  db:
+  postgres:
     image: postgres:15-alpine
-    container_name: datakiln-db
+    container_name: datakiln-postgres
     environment:
       - POSTGRES_DB=datakiln
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=datakiln
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme123}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - datakiln-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datakiln -d datakiln"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
 
   # Redis Cache
   redis:
@@ -50,47 +103,85 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./redis.conf:/etc/redis/redis.conf:ro
     networks:
       - datakiln-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: redis-server /etc/redis/redis.conf
+    security_opt:
+      - no-new-privileges:true
 
-  # Frontend Service (if available)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: datakiln-frontend
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: datakiln-prometheus
     ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000
-    depends_on:
-      - backend
-    networks:
-      - datakiln-network
-    restart: unless-stopped
-
-  # Nginx Reverse Proxy (optional)
-  nginx:
-    image: nginx:alpine
-    container_name: datakiln-nginx
-    ports:
-      - "80:80"
-      - "443:443"
+      - "9090:9090"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - backend
-      - frontend
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     networks:
       - datakiln-network
     restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: datakiln-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: datakiln-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - datakiln-network
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:

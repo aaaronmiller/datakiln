@@ -38,8 +38,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Header onCommandPalette={handleCommandPalette} onToggleSidebar={toggleSidebar} />
         <div className="flex h-[calc(100vh-64px)]">
           <Sidebar isOpen={sidebar.isOpen} onClose={sidebar.close} />
-          <main className="flex-1 overflow-auto bg-surface">
-            <div className="p-6">
+          <main className="flex-1 overflow-auto bg-surface transition-all duration-300 ease-in-out">
+            <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
               {children}
             </div>
           </main>

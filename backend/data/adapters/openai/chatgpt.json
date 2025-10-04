@@ -1,0 +1,94 @@
+{
+  "adapter_id": "dk://adapter/openai/chatgpt",
+  "selector_version": "2.1.0",
+  "metadata": {
+    "name": "ChatGPT Web Interface",
+    "description": "Adapter for OpenAI ChatGPT web interface",
+    "author": "Data Kiln Core",
+    "provider_url": "https://chat.openai.com",
+    "tested_on": "2025-10-03"
+  },
+  "capabilities": {
+    "input_area": {
+      "selector": "textarea[data-id='root']",
+      "selector_type": "css",
+      "wait": {
+        "visible": true,
+        "timeout_ms": 10000,
+        "stable_ms": 500
+      },
+      "fallback_selectors": [
+        "textarea#prompt-textarea",
+        "textarea[placeholder*='Message']"
+      ]
+    },
+    "submit": {
+      "selector": "button[data-testid='send-button']",
+      "selector_type": "css",
+      "wait": {
+        "visible": true,
+        "enabled": true,
+        "timeout_ms": 5000
+      },
+      "fallback_selectors": [
+        "button[aria-label='Send message']"
+      ]
+    },
+    "response_container": {
+      "selector": "div[data-message-author-role='assistant']:last-child",
+      "selector_type": "css",
+      "wait": {
+        "visible": true,
+        "timeout_ms": 120000
+      }
+    },
+    "copy_response": {
+      "selector": "div[data-message-author-role='assistant']:last-child button[aria-label='Copy']",
+      "selector_type": "css",
+      "wait": {
+        "visible": true,
+        "timeout_ms": 5000
+      },
+      "fallback_selectors": [
+        "div.group:last-child button:has(svg.icon-copy)"
+      ]
+    },
+    "stop_generation": {
+      "selector": "button[aria-label='Stop generating']",
+      "selector_type": "css",
+      "optional": true,
+      "wait": {
+        "visible": true,
+        "timeout_ms": 2000
+      }
+    }
+  },
+  "recovery": {
+    "on_timeout": [
+      {
+        "action": "screenshot",
+        "path": "./debug/chatgpt-{{capability}}-timeout.png"
+      },
+      {
+        "action": "check_selector",
+        "capability": "rate_limit_message",
+        "if_found": {
+          "action": "wait",
+          "duration_ms": 60000,
+          "then": "retry"
+        }
+      }
+    ]
+  },
+  "navigation": {
+    "base_url": "https://chat.openai.com",
+    "login_required": true,
+    "rate_limit_ms": 2000
+  },
+  "known_issues": [
+    {
+      "description": "Rate limiting after 50 messages/hour",
+      "workaround": "Implement exponential backoff"
+    }
+  ]
+}

@@ -1,75 +1,68 @@
-# Multi-stage Docker build for DataKiln
-FROM python:3.11-slim as backend-builder
+# Multi-stage Docker build for DataKiln Backend (Node.js + Puppeteer)
+FROM node:18-alpine AS base
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
+# Install system dependencies for Puppeteer
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Production stage
-FROM python:3.11-slim as production
-
-# Install Playwright dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    ca-certificates \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libdrm2 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-
 # Create non-root user
-RUN useradd --create-home --shell /bin/bash datakiln
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S datakiln -u 1001
 
-# Set working directory
+# Set Puppeteer to skip downloading Chromium (we installed it manually)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 WORKDIR /app
 
-# Copy Python installation from builder
-COPY --from=backend-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=backend-builder /usr/local/bin /usr/local/bin
+# Dependencies stage
+FROM base AS deps
+COPY backend/package*.json ./
+RUN npm ci --only=production && npm cache clean --force
 
-# Copy application code
-COPY backend/ ./backend/
+# Build stage
+FROM base AS builder
+COPY backend/ ./
+COPY --from=deps /app/node_modules ./node_modules
+RUN npm run build
 
-# Install Playwright browsers
-RUN python -m playwright install --with-deps chromium
+# Production stage
+FROM base AS production
 
-# Create data directory
-RUN mkdir -p /app/data && chown -R datakiln:datakiln /app
+# Copy production dependencies
+COPY --from=deps --chown=datakiln:nodejs /app/node_modules ./node_modules
+
+# Copy built application
+COPY --from=builder --chown=datakiln:nodejs /app/dist ./dist
+COPY --from=builder --chown=datakiln:nodejs /app/package*.json ./
+
+# Create data directories
+RUN mkdir -p /app/data /app/logs && \
+    chown -R datakiln:nodejs /app
 
 # Switch to non-root user
 USER datakiln
 
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV DATABASE_URL=sqlite:////app/data/datakiln.db
+# Environment variables
+ENV NODE_ENV=production \
+    PORT=3000 \
+    DATA_DIR=/app/data \
+    LOG_DIR=/app/logs
 
 # Expose port
-EXPOSE 8000
+EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the application
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["node", "dist/index.js"]

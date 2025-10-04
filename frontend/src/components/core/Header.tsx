@@ -67,62 +67,65 @@ const Header: React.FC<HeaderProps> = ({
 
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-3 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-      <div className="flex items-center justify-between">
+    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+      <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Left side - Logo and mobile menu */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggleSidebar}
-            className="md:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+            className="md:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 p-2"
+            aria-label="Toggle sidebar menu"
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </Button>
 
-          {/* Logo - hidden on mobile when sidebar is collapsed */}
-          <div className="hidden md:flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">DK</span>
+          {/* Logo - responsive sizing */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-xs sm:text-sm">DK</span>
             </div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">DataKiln</h1>
+            <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 hidden sm:block">DataKiln</h1>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 sm:hidden">DK</h1>
           </div>
         </div>
 
         {/* Center - Global Search */}
-        <div className="flex-1 max-w-lg mx-8 hidden lg:block">
+        <div className="flex-1 max-w-xs sm:max-w-md lg:max-w-lg mx-2 sm:mx-4 lg:mx-8 hidden sm:block">
           <div className="relative">
             <Input
               type="text"
-              placeholder="Search workflows, runs, results..."
-              className="pl-10 pr-4 h-9 bg-gray-50 border-gray-200 focus:bg-white cursor-pointer dark:bg-gray-700 dark:border-gray-600 dark:focus:bg-gray-600"
+              placeholder="Search workflows..."
+              className="pl-8 sm:pl-10 pr-4 h-8 sm:h-9 bg-gray-50 border-gray-200 focus:bg-white cursor-pointer dark:bg-gray-700 dark:border-gray-600 dark:focus:bg-gray-600 text-sm"
               onClick={handleSearchClick}
               readOnly
             />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
               <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center pointer-events-none hidden lg:flex">
               <span className="text-xs text-gray-400 dark:text-gray-500">⌘⇧K</span>
             </div>
           </div>
         </div>
 
         {/* Right side - Actions */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           {/* Mobile search button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleSearchClick}
-            className="lg:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+            className="sm:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 p-2"
+            aria-label="Search"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </Button>

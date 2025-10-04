@@ -1,0 +1,60 @@
+{
+  "template_id": "dk://templates/llm/gemini/chat",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Gemini Chat",
+    "description": "Execute a chat completion using Google Gemini",
+    "author": "Data Kiln Core",
+    "category": "llm",
+    "tags": ["llm", "gemini", "chat", "generation"]
+  },
+  "executor": "LLM",
+  "interface": "API",
+  "required_capabilities": ["gemini_api_access"],
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "model": {
+        "type": "string",
+        "enum": ["gemini-1.5-pro", "gemini-1.5-flash"],
+        "default": "gemini-1.5-pro"
+      },
+      "prompt_template": {
+        "type": "object",
+        "properties": {
+          "prefix": { "type": "string" },
+          "suffix": { "type": "string" }
+        }
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "default": 30000,
+        "minimum": 1000,
+        "maximum": 300000
+      },
+      "max_tokens": {
+        "type": "integer",
+        "default": 2048
+      }
+    },
+    "required": ["model"]
+  },
+  "default_input_ports": [
+    {
+      "name": "input",
+      "schema_ref": "dk://types/string",
+      "description": "The input text or prompt"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "output",
+      "schema_ref": "dk://types/string",
+      "description": "The generated response"
+    }
+  ],
+  "cost_estimation": {
+    "base_cost_usd": 0.001,
+    "per_token_cost_usd": 0.000001
+  }
+}

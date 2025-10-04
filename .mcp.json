@@ -1,0 +1,117 @@
+{
+  "mcpServers": {
+    "sequentialthinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "alwaysAllow": [
+        "sequentialthinking"
+      ]
+    },
+    "context7": {
+      "command": "/opt/homebrew/bin/npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "DEFAULT_MINIMUM_TOKENS": ""
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "resolve-library-id",
+        "get-library-docs"
+      ]
+    },
+    "sentry": {
+      "command": "/opt/homebrew/bin/uvx",
+      "args": [
+        "mcp-server-sentry",
+        "--auth-token",
+        "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"
+      ],
+      "env": {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "get_sentry_issue"
+      ]
+    },
+    "conport": {
+      "command": "/opt/homebrew/bin/uvx",
+      "timeout": 360,
+      "args": [
+        "--from",
+        "context-portal-mcp",
+        "conport-mcp",
+        "--mode",
+        "stdio",
+        "--workspace_id",
+        "/Users/macuser/git/0MY_PROJECTS/dalakiln_oldspecs",
+        "--log-file",
+        "./logs/conport.log",
+        "--log-level",
+        "INFO"
+      ],
+      "env": {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      },
+      "alwaysAllow": [
+        "update_product_context",
+        "get_product_context",
+        "get_recent_activity_summary",
+        "update_active_context",
+        "log_decision",
+        "search_decisions_fts",
+        "get_decisions",
+        "get_progress",
+        "update_progress",
+        "get_system_patterns",
+        "log_system_pattern",
+        "search_project_glossary_fts",
+        "delete_custom_data",
+        "delete_progress_by_id",
+        "get_active_context",
+        "log_progress",
+        "log_custom_data",
+        "get_custom_data",
+        "export_conport_to_markdown",
+        "import_markdown_to_conport",
+        "semantic_search_conport",
+        "get_workspace_detection_info",
+        "get_conport_schema",
+        "delete_system_pattern_by_id",
+        "delete_decision_by_id",
+        "get_item_history",
+        "get_linked_items",
+        "search_custom_data_value_fts",
+        "link_conport_items",
+        "batch_log_items"
+      ]
+    },
+    "playwright": {
+      "command": "/opt/homebrew/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-playwright"
+      ],
+      "env": {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "playwright_navigate",
+        "playwright_screenshot",
+        "playwright_click",
+        "playwright_fill",
+        "playwright_select",
+        "playwright_hover",
+        "playwright_evaluate"
+      ]
+    }
+  }
+}

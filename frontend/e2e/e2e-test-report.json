@@ -1,29 +1,36 @@
 {
-  "timestamp": "2025-09-28T08:45:09.784Z",
+  "timestamp": "2025-10-04T10:47:09.544Z",
   "results": {
-    "passed": 9,
-    "failed": 0,
-    "errors": [],
+    "passed": 8,
+    "failed": 1,
+    "errors": [
+      {
+        "test": "API Integration",
+        "error": "API test failed for /api/v1/dashboard/system-status: fetch failed",
+        "stack": "Error: API test failed for /api/v1/dashboard/system-status: fetch failed\n    at E2ETestSuite.testAPIIntegration (file:///Users/macuser/git/0MY_PROJECTS/dalakiln_oldspecs/frontend/e2e/comprehensive-e2e-test.js:342:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async E2ETestSuite.runTest (file:///Users/macuser/git/0MY_PROJECTS/dalakiln_oldspecs/frontend/e2e/comprehensive-e2e-test.js:56:7)\n    at async E2ETestSuite.runAllTests (file:///Users/macuser/git/0MY_PROJECTS/dalakiln_oldspecs/frontend/e2e/comprehensive-e2e-test.js:361:7)"
+      }
+    ],
     "screenshots": [
-      "screenshot-application-launch-2025-09-28T08-44-32-176Z.png",
-      "screenshot-navigation-2025-09-28T08-45-02-257Z.png",
-      "screenshot-dashboard-2025-09-28T08-45-07-328Z.png",
-      "screenshot-deep-research-dialog-2025-09-28T08-45-07-400Z.png",
-      "screenshot-youtube-transcript-2025-09-28T08-45-09-466Z.png",
-      "screenshot-workflow-management-2025-09-28T08-45-09-539Z.png",
-      "screenshot-results-browser-2025-09-28T08-45-09-611Z.png",
-      "screenshot-selector-lab-2025-09-28T08-45-09-669Z.png"
+      "screenshot-application-launch-2025-10-04T10-46-31-472Z.png",
+      "screenshot-navigation-2025-10-04T10-47-01-712Z.png",
+      "screenshot-dashboard-2025-10-04T10-47-06-834Z.png",
+      "screenshot-deep-research-dialog-2025-10-04T10-47-06-936Z.png",
+      "screenshot-youtube-transcript-2025-10-04T10-47-09-019Z.png",
+      "screenshot-workflow-management-2025-10-04T10-47-09-125Z.png",
+      "screenshot-results-browser-2025-10-04T10-47-09-229Z.png",
+      "screenshot-selector-lab-2025-10-04T10-47-09-313Z.png",
+      "screenshot-API Integration-failed-2025-10-04T10-47-09-408Z.png"
     ],
     "timings": {
-      "Application Launch": 929,
-      "Navigation": 30066,
-      "Dashboard Functionality": 5081,
-      "Deep Research Feature": 57,
-      "YouTube Transcript Analysis": 2076,
-      "Workflow Management": 60,
-      "Results Browser": 71,
-      "Selector Lab": 61,
-      "API Integration": 17
+      "Application Launch": 1076,
+      "Navigation": 30111,
+      "Dashboard Functionality": 5114,
+      "Deep Research Feature": 75,
+      "YouTube Transcript Analysis": 2107,
+      "Workflow Management": 91,
+      "Results Browser": 101,
+      "Selector Lab": 94,
+      "API Integration": 88
     }
   },
   "environment": {

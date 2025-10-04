@@ -1,0 +1,22 @@
+{
+  "type_id": "dk://types/user-feedback",
+  "version": "1.0.0",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "rating": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "comment": {
+        "type": "string"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": ["rating", "timestamp"]
+  }
+}

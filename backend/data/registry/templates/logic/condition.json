@@ -1,0 +1,45 @@
+{
+  "template_id": "dk://templates/logic/condition",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Condition",
+    "description": "Evaluate a DKEL expression and route to true/false outputs",
+    "category": "logic"
+  },
+  "executor": "Code",
+  "interface": "Internal",
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "condition_rule": {
+        "type": "string",
+        "description": "DKEL expression that evaluates to boolean",
+        "examples": [
+          "input.value > 100",
+          "input.status === 'approved'",
+          "input.items.length >= 3"
+        ]
+      }
+    },
+    "required": ["condition_rule"]
+  },
+  "default_input_ports": [
+    {
+      "name": "input",
+      "schema_ref": "dk://types/any",
+      "description": "Input data to evaluate"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "true",
+      "schema_ref": "dk://types/any",
+      "description": "Output when condition is true"
+    },
+    {
+      "name": "false",
+      "schema_ref": "dk://types/any",
+      "description": "Output when condition is false"
+    }
+  ]
+}

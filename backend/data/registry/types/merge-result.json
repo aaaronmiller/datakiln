@@ -1,0 +1,21 @@
+{
+  "type_id": "dk://types/merge-result",
+  "version": "1.0.0",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "results": {
+        "type": "array",
+        "items": { "type": "any" }
+      },
+      "strategy_used": { "type": "string" },
+      "completed_count": { "type": "integer" },
+      "failed_count": { "type": "integer" },
+      "errors": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "required": ["results", "strategy_used", "completed_count", "failed_count"]
+  }
+}

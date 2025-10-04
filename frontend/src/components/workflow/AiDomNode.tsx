@@ -12,6 +12,8 @@ interface AiDomNodeData {
     delayAfter?: number
   }>
   output?: 'file' | 'screen' | 'clipboard' | 'next'
+  status?: 'running' | 'completed' | 'error' | 'pending'
+  progress?: number
   [key: string]: unknown
 }
 
@@ -105,15 +107,40 @@ const AiDomNodeComponent: React.FC<AiDomNodeProps> = ({ data, selected }) => {
 
       {/* Status Indicator */}
       {data.status && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
-          <div
-            className={`w-2 h-2 rounded-full ${
-              data.status === 'completed' ? 'bg-green-400' :
-              data.status === 'error' ? 'bg-red-400' :
-              data.status === 'running' ? 'bg-yellow-400' :
-              'bg-gray-400'
-            }`}
-          />
+        <div className="absolute -top-1 -right-1 flex flex-col items-end space-y-1">
+          <div className="w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
+            {data.status === 'running' ? (
+              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+            ) : (
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  data.status === 'completed' ? 'bg-green-400' :
+                  data.status === 'error' ? 'bg-red-400' :
+                  'bg-gray-400'
+                }`}
+              />
+            )}
+          </div>
+
+          {/* Progress Bar for Running Nodes */}
+          {data.status === 'running' && (
+            <div className="w-16 h-1 bg-white bg-opacity-30 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-400 rounded-full animate-pulse"
+                style={{
+                  width: data.progress !== undefined ? `${Math.min(data.progress, 100)}%` : '30%',
+                  animation: data.progress !== undefined ? 'none' : 'pulse 1.5s ease-in-out infinite'
+                }}
+              />
+            </div>
+          )}
+
+          {/* Progress Percentage */}
+          {data.status === 'running' && data.progress !== undefined && data.progress !== null && (
+            <div className="text-xs text-white font-medium bg-black bg-opacity-50 px-1 py-0.5 rounded">
+              {Math.round(data.progress)}%
+            </div>
+          )}
         </div>
       )}
     </div>

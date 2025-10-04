@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-09-29T10:23:08.951Z",
+  "label": "checkpoint",
+  "sessionId": "recovery_1759017488074",
+  "data": {
+    "decisions": [],
+    "localStorage": {
+      "session_start": "2025-09-27T23:58:08.075Z",
+      "recovery_mode": true,
+      "memory_systems_status": "failed"
+    },
+    "memorySystems": {
+      "byterover": {
+        "available": false,
+        "status": "failed"
+      },
+      "contextPortal": {
+        "available": false,
+        "status": "failed"
+      }
+    }
+  }
+}

@@ -89,23 +89,42 @@ npm run preview
 - **Performance Tiers**: Automatic optimization for 30/50/100+ nodes
 - **State Synchronization**: Debounced ReactFlow ↔ Zustand sync
 - **Memory Management**: Comprehensive leak prevention
+- **Auto Layout Algorithms**: Force-directed, hierarchical, and grid layouts
+- **Drag & Drop Interface**: Intuitive node creation and connection
 
 ### **🧩 Chrome Extension Integration**
 - **Dual Activation Modes**: Website Mode (URL) + Clipboard Mode (text)
 - **Enhanced Chat Capture**: ChatGPT, Gemini, Claude support
 - **Context Integration**: Right-click menus, keyboard shortcuts
 - **5 Workflow Types**: YouTube, Research, Summary, Analysis, Chat
+- **Smart Content Detection**: Automatic content type recognition
 
 ### **📜 Script Automation**
 - **YouTube Transcript**: Multi-language extraction with JSON/text output
 - **Deep Research**: Playwright automation with 3 modes (Fast/Balanced/Comprehensive)
 - **Background Processing**: Async execution with real-time updates
+- **AI Provider Integration**: Gemini, Perplexity, and custom providers
 
 ### **📊 Real-time Monitoring**
 - **System Health**: CPU, memory, response times
 - **Performance Metrics**: Workflow success rates, execution times
 - **Live Alerts**: Threshold-based notifications
 - **WebSocket Updates**: Real-time dashboard
+- **Execution Tracking**: Node-by-node progress monitoring
+
+### **🎨 Node-Based Workflow System**
+- **6 Node Types**: Provider, DOM Action, Transform, Export, Condition, AI Prompt
+- **Visual Programming**: Drag-and-drop workflow creation
+- **Execution Engine**: Topological sort with parallel processing
+- **Node Configuration**: Rich property panels for each node type
+- **Template System**: Pre-built workflow templates
+
+### **♿ Accessibility & UX**
+- **Keyboard Navigation**: Full keyboard accessibility support
+- **Screen Reader Support**: ARIA labels and announcements
+- **High Contrast**: Accessible color schemes
+- **Responsive Design**: Works on all screen sizes
+- **Undo/Redo System**: Full workflow editing history
 
 ---
 
@@ -138,6 +157,67 @@ npm run preview
 // Connect: DataSource → Transform → Provider → Export
 // Execute: Real-time progress tracking
 ```
+
+### **5. Advanced Workflow Patterns**
+```javascript
+// Conditional Branching
+// Provider → Condition Node → True: Export Success | False: Export Error
+
+// Parallel Processing
+// Split Node → Multiple AI Providers → Merge Results → Export
+
+// Data Transformation Pipeline
+// DOM Action → Transform (JSON) → Filter → Export (CSV)
+```
+
+### **6. Template-Based Workflows**
+```javascript
+// Load pre-built templates:
+// - Simple Research: Basic AI provider workflow
+// - Data Processing: Transform and filter pipeline
+// - Custom templates via drag-and-drop
+```
+
+## ⌨️ **Keyboard Shortcuts Reference**
+
+### **Workflow Editor Shortcuts**
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+A` | Select All | Select all nodes in the workflow |
+| `Delete` | Delete Selected | Remove selected nodes and their connections |
+| `Ctrl+C` | Copy | Copy selected nodes to clipboard |
+| `Ctrl+V` | Paste | Paste nodes from clipboard with offset |
+| `Ctrl+Z` | Undo | Undo the last action |
+| `Ctrl+Y` | Redo | Redo the last undone action |
+| `Ctrl+Shift+Z` | Redo | Alternative redo shortcut |
+| `Tab` | Navigate | Move focus between interactive elements |
+| `Arrow Keys` | Navigate | Navigate to first node when no selection |
+| `Ctrl+Click` | Multi-select | Add/remove nodes from selection |
+| `Shift+Click` | Range select | Select range of nodes |
+| `Double-click` | Configure | Open node configuration dialog |
+| `Right-click` | Context Menu | Open context menu for node actions |
+
+### **Chrome Extension Shortcuts**
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+Shift+A` | Analyze Chat | Capture and analyze current chat conversation |
+| `Right-click` | Context Menu | Access workflow options for selected content |
+
+### **Accessibility Shortcuts**
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Tab` | Focus Navigation | Move through interactive elements |
+| `Enter/Space` | Activate | Activate buttons and interactive elements |
+| `Escape` | Close/Cancel | Close dialogs and cancel operations |
+| `Arrow Keys` | Navigate | Navigate within lists and menus |
+
+### **Workflow Management Shortcuts**
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+S` | Save | Save current workflow |
+| `Ctrl+O` | Open | Import workflow from file |
+| `Ctrl+E` | Export | Export workflow to JSON |
+| `F11` | Fullscreen | Toggle fullscreen mode |
 
 ---
 

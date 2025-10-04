@@ -94,7 +94,21 @@ const Workflows: React.FC = () => {
   }
 
   const handleEditWorkflow = (workflowId: string) => {
-    navigate(`/workflows/${workflowId}/edit`)
+    // For predefined, load them
+    let predefined;
+    switch (workflowId) {
+      case 'simple-deep':
+        predefined = SIMPLE_DEEP_RESEARCH;
+        break;
+      case 'deeper-research':
+        predefined = DEEPER_RESEARCH;
+        break;
+      default:
+        navigate(`/workflows/${workflowId}/edit`);
+        return;
+    }
+    // Pass predefined to editor via localStorage or state, but for now navigate with param
+    navigate(`/workflows/${workflowId}/edit`);
   }
 
   const handleRunWorkflow = (workflowId: string) => {

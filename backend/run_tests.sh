@@ -1,0 +1,1 @@
+export PYTHONPATH=.\npytest -v

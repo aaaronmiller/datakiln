@@ -38,23 +38,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay with smooth animation */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden animate-in fade-in duration-200"
           onClick={onClose}
         />
       )}
 
       <aside className={`
-        fixed md:relative top-0 left-0 z-50 h-full w-64 bg-surface border-r border-border
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0 md:static md:z-auto md:block
+        fixed md:relative top-0 left-0 z-50 h-full w-64 sm:w-72 bg-surface border-r border-border
+        transform transition-all duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+        md:translate-x-0 md:static md:z-auto md:block md:shadow-none
       `}>
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
-          <div className="flex items-center px-6 py-4 border-b border-border">
+          <div className="flex items-center px-4 sm:px-6 py-4 border-b border-border">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">DK</span>
             </div>
@@ -62,23 +62,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6">
+          <nav className="flex-1 px-3 sm:px-4 py-6 overflow-y-auto">
             <ul className="space-y-1">
-              {navigationItems.map((item) => {
+              {navigationItems.map((item, index) => {
                 const isActive = location.pathname === item.path
                 return (
                   <li key={item.id}>
                     <Link
                       to={item.path}
                       onClick={onClose}
-                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] ${
                         isActive
-                          ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700 shadow-sm dark:bg-blue-900/20 dark:text-blue-400"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground hover:shadow-sm"
                       }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <svg
-                        className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                        className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-200 ${
                           isActive ? "text-blue-500" : "text-muted-foreground group-hover:text-foreground"
                         }`}
                         fill="none"
@@ -87,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getIcon(item.icon)} />
                       </svg>
-                      {item.label}
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   </li>
                 )

@@ -1,0 +1,7 @@
+{
+  "type_id": "dk://types/boolean",
+  "version": "1.0.0",
+  "schema": {
+    "type": "boolean"
+  }
+}
