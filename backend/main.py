@@ -242,7 +242,6 @@ async def get_execution_history(limit: int = 10, include_details: bool = False):
         return {
             "executions": history.get("executions", []),
             "total": history.get("total", 0),
-            "timestamp": datetime.now().isoformat()
         }
 
     except Exception as e:
