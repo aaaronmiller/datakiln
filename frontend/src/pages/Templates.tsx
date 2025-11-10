@@ -25,7 +25,7 @@ const Templates: React.FC = () => {
 
   useEffect(() => {
     void loadTemplates()
-  }, [])
+  }, [loadTemplates])
 
   const handleCreateTemplate = async () => {
     if (!templateName.trim() || !templateDescription.trim()) {
