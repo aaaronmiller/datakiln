@@ -274,7 +274,7 @@ class WorkflowCreateRequest(BaseModel):
 async def create_workflow(request: WorkflowCreateRequest):
     """Create a custom workflow"""
     try:
-        result = await query_engine.create_custom_workflow(
+        result = query_engine.create_custom_workflow(
             nodes_config=request.nodes_config,
             connections=request.connections,
             name=request.name,
@@ -286,7 +286,6 @@ async def create_workflow(request: WorkflowCreateRequest):
                 "status": "created",
                 "workflow": result.get("workflow"),
                 "validation": result.get("validation"),
-                "timestamp": datetime.now().isoformat()
             }
         else:
             raise HTTPException(
