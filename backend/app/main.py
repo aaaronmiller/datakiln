@@ -182,7 +182,6 @@ async def legacy_execute_workflow(request: Dict[str, Any]):
     status/completed-style payload shaped per backend/tests/test_api.py.
     """
     try:
-        query_engine = get_query_engine()
         result = await query_engine.execute_query(
             request.get("workflow", {}),
             request.get("execution_options", {}),
