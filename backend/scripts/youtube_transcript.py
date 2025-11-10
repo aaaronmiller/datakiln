@@ -151,23 +151,39 @@ class YouTubeTranscriptDownloader:
 
         # Example URL patterns; contents are controlled in tests via mocking.
         urls = [
-            f"https://example.com/{video_id}.xml",
-            f"https://example.com/{video_id}.en-US.xml",
-            f"https://example.com/{video_id}.vtt",
+            f"https://example.com/{video_id}.xml",          # primary XML
+            f"https://example.com/{video_id}.en-US.xml",    # language-specific XML
+            f"https://example.com/{video_id}.vtt",          # VTT
+            f"https://www.youtube.com/watch?v={video_id}",  # page
+            f"https://alt.example.com/{video_id}.xml",      # alternative source
         ]
 
         for idx, url in enumerate(urls):
-            resp = self.session.get(url)
+            try:
+                resp = self.session.get(url)
+            except Exception:
+                # Network errors should cause graceful fallback
+                continue
+
             if resp.status_code != 200:
                 continue
 
             text = resp.text
-            if idx < 2:
-                # Treat as XML for first two attempts
+
+            if idx in (0, 1):
+                # XML-style
                 return self.parse_xml_transcript(text, video_id)
-            else:
-                # Treat as VTT for third attempt
+            elif idx == 2:
+                # VTT
                 return self.parse_format_transcript(text, "vtt", video_id)
+            elif idx == 3:
+                # Page-level extraction
+                page_result = self.get_transcript_from_page(video_id)
+                if page_result:
+                    return page_result
+            else:
+                # Alternative XML-style source
+                return self.parse_xml_transcript(text, video_id)
 
         return None
 
