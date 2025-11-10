@@ -202,7 +202,7 @@ async def test_provider(request: ProviderTestRequest):
             )
 
         # Test provider connection
-        test_result = await provider.validate_connection()
+        test_result = provider.validate_connection()
 
         # Get usage stats
         usage_stats = provider.get_usage_stats()
@@ -211,7 +211,6 @@ async def test_provider(request: ProviderTestRequest):
             "provider": request.provider_name,
             "connection_test": test_result,
             "usage_stats": usage_stats,
-            "timestamp": datetime.now().isoformat()
         }
 
     except HTTPException:
