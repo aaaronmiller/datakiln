@@ -378,7 +378,6 @@ async def general_exception_handler(request, exc):
         content={
             "error": "Internal server error",
             "detail": str(exc),
-            "timestamp": datetime.now().isoformat()
         }
     )
 
