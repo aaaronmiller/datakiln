@@ -94,7 +94,7 @@ async def receive_chat_logs(data: ChatData):
 async def execute_workflow_legacy(request: WorkflowExecutionRequest):
     """Legacy workflow execution endpoint for tests and backward compatibility"""
     try:
-        result = await query_engine.execute_query(
+        result = query_engine.execute_query(
             request.workflow,
             request.execution_options or {}
         )
