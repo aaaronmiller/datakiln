@@ -274,7 +274,7 @@ class YouTubeTranscriptDownloader:
         with path.open("w", encoding="utf-8") as f:
             json.dump(to_save, f)
 
-        return path
+        return str(path)
 
     def process_video(self, url: str) -> Optional[str]:
         """End-to-end helper: URL -> transcript -> file path or None.
