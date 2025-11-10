@@ -175,24 +175,33 @@ def get_query_node_types():
 
 # Workflow endpoints (existing)
 @app.post("/workflow/execute")
-async def execute_workflow(workflow: Dict[str, Any]):
-    """Execute a workflow."""
-    try:
-        from .services.workflow_service import get_workflow_service
-        from .models.workflow import Workflow
+async def legacy_execute_workflow(request: Dict[str, Any]):
+    """Legacy workflow execute endpoint kept for backwards-compatible tests.
 
-        # Convert dict to Workflow model
-        workflow_obj = Workflow(**workflow)
-        workflow_service = get_workflow_service()
-        run_id = await workflow_service.execute_workflow(workflow_obj)
+    Expects {"workflow": {...}, "execution_options": {...}} and returns
+    status/completed-style payload shaped per backend/tests/test_api.py.
+    """
+    try:
+        from .query_engine import QueryEngine
+
+        engine = QueryEngine()
+        result = engine.execute_query(
+            workflow=request.get("workflow", {}),
+            options=request.get("execution_options", {}),
+        )
+
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail="Workflow execution failed: " + result.get("error", "unknown error"))
 
         return {
-            "success": True,
-            "run_id": run_id,
-            "message": "Workflow execution started"
+            "status": "completed",
+            "execution_id": result.get("execution_id"),
+            "execution_time": result.get("execution_time"),
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Workflow execution failed: {e}")
+        logger.error(f"Legacy workflow execution failed: {e}")
         raise HTTPException(status_code=500, detail=f"Workflow execution failed: {str(e)}")
 
 
