@@ -198,9 +198,9 @@ async def execute_workflow(workflow: Dict[str, Any]):
 
 @app.post("/chat-logs")
 async def receive_chat_logs(chat_data: Dict[str, Any]):
-    """Receive chat logs (placeholder for existing functionality)."""
+    """Receive chat logs in legacy format used by tests."""
     return {
-        "message": "Chat logs received",
+        "status": "received",
         "data": chat_data
     }
 
