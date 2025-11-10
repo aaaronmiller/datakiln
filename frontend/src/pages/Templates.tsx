@@ -12,7 +12,11 @@ const Templates: React.FC = () => {
   const [templateCategory, setTemplateCategory] = useState('General')
   const { nodes, edges } = useWorkflowStore()
 
-  const templateService = new WorkflowTemplateService()
+  const templateServiceRef = React.useRef<WorkflowTemplateService | null>(null)
+  if (!templateServiceRef.current) {
+    templateServiceRef.current = new WorkflowTemplateService()
+  }
+  const templateService = templateServiceRef.current
 
   const loadTemplates = async () => {
     const loadedTemplates = await templateService.getTemplates()
