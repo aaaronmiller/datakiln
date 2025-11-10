@@ -116,7 +116,7 @@ async def execute_workflow_legacy(request: WorkflowExecutionRequest):
         raise
     except Exception as e:
         # Let the general exception handler produce the error response expected by tests
-        raise e from e
+        raise e
 
 @app.post("/api/v1/workflows/{workflow_id}/execute")
 async def execute_workflow(workflow_id: str, request: WorkflowExecutionRequest):
