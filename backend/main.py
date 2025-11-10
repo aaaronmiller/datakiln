@@ -228,7 +228,6 @@ async def get_providers_status():
             "providers": status.get("providers", {}),
             "usage_stats": status.get("usage_stats", {}),
             "default_provider": status.get("default_provider"),
-            "timestamp": datetime.now().isoformat()
         }
 
     except Exception as e:
