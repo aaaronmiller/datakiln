@@ -266,13 +266,14 @@ async def optimize_workflow(workflow: Dict[str, Any]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Optimization failed: {str(e)}")
 
-@app.post("/workflow/create")
-async def create_workflow(
-    nodes_config: Dict[str, Any],
-    connections: List[Dict[str, str]],
-    name: str = "Custom Workflow",
+class WorkflowCreateRequest(BaseModel):
+    nodes_config: Dict[str, Any]
+    connections: List[Dict[str, str]]
+    name: str = "Custom Workflow"
     description: str = ""
-):
+
+@app.post("/workflow/create")
+async def create_workflow(request: WorkflowCreateRequest):
     """Create a custom workflow"""
     try:
         result = await query_engine.create_custom_workflow(
