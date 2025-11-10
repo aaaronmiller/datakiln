@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, fireEvent } from '@testing-library/react'
 import { screen } from '@testing-library/dom'
-import '@testing-library/jest-dom'
 import ResultsDisplay from './ResultsDisplay'
 
 // Mock UI components
