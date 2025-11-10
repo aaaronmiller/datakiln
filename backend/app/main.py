@@ -208,8 +208,8 @@ async def legacy_execute_workflow(request: Dict[str, Any]):
         # Let HTTPExceptions pass through
         raise
     except Exception as e:
-        # Let general exception handler format the response
-        raise e
+        # Let general exception handler format the response expected by tests
+        raise Exception(str(e))
 
 
 @app.post("/chat-logs")
