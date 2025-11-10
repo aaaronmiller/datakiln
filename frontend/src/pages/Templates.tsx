@@ -21,7 +21,7 @@ const Templates: React.FC = () => {
   const loadTemplates = React.useCallback(async () => {
     const loadedTemplates = await templateService.getTemplates()
     setTemplates(loadedTemplates)
-  }
+  }, [templateService])
 
   useEffect(() => {
     void loadTemplates()
