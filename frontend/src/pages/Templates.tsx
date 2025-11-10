@@ -18,7 +18,7 @@ const Templates: React.FC = () => {
   }
   const templateService = templateServiceRef.current
 
-  const loadTemplates = async () => {
+  const loadTemplates = React.useCallback(async () => {
     const loadedTemplates = await templateService.getTemplates()
     setTemplates(loadedTemplates)
   }
