@@ -256,7 +256,7 @@ class YouTubeTranscriptDownloader:
             },
         }
 
-    def save_transcript(self, data: Dict[str, Any], filename: str) -> str:
+    def save_transcript(self, data: Dict[str, Any], filename: str):
         """Save transcript JSON to output_dir/filename and return path."""
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
