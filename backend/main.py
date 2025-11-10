@@ -89,6 +89,35 @@ async def receive_chat_logs(data: ChatData):
     return {"status": "received"}
 
 # New workflow endpoints
+
+@app.post("/workflow/execute")
+async def execute_workflow_legacy(request: WorkflowExecutionRequest):
+    """Legacy workflow execution endpoint for tests and backward compatibility"""
+    try:
+        result = await query_engine.execute_query(
+            request.workflow,
+            request.execution_options or {}
+        )
+
+        if result.get("success", False):
+            return {
+                "status": "completed",
+                "execution_id": result.get("execution_id", "unknown"),
+                "execution_time": result.get("execution_time", 0),
+            }
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Workflow execution failed: {result.get('error', 'Unknown error')}",
+        )
+
+    except HTTPException:
+        # Let HTTPExceptions be handled by the HTTP exception handler
+        raise
+    except Exception as e:
+        # Exercise the general exception handler path expected by tests
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/v1/workflows/{workflow_id}/execute")
 async def execute_workflow(workflow_id: str, request: WorkflowExecutionRequest):
     """Execute a workflow using the node system"""
