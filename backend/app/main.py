@@ -13,9 +13,7 @@ from .services.research_service import initialize_research_service, shutdown_res
 
 # Import API routers
 from .api.v1.endpoints import dashboard
-# Temporarily disabled due to import issues:
-# from .api.v1.endpoints import workflows, results, artifacts, extension, selectors
-# from .api.v1.endpoints import research
+from .api.v1.endpoints import workflows, results, artifacts, extension, selectors, research
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
