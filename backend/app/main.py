@@ -182,27 +182,30 @@ async def legacy_execute_workflow(request: Dict[str, Any]):
     status/completed-style payload shaped per backend/tests/test_api.py.
     """
     try:
-        from .query_engine import QueryEngine
-
-        engine = QueryEngine()
-        result = engine.execute_query(
-            workflow=request.get("workflow", {}),
-            options=request.get("execution_options", {}),
+        query_engine = get_query_engine()
+        result = await query_engine.execute_query(
+            request.get("workflow", {}),
+            request.get("execution_options", {}),
         )
 
-        if not result.get("success"):
-            raise HTTPException(status_code=400, detail="Workflow execution failed: " + result.get("error", "unknown error"))
+        if result.get("success", False):
+            return {
+                "status": "completed",
+                "execution_id": result.get("execution_id", "unknown"),
+                "execution_time": result.get("execution_time", 0),
+            }
 
-        return {
-            "status": "completed",
-            "execution_id": result.get("execution_id"),
-            "execution_time": result.get("execution_time"),
-        }
+        raise HTTPException(
+            status_code=400,
+            detail="Workflow execution failed: " + result.get("error", "Unknown error"),
+        )
+
     except HTTPException:
+        # Let HTTPExceptions pass through
         raise
     except Exception as e:
-        logger.error(f"Legacy workflow execution failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Workflow execution failed: {str(e)}")
+        # Let general exception handler format the response
+        raise e
 
 
 @app.post("/chat-logs")
