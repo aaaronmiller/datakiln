@@ -254,12 +254,11 @@ async def get_execution_history(limit: int = 10, include_details: bool = False):
 async def optimize_workflow(workflow: Dict[str, Any]):
     """Optimize a workflow for better performance"""
     try:
-        optimization_result = await query_engine.optimize_workflow(workflow)
+        optimization_result = query_engine.optimize_workflow(workflow)
 
         return {
             "success": "error" not in optimization_result,
             "optimization_result": optimization_result,
-            "timestamp": datetime.now().isoformat()
         }
 
     except Exception as e:
