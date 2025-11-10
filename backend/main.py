@@ -237,7 +237,7 @@ async def get_providers_status():
 async def get_execution_history(limit: int = 10, include_details: bool = False):
     """Get execution history"""
     try:
-        history = await query_engine.get_execution_history(limit, include_details)
+        history = query_engine.get_execution_history(limit, include_details)
 
         return {
             "executions": history.get("executions", []),
