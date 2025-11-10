@@ -8,7 +8,7 @@ from datetime import datetime
 from sse_starlette.sse import EventSourceResponse
 
 # Import our services
-from .services.query_engine import get_query_engine
+from .services.query_engine import get_query_engine as _get_query_engine
 from .services.research_service import initialize_research_service, shutdown_research_service
 
 # Import API routers
