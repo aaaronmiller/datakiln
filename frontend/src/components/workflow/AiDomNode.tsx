@@ -83,9 +83,9 @@ const AiDomNodeComponent: React.FC<AiDomNodeProps> = ({ data, selected }) => {
       )}
 
       {/* Output */}
-      {data.output && typeof data.output === 'string' && (
+      {typeof data.output === 'string' && (
         <div className="text-xs">
-          <span className="font-medium">Output:</span> {String(data.output)}
+          <span className="font-medium">Output:</span> {data.output}
         </div>
       )}
 
