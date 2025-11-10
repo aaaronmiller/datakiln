@@ -277,10 +277,10 @@ async def create_workflow(request: WorkflowCreateRequest):
     """Create a custom workflow"""
     try:
         result = await query_engine.create_custom_workflow(
-            nodes_config=nodes_config,
-            connections=connections,
-            name=name,
-            description=description
+            nodes_config=request.nodes_config,
+            connections=request.connections,
+            name=request.name,
+            description=request.description
         )
 
         if result.get("success", False):
