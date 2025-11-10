@@ -218,7 +218,7 @@ With multiple lines
         saved_path = self.downloader.save_transcript(transcript_data, "test_output.json")
 
         assert "test_output.json" in saved_path
-        assert tmp_path in saved_path
+        assert str(tmp_path) in saved_path
 
         # Verify file contents
         import json
