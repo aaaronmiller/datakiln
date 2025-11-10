@@ -44,7 +44,7 @@ class YouTubeTranscriptDownloader:
     def __init__(self, session: Optional[requests.Session] = None, output_dir: Optional[str] = None) -> None:
         self.session = session or requests.Session()
         # Default output directory used in tests via tmp_path override
-        self.output_dir = Path(output_dir or os.getcwd())
+        self.output_dir = Path(str(output_dir)) if output_dir is not None else Path(os.getcwd())
 
     # --- URL helpers -----------------------------------------------------
 
