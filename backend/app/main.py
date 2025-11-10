@@ -105,7 +105,7 @@ def health_check():
 def validate_query_graph(request: QueryGraphRequest):
     """Validate a query graph structure."""
     try:
-        query_engine = _get_query_engine()
+        query_engine = get_query_engine()
         validation_result = query_engine.validate_query_graph({
             "nodes": request.nodes,
             "edges": request.edges
@@ -127,7 +127,7 @@ async def execute_query_graph(request: QueryGraphRequest):
     try:
         logger.info(f"Executing query graph with {len(request.nodes)} nodes")
 
-        query_engine = _get_query_engine()
+        query_engine = get_query_engine()
         result = await query_engine.execute_query_graph({
             "nodes": request.nodes,
             "edges": request.edges
@@ -145,7 +145,7 @@ async def execute_query_graph_streaming(request: QueryGraphRequest):
     try:
         logger.info(f"Streaming execution of query graph with {len(request.nodes)} nodes")
 
-        query_engine = _get_query_engine()
+        query_engine = get_query_engine()
         return EventSourceResponse(
             query_engine.execute_query_graph_streaming({
                 "nodes": request.nodes,
@@ -182,7 +182,7 @@ async def legacy_execute_workflow(request: Dict[str, Any]):
     status/completed-style payload shaped per backend/tests/test_api.py.
     """
     try:
-        query_engine = _get_query_engine()
+        query_engine = get_query_engine()
         result = await query_engine.execute_query(
             request.get("workflow", {}),
             request.get("execution_options", {}),
