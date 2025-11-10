@@ -1,0 +1,91 @@
+{
+  "research_id": "bce84d88-5625-4c2b-9171-2ce08980154f",
+  "nodes": {
+    "b743d8fe-8df6-404c-b209-7a1178d94166": {
+      "id": "b743d8fe-8df6-404c-b209-7a1178d94166",
+      "query": "test query",
+      "parent_id": null,
+      "children": [],
+      "status": "completed",
+      "result": {
+        "query": "test query",
+        "mode": "balanced",
+        "initial_research": {
+          "query": "test query",
+          "findings": "Research findings for: test query",
+          "sources": [
+            "source1",
+            "source2"
+          ],
+          "confidence": 0.8,
+          "timestamp": "2025-11-10T05:00:18.449795"
+        },
+        "follow_ups": [
+          {
+            "question": "What are the latest developments in test query?",
+            "result": {
+              "query": "What are the latest developments in test query?",
+              "findings": "Research findings for: What are the latest developments in test query?",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-10T05:00:19.951975"
+            }
+          },
+          {
+            "question": "What are the challenges associated with test query?",
+            "result": {
+              "query": "What are the challenges associated with test query?",
+              "findings": "Research findings for: What are the challenges associated with test query?",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-10T05:00:20.954130"
+            }
+          },
+          {
+            "question": "How does test query compare to alternatives?",
+            "result": {
+              "query": "How does test query compare to alternatives?",
+              "findings": "Research findings for: How does test query compare to alternatives?",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-10T05:00:21.956230"
+            }
+          },
+          {
+            "question": "What are the future implications of test query?",
+            "result": {
+              "query": "What are the future implications of test query?",
+              "findings": "Research findings for: What are the future implications of test query?",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-10T05:00:22.956659"
+            }
+          }
+        ],
+        "counter_arguments": [],
+        "total_follow_ups": 4,
+        "research_depth": 2,
+        "completed_at": "2025-11-10T05:00:22.956679"
+      },
+      "created_at": "2025-11-10T05:00:17.448512",
+      "updated_at": "2025-11-10T05:00:22.956682",
+      "depth": 0,
+      "follow_ups": [],
+      "sources": [],
+      "confidence_score": 0.0
+    }
+  },
+  "created_at": "2025-11-10T05:00:22.956692"
+}
