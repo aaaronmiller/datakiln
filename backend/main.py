@@ -95,8 +95,8 @@ async def execute_workflow_legacy(request: WorkflowExecutionRequest):
     """Legacy workflow execution endpoint for tests and backward compatibility"""
     try:
         result = await query_engine.execute_query(
-            request.workflow,
-            request.execution_options or {}
+            workflow=request.workflow,
+            options=request.execution_options or {}
         )
 
         if result.get("success", False):
