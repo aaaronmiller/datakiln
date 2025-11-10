@@ -115,8 +115,8 @@ async def execute_workflow_legacy(request: WorkflowExecutionRequest):
         # Let HTTPExceptions be handled by the HTTP exception handler
         raise
     except Exception as e:
-        # Exercise the general exception handler path expected by tests
-        raise HTTPException(status_code=500, detail=str(e))
+        # Let the general exception handler produce the error response expected by tests
+        raise e
 
 @app.post("/api/v1/workflows/{workflow_id}/execute")
 async def execute_workflow(workflow_id: str, request: WorkflowExecutionRequest):
