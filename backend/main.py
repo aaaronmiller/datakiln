@@ -222,7 +222,7 @@ async def test_provider(request: ProviderTestRequest):
 async def get_providers_status():
     """Get status of all providers"""
     try:
-        status = await query_engine.get_provider_status()
+        status = query_engine.get_provider_status()
 
         return {
             "providers": status.get("providers", {}),
