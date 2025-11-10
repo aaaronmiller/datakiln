@@ -153,13 +153,12 @@ async def execute_workflow(workflow_id: str, request: WorkflowExecutionRequest):
 async def validate_workflow(request: WorkflowValidationRequest):
     """Validate a workflow structure"""
     try:
-        validation_result = await query_engine.validate_workflow_graph(request.workflow)
+        validation_result = query_engine.validate_workflow_graph(request.workflow)
 
         return {
             "valid": validation_result.get("valid", False),
             "errors": validation_result.get("errors", []),
             "warnings": validation_result.get("warnings", []),
-            "timestamp": datetime.now().isoformat()
         }
 
     except Exception as e:
