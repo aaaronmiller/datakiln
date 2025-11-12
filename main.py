@@ -5,8 +5,7 @@ from backend.app.main import query_engine
 from backend.main import provider_manager
 
 # Export request models that tests expect
-from backend.app.models.workflow import WorkflowExecutionRequest, WorkflowValidationRequest
-from backend.app.api.v1.schemas.provider import ProviderTestRequest
+from backend.main import WorkflowExecutionRequest, WorkflowValidationRequest, ProviderTestRequest
 
 __all__ = [
     'app',
