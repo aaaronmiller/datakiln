@@ -1,0 +1,1 @@
+from backend.app.main import app  # shim for tests expecting `from main import app`
