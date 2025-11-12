@@ -1,16 +1,21 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { vi } from 'vitest'
+import { ReactFlowProvider } from '@xyflow/react'
 import TaskNode from './TaskNode'
 
 // Mock reactflow components
-vi.mock('reactflow', () => ({
-  Handle: ({ children, ...props }: any) => <div data-testid="handle" {...props}>{children}</div>,
-  Position: {
-    Left: 'left',
-    Right: 'right',
-  },
-}))
+vi.mock('@xyflow/react', () => {
+  const actual = vi.importActual('@xyflow/react')
+  return {
+    ...actual,
+    Handle: ({ children, ...props }: any) => <div data-testid="handle" {...props}>{children}</div>,
+    Position: {
+      Left: 'left',
+      Right: 'right',
+    },
+  }
+})
 
 // Mock UI components
 vi.mock('../ui/card', () => ({
@@ -73,6 +78,14 @@ describe('TaskNode', () => {
     sourcePosition: 'right' as any,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
+  }
+
+  const renderWithProvider = (component: React.ReactElement) => {
+    return render(
+      <ReactFlowProvider>
+        {component}
+      </ReactFlowProvider>
+    )
   }
 
   beforeEach(() => {
