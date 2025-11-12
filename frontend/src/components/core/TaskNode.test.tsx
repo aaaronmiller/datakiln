@@ -18,14 +18,14 @@ vi.mock('@xyflow/react', async () => {
 })
 
 // Mock UI components
-vi.mock('../ui/card', () => ({
+vi.mock('../../components/ui/card', () => ({
   Card: ({ children, className }: any) => <div className={className} data-testid="card">{children}</div>,
   CardContent: ({ children, className }: any) => <div className={className} data-testid="card-content">{children}</div>,
   CardHeader: ({ children, className }: any) => <div className={className} data-testid="card-header">{children}</div>,
   CardTitle: ({ children, className }: any) => <div className={className} data-testid="card-title">{children}</div>,
 }))
 
-vi.mock('../ui/button', () => ({
+vi.mock('../../components/ui/button', () => ({
   Button: ({ children, onClick, className, variant, size }: any) => (
     <button
       onClick={onClick}
@@ -37,7 +37,7 @@ vi.mock('../ui/button', () => ({
   ),
 }))
 
-vi.mock('../ui/input', () => ({
+vi.mock('../../components/ui/input', () => ({
   Input: ({ value, onChange, placeholder, className }: any) => (
     <input
       value={value}
@@ -47,6 +47,42 @@ vi.mock('../ui/input', () => ({
       data-testid="input"
     />
   ),
+}))
+
+vi.mock('../../components/ui/textarea', () => ({
+  Textarea: ({ value, onChange, placeholder, className, id, rows }: any) => (
+    <textarea
+      id={id}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={className}
+      rows={rows}
+      data-testid="input"
+    />
+  ),
+}))
+
+vi.mock('../../components/ui/label', () => ({
+  Label: ({ children, htmlFor, className }: any) => (
+    <label htmlFor={htmlFor} className={className}>
+      {children}
+    </label>
+  ),
+}))
+
+vi.mock('../../services/nodeRegistryService', () => ({
+  default: {
+    getNodeType: vi.fn(() => ({
+      paramsSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', default: '' },
+          maxResults: { type: 'number', default: 10 }
+        }
+      }
+    }))
+  }
 }))
 
 describe('TaskNode', () => {
