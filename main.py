@@ -2,7 +2,7 @@ from backend.app.main import app  # shim for tests expecting `from main import a
 
 # Export globals that tests expect
 from backend.app.main import query_engine
-from backend.app.main import provider_manager
+from backend.main import provider_manager
 
 # Export request models that tests expect
 from backend.app.models.workflow import WorkflowExecutionRequest, WorkflowValidationRequest
