@@ -13,6 +13,7 @@ interface AiDomNodeData {
   }>
   output?: 'file' | 'screen' | 'clipboard' | 'next'
   status?: 'pending' | 'running' | 'completed' | 'error'
+  [key: string]: unknown
 }
 
 interface AiDomNodeProps extends NodeProps {
