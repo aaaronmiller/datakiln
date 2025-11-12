@@ -12,7 +12,7 @@ interface AiDomNodeData {
     delayAfter?: number
   }>
   output?: 'file' | 'screen' | 'clipboard' | 'next'
-  [key: string]: unknown
+  status?: 'pending' | 'running' | 'completed' | 'error'
 }
 
 interface AiDomNodeProps extends NodeProps {
