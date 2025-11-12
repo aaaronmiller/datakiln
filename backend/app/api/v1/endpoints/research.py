@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import logging
 
-from ...services.research_service import get_research_service
+from ....services.research_service import get_research_service
 
 logger = logging.getLogger(__name__)
 
