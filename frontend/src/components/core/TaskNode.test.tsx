@@ -5,8 +5,8 @@ import { ReactFlowProvider } from '@xyflow/react'
 import TaskNode from './TaskNode'
 
 // Mock reactflow components
-vi.mock('@xyflow/react', () => {
-  const actual = vi.importActual('@xyflow/react')
+vi.mock('@xyflow/react', async () => {
+  const actual = await vi.importActual('@xyflow/react')
   return {
     ...actual,
     Handle: ({ children, ...props }: any) => <div data-testid="handle" {...props}>{children}</div>,
