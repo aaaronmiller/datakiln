@@ -93,14 +93,14 @@ describe('TaskNode', () => {
   })
 
   it('renders the task node with correct label', () => {
-    render(<TaskNode {...defaultProps} />)
+    renderWithProvider(<TaskNode {...defaultProps} />)
 
     expect(screen.getByText('Deep Research')).toBeInTheDocument()
     expect(screen.getByText('🔬')).toBeInTheDocument() // Deep research icon
   })
 
   it('displays the correct status', () => {
-    render(<TaskNode {...defaultProps} />)
+    renderWithProvider(<TaskNode {...defaultProps} />)
 
     expect(screen.getByText('⏳ pending')).toBeInTheDocument()
   })
@@ -112,7 +112,7 @@ describe('TaskNode', () => {
       const statusData = { ...mockData, status }
       const statusProps = { ...defaultProps, data: statusData }
 
-      const { rerender } = render(<TaskNode {...statusProps} />)
+      const { rerender } = renderWithProvider(<TaskNode {...statusProps} />)
 
       if (status === 'running') {
         expect(screen.getByText('⚙️ running')).toBeInTheDocument()
@@ -127,7 +127,7 @@ describe('TaskNode', () => {
   })
 
   it('renders parameters as inputs', () => {
-    render(<TaskNode {...defaultProps} />)
+    renderWithProvider(<TaskNode {...defaultProps} />)
 
     const inputs = screen.getAllByTestId('input')
     expect(inputs).toHaveLength(2)
@@ -137,7 +137,7 @@ describe('TaskNode', () => {
   })
 
   it('calls onParameterChange when input value changes', () => {
-    render(<TaskNode {...defaultProps} />)
+    renderWithProvider(<TaskNode {...defaultProps} />)
 
     const queryInput = screen.getByDisplayValue('test query')
     fireEvent.change(queryInput, { target: { value: 'new query' } })
@@ -146,7 +146,7 @@ describe('TaskNode', () => {
   })
 
   it('calls onDelete when delete button is clicked', () => {
-    render(<TaskNode {...defaultProps} />)
+    renderWithProvider(<TaskNode {...defaultProps} />)
 
     const deleteButton = screen.getByText('×')
     fireEvent.click(deleteButton)
@@ -156,14 +156,14 @@ describe('TaskNode', () => {
 
   it('shows selected styling when selected', () => {
     const selectedProps = { ...defaultProps, selected: true }
-    render(<TaskNode {...selectedProps} />)
+    renderWithProvider(<TaskNode {...selectedProps} />)
 
     const card = screen.getByTestId('card')
     expect(card.className).toContain('ring-2 ring-blue-500')
   })
 
   it('renders handles for connections', () => {
-    render(<TaskNode {...defaultProps} />)
+    renderWithProvider(<TaskNode {...defaultProps} />)
 
     const handles = screen.getAllByTestId('handle')
     expect(handles).toHaveLength(2) // One source, one target
@@ -183,7 +183,7 @@ describe('TaskNode', () => {
       const taskData = { ...mockData, label }
       const taskProps = { ...defaultProps, data: taskData }
 
-      const { rerender } = render(<TaskNode {...taskProps} />)
+      const { rerender } = renderWithProvider(<TaskNode {...taskProps} />)
 
       expect(screen.getByText(expectedIcon)).toBeInTheDocument()
 
