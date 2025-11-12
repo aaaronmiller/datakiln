@@ -85,6 +85,20 @@ vi.mock('../../services/nodeRegistryService', () => ({
   }
 }))
 
+vi.mock('./FormGenerator', () => ({
+  default: ({ values }: any) => (
+    <div data-testid="form-generator">
+      {Object.entries(values).map(([key, value]) => (
+        <input
+          key={key}
+          value={value as string}
+          data-testid="input"
+        />
+      ))}
+    </div>
+  ),
+}))
+
 describe('TaskNode', () => {
   const mockData = {
     label: 'Deep Research',
