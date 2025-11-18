@@ -45,15 +45,21 @@
 ---
 
 ## 📊 TASK 4: Create Execution History Viewer
-**Status**: ⏳ PENDING (Viewer exists, needs localStorage persistence)
-**File**: `frontend/src/components/workflow/ExecutionLogViewer.tsx`
+**Status**: ✅ COMPLETED
+**Files**:
+- `frontend/src/components/workflow/ExecutionHistory.tsx` (new, 400+ lines)
+- `frontend/src/components/workflow/WorkflowEditor.tsx` (integration)
 **Problem**: No way to see past executions or failures
-**Current**: ExecutionLogViewer exists and connects via WebSocket
-**Fix Needed**:
-- Store execution results in localStorage
-- Show list of executions with success/failure
-- Click to see details and errors
-**Integration**: Already integrated in WorkflowEditor
+**Solution**: Created full execution history component with:
+- localStorage persistence (key: 'datakiln_execution_history')
+- Stores up to 50 most recent executions
+- Filter tabs (All, Success, Failed)
+- Detailed execution view with logs, duration, node counts
+- Export execution to JSON
+- Delete individual executions or clear all history
+- Integrated with WorkflowEditor via "History" button
+- saveExecutionToHistory() called after each execution
+**Commit**: `37bc562` - "Add execution history viewer with localStorage persistence"
 
 ---
 
@@ -97,14 +103,21 @@
 ---
 
 ## 📖 TASK 8: Write API Documentation
-**Status**: ⏳ PENDING
-**File**: Create `API-DOCUMENTATION.md`
+**Status**: ✅ COMPLETED
+**File**: `API-DOCUMENTATION.md` (700+ lines)
 **Problem**: No docs for API endpoints
-**Fix**: Document:
-- POST /api/v1/workflows/{id}/execute
-- GET /api/v1/workflows
-- Example JSON payloads
-- curl commands
+**Solution**: Comprehensive API documentation including:
+- All workflow execution endpoints with request/response examples
+- Workflow management endpoints (list, get, save)
+- Execution status checking
+- WebSocket events documentation with real-time examples
+- CLI tool usage guide with commands
+- Example workflows (Simple Research, Deeper Research, YouTube)
+- Complete node types reference table
+- Error handling guide with HTTP status codes
+- Python, JavaScript, and cURL examples
+- Best practices section
+**Commit**: `ca35ded` - "Add comprehensive API documentation"
 
 ---
 
