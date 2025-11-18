@@ -202,16 +202,16 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           break;
       }
       if (predefined) {
-        setNodes(nds => {
+        setNodes((nds: Node[]) => {
           if (nds.length > 0) return nds; // Avoid overwrite if manual editing
           return predefined.nodes.map((node: any) => ({
             id: node.id,
             type: node.type,
             position: node.position,
             data: node.data
-          }));
+          })) as Node[];
         });
-        setEdges(eds => {
+        setEdges((eds: Edge[]) => {
           if (eds.length > 0) return eds;
           return predefined.edges.map((edge: any) => ({
             id: edge.id,
@@ -219,7 +219,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
             target: edge.target,
             sourceHandle: edge.sourceHandle || null,
             targetHandle: edge.targetHandle || null
-          }));
+          })) as Edge[];
         });
         addNotification({ type: 'success', title: 'Workflow Loaded', message: `${predefined.name} loaded for editing` });
       }
@@ -546,7 +546,10 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
       // For split/parallel: allow multiple from source if type supports (e.g., splitter node future)
       if (sourceNode.type === 'condition') {
-        params.targetHandle = params.targetHandle || (params.data?.branch === 'true' ? 'true' : 'false')
+        // Default to 'true' branch if not specified
+        if (!params.targetHandle) {
+          params.targetHandle = 'true'
+        }
       }
 
       const newEdge = { ...params, id: `${params.source}-${params.target}-${Date.now()}`, type: 'default' } as Edge
@@ -990,7 +993,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     const workflowNodes = nodes.map((node: Node) => ({
       id: node.id,
       type: node.type,
-      name: (node.data as AiDomNodeData)?.name || 'Unnamed',
+      name: (node.data as unknown as AiDomNodeData)?.name || 'Unnamed',
       position: node.position,
       data: node.data,
     }))
@@ -1806,7 +1809,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
                             id: node.id as string,
                             type: node.type as string,
                             position: (node.position as { x: number; y: number }) || { x: Math.random() * 400, y: Math.random() * 400 },
-                            data: node.data as AiDomNodeData || {}
+                            data: (node.data as unknown as AiDomNodeData) || {}
                           }))
                           setNodes(reactFlowNodes)
 

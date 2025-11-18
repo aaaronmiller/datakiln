@@ -1,15 +1,5 @@
 import { WorkflowGraph, WorkflowExecutionResult, WorkflowValidationResult, SelectorsRegistry, ProviderStatus, ExecutionHistoryItem } from '../types/workflow'
 
-interface ViteEnv {
-  VITE_API_BASE_URL?: string
-}
-
-declare global {
-  interface ImportMeta {
-    env: ViteEnv
-  }
-}
-
 export class WorkflowService {
   private baseUrl: string
 

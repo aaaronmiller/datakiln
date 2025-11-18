@@ -14,9 +14,13 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ReactFlowProvider } from '@xyflow/react'
 import WorkflowEditor from './WorkflowEditor'
 import { workflowValidationService } from '../../services/workflowValidationService'
+
+// Create user instance for tests
+const user = userEvent.setup()
 
 // Mock dependencies
 vi.mock('../../services/workflowValidationService')
