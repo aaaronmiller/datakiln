@@ -1,0 +1,109 @@
+// This is the REAL executeWorkflow implementation that calls backend API
+// Replace the simulation code with this
+
+const executeWorkflow = useCallback(async () => {
+  if (nodes.length === 0) {
+    addNotification({
+      type: 'warning',
+      title: 'No Workflow to Execute',
+      message: 'Please add some nodes to the workflow before executing.'
+    })
+    return
+  }
+
+  setIsExecuting(true)
+  const workflowId = `workflow-${Date.now()}`
+
+  try {
+    const workflow = convertToWorkflowFormat()
+
+    // Prepare workflow data for backend
+    const workflowData = {
+      workflow: {
+        id: workflowId,
+        name: `Workflow ${Date.now()}`,
+        start_node: nodes[0]?.id || '',
+        nodes: workflow.nodes,
+        edges: workflow.edges
+      },
+      execution_options: {
+        timeout: 300,
+        streaming: true
+      }
+    }
+
+    // Mark all nodes as pending
+    setNodes(nds => nds.map(node => ({
+      ...node,
+      data: { ...node.data, status: 'pending' as const, progress: 0 }
+    })))
+
+    // Call REAL backend API
+    const response = await fetch(`http://localhost:8000/api/v1/workflows/${workflowId}/execute`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(workflowData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+      throw new Error(errorData.error || `HTTP ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    setCurrentExecutionId(result.execution_id || workflowId)
+
+    // Update nodes based on execution result
+    if (result.success) {
+      setNodes(nds => nds.map(node => ({
+        ...node,
+        data: { ...node.data, status: 'completed' as const, progress: 100 }
+      })))
+
+      addNotification({
+        type: 'success',
+        title: 'Workflow Execution Completed',
+        message: `Successfully executed workflow. Execution ID: ${result.execution_id}`
+      })
+    } else {
+      // Mark failed nodes
+      const failedNodeIds = result.failed_nodes || []
+      setNodes(nds => nds.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          status: failedNodeIds.includes(node.id) ? 'error' as const : 'completed' as const,
+          progress: failedNodeIds.includes(node.id) ? 0 : 100
+        }
+      })))
+
+      addNotification({
+        type: 'error',
+        title: 'Workflow Execution Failed',
+        message: result.error || 'Some nodes failed to execute'
+      })
+    }
+
+    setExecutionLogVisible(true)
+
+  } catch (error) {
+    console.error('Workflow execution error:', error)
+
+    // Mark all nodes as error
+    setNodes(nds => nds.map(node => ({
+      ...node,
+      data: { ...node.data, status: 'error' as const, progress: 0 }
+    })))
+
+    addNotification({
+      type: 'error',
+      title: 'Execution Failed',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    })
+  } finally {
+    setIsExecuting(false)
+  }
+}, [nodes, addNotification, convertToWorkflowFormat, setNodes])
