@@ -1,0 +1,91 @@
+{
+  "research_id": "83358577-9699-4c2e-be01-59669c64cda1",
+  "nodes": {
+    "335370e2-b603-47bf-beb5-8c4f9849b4a1": {
+      "id": "335370e2-b603-47bf-beb5-8c4f9849b4a1",
+      "query": "How does artificial intelligence work?",
+      "parent_id": null,
+      "children": [],
+      "status": "completed",
+      "result": {
+        "query": "How does artificial intelligence work?",
+        "mode": "balanced",
+        "initial_research": {
+          "query": "How does artificial intelligence work?",
+          "findings": "Research findings for: How does artificial intelligence work?",
+          "sources": [
+            "source1",
+            "source2"
+          ],
+          "confidence": 0.8,
+          "timestamp": "2025-11-18T08:09:18.770438"
+        },
+        "follow_ups": [
+          {
+            "question": "What are the latest developments in How does artificial intelligence work??",
+            "result": {
+              "query": "What are the latest developments in How does artificial intelligence work??",
+              "findings": "Research findings for: What are the latest developments in How does artificial intelligence work??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:20.271185"
+            }
+          },
+          {
+            "question": "What are the challenges associated with How does artificial intelligence work??",
+            "result": {
+              "query": "What are the challenges associated with How does artificial intelligence work??",
+              "findings": "Research findings for: What are the challenges associated with How does artificial intelligence work??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:21.271751"
+            }
+          },
+          {
+            "question": "How does How does artificial intelligence work? compare to alternatives?",
+            "result": {
+              "query": "How does How does artificial intelligence work? compare to alternatives?",
+              "findings": "Research findings for: How does How does artificial intelligence work? compare to alternatives?",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:22.272904"
+            }
+          },
+          {
+            "question": "What are the future implications of How does artificial intelligence work??",
+            "result": {
+              "query": "What are the future implications of How does artificial intelligence work??",
+              "findings": "Research findings for: What are the future implications of How does artificial intelligence work??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:23.273809"
+            }
+          }
+        ],
+        "counter_arguments": [],
+        "total_follow_ups": 4,
+        "research_depth": 2,
+        "completed_at": "2025-11-18T08:09:23.273842"
+      },
+      "created_at": "2025-11-18T08:09:17.769306",
+      "updated_at": "2025-11-18T08:09:23.273849",
+      "depth": 0,
+      "follow_ups": [],
+      "sources": [],
+      "confidence_score": 0.0
+    }
+  },
+  "created_at": "2025-11-18T08:09:23.273860"
+}

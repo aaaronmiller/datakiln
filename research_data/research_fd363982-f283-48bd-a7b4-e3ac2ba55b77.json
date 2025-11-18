@@ -1,0 +1,110 @@
+{
+  "research_id": "fd363982-f283-48bd-a7b4-e3ac2ba55b77",
+  "nodes": {
+    "a20fb6ed-49ad-460b-8faf-d3e0f1695717": {
+      "id": "a20fb6ed-49ad-460b-8faf-d3e0f1695717",
+      "query": "What are the implications of quantum computing?",
+      "parent_id": null,
+      "children": [],
+      "status": "completed",
+      "result": {
+        "query": "What are the implications of quantum computing?",
+        "mode": "comprehensive",
+        "initial_research": {
+          "query": "What are the implications of quantum computing?",
+          "findings": "Research findings for: What are the implications of quantum computing?",
+          "sources": [
+            "source1",
+            "source2"
+          ],
+          "confidence": 0.8,
+          "timestamp": "2025-11-18T08:09:24.275790"
+        },
+        "follow_ups": [
+          {
+            "question": "What are the latest developments in What are the implications of quantum computing??",
+            "result": {
+              "query": "What are the latest developments in What are the implications of quantum computing??",
+              "findings": "Research findings for: What are the latest developments in What are the implications of quantum computing??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:25.777107"
+            }
+          },
+          {
+            "question": "What are the challenges associated with What are the implications of quantum computing??",
+            "result": {
+              "query": "What are the challenges associated with What are the implications of quantum computing??",
+              "findings": "Research findings for: What are the challenges associated with What are the implications of quantum computing??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:26.778020"
+            }
+          },
+          {
+            "question": "How does What are the implications of quantum computing? compare to alternatives?",
+            "result": {
+              "query": "How does What are the implications of quantum computing? compare to alternatives?",
+              "findings": "Research findings for: How does What are the implications of quantum computing? compare to alternatives?",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:27.778576"
+            }
+          },
+          {
+            "question": "What are the future implications of What are the implications of quantum computing??",
+            "result": {
+              "query": "What are the future implications of What are the implications of quantum computing??",
+              "findings": "Research findings for: What are the future implications of What are the implications of quantum computing??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:28.778892"
+            }
+          },
+          {
+            "question": "What are the practical applications of What are the implications of quantum computing??",
+            "result": {
+              "query": "What are the practical applications of What are the implications of quantum computing??",
+              "findings": "Research findings for: What are the practical applications of What are the implications of quantum computing??",
+              "sources": [
+                "source1",
+                "source2"
+              ],
+              "confidence": 0.8,
+              "timestamp": "2025-11-18T08:09:29.779353"
+            }
+          }
+        ],
+        "counter_arguments": [
+          {
+            "argument": "Potential limitation of What are the implications of quantum computing?",
+            "evidence": "Counter-evidence from research",
+            "impact": "Medium"
+          }
+        ],
+        "total_follow_ups": 5,
+        "research_depth": 4,
+        "completed_at": "2025-11-18T08:09:30.279938"
+      },
+      "created_at": "2025-11-18T08:09:23.274458",
+      "updated_at": "2025-11-18T08:09:30.279958",
+      "depth": 0,
+      "follow_ups": [],
+      "sources": [],
+      "confidence_score": 0.0
+    }
+  },
+  "created_at": "2025-11-18T08:09:30.279974"
+}

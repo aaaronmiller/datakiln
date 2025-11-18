@@ -86,3 +86,9 @@ psutil==5.9.6
 
 # Version control
 GitPython==3.1.40
+
+# YouTube transcript extraction
+youtube-transcript-api==0.6.1
+
+# YAML processing (if not in backend requirements)
+PyYAML==6.0.1

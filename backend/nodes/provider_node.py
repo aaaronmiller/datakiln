@@ -1,6 +1,7 @@
 from typing import Dict, Any, Optional, Literal
 from pydantic import Field
 from .base_node import BaseNode
+import asyncio
 
 
 class ProviderNode(BaseNode):
@@ -13,6 +14,10 @@ class ProviderNode(BaseNode):
         ..., description="AI provider type or data source"
     )
     mode: Optional[str] = Field(None, description="Provider-specific mode")
+
+    # Initialize provider manager attribute
+    _provider_manager: Optional[Any] = None
+    _selectors_registry: Optional[Any] = None
 
     # Provider-specific settings
     model: Optional[str] = Field(None, description="Specific model to use")
@@ -51,6 +56,10 @@ class ProviderNode(BaseNode):
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute AI provider request"""
         try:
+            # Inject services if not already done
+            if not self._provider_manager:
+                self._inject_services(context)
+
             # Get provider manager from injected service or context
             provider_manager = self._provider_manager or context.get("provider_manager")
             if not provider_manager:

@@ -194,9 +194,9 @@ class GeminiDeepResearchWorkflow:
 async def main():
     """Command line interface"""
     parser = argparse.ArgumentParser(description='Execute Gemini Deep Research workflow')
-    parser.add_argument('--query', default='clit art', help='Query text (default: "clit art")')
+    parser.add_argument('--query', required=True, help='Query text for deep research')
     parser.add_argument('--headless', action='store_true', default=False, help='Run browser in headless mode')
-    
+
     args = parser.parse_args()
     
     workflow = GeminiDeepResearchWorkflow(headless=args.headless)
