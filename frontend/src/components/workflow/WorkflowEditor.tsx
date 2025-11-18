@@ -1303,6 +1303,118 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     }
   }, [nodes, addNotification, convertToWorkflowFormat, setNodes])
 
+  // Retry a failed node
+  const retryNode = useCallback(async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId)
+    if (!node) return
+
+    // Mark node as pending and increment retry count
+    setNodes(nds => nds.map(n => {
+      if (n.id === nodeId) {
+        const currentRetryCount = (n.data.retryCount as number) || 0
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            status: 'pending' as const,
+            progress: 0,
+            retryCount: currentRetryCount + 1
+          }
+        }
+      }
+      return n
+    }))
+
+    // Execute just this node (simplified - in production would need to re-execute with dependencies)
+    try {
+      // Create a mini-workflow with just this node
+      const workflow = convertToWorkflowFormat()
+      const workflowId = `retry-${nodeId}-${Date.now()}`
+      const startTime = Date.now()
+
+      const nodeData = workflow.nodes[nodeId as keyof typeof workflow.nodes]
+      if (!nodeData) {
+        throw new Error(`Node ${nodeId} not found in workflow`)
+      }
+
+      const workflowData = {
+        workflow: {
+          id: workflowId,
+          name: `Retry: ${node.data.name}`,
+          start_node: nodeId,
+          nodes: { [nodeId]: nodeData },
+          edges: []
+        },
+        execution_options: {
+          timeout: 300,
+          streaming: false
+        }
+      }
+
+      setNodes(nds => nds.map(n =>
+        n.id === nodeId ? { ...n, data: { ...n.data, status: 'running' as const } } : n
+      ))
+
+      const response = await fetch(`http://localhost:8000/api/v1/workflows/${workflowId}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(workflowData),
+      })
+
+      const result = await response.json()
+      const endTime = Date.now()
+
+      if (response.ok && result.success) {
+        setNodes(nds => nds.map(n =>
+          n.id === nodeId ? { ...n, data: { ...n.data, status: 'completed' as const, progress: 100 } } : n
+        ))
+
+        saveExecutionToHistory(
+          result.execution_id || workflowId,
+          workflowId,
+          workflowData.workflow.name,
+          startTime,
+          endTime,
+          'success',
+          1,
+          1,
+          0,
+          undefined,
+          []
+        )
+
+        addNotification({
+          type: 'success',
+          title: 'Node Retry Successful',
+          message: `Successfully retried node: ${node.data.name}`
+        })
+      } else {
+        throw new Error(result.error || 'Retry failed')
+      }
+    } catch (error) {
+      setNodes(nds => nds.map(n =>
+        n.id === nodeId ? { ...n, data: { ...n.data, status: 'error' as const, progress: 0 } } : n
+      ))
+
+      addNotification({
+        type: 'error',
+        title: 'Node Retry Failed',
+        message: error instanceof Error ? error.message : 'Retry failed'
+      })
+    }
+  }, [nodes, setNodes, convertToWorkflowFormat, addNotification])
+
+  // Add retry handler to nodes
+  const nodesWithRetry = React.useMemo(() => {
+    return nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        onRetry: node.data.status === 'error' ? () => retryNode(node.id) : undefined
+      }
+    }))
+  }, [nodes, retryNode])
+
   return (
     <div className="w-full h-full flex animate-in fade-in duration-500" role="application" aria-label="Workflow Editor Application">
       {/* Node Palette Sidebar */}
@@ -1514,16 +1626,16 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           return null
         })()}
         <ReactFlowWrapper
-          nodes={searchTerm ? nodes.filter(node => {
-            const name = String(node.data?.name || '').toLowerCase()
+          nodes={searchTerm ? nodesWithRetry.filter(node => {
+            const name = String((node.data as any)?.name || '').toLowerCase()
             const type = String(node.type || '').toLowerCase()
             const id = node.id.toLowerCase()
             const term = searchTerm.toLowerCase()
             return name.includes(term) || type.includes(term) || id.includes(term)
-          }) : nodes}
+          }) : nodesWithRetry}
           edges={searchTerm ? edges.filter(edge => {
-            const filteredNodes = nodes.filter(node => {
-              const name = String(node.data?.name || '').toLowerCase()
+            const filteredNodes = nodesWithRetry.filter(node => {
+              const name = String((node.data as any)?.name || '').toLowerCase()
               const type = String(node.type || '').toLowerCase()
               const id = node.id.toLowerCase()
               const term = searchTerm.toLowerCase()

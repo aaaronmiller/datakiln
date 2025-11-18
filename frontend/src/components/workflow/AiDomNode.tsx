@@ -14,6 +14,8 @@ interface AiDomNodeData {
   output?: 'file' | 'screen' | 'clipboard' | 'next'
   status?: 'running' | 'completed' | 'error' | 'pending'
   progress?: number
+  retryCount?: number
+  onRetry?: () => void
   [key: string]: unknown
 }
 
@@ -140,6 +142,23 @@ const AiDomNodeComponent: React.FC<AiDomNodeProps> = ({ data, selected }) => {
             <div className="text-xs text-white font-medium bg-black bg-opacity-50 px-1 py-0.5 rounded">
               {Math.round(data.progress)}%
             </div>
+          )}
+
+          {/* Retry Button for Failed Nodes */}
+          {data.status === 'error' && data.onRetry && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                data.onRetry?.()
+              }}
+              className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded shadow-lg transition-colors flex items-center space-x-1"
+              title="Retry failed node"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Retry {data.retryCount ? `(${data.retryCount})` : ''}</span>
+            </button>
           )}
         </div>
       )}
