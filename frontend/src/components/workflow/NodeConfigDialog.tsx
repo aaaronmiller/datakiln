@@ -156,6 +156,12 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
         data.append_text = appendText
         data.attachments = attachments
         break
+      case 'gemini_deep_research':
+      case 'prompt':
+        data.query_prompt = queryPrompt
+        data.prepend_text = prependText
+        data.append_text = appendText
+        break
       default: // ai_dom and others
         data.provider = provider
         data.actions = actions
@@ -312,7 +318,7 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
                       </div>
 
                       {provider === 'gemini' && (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-4">
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Research Depth</Label>
                             <select
@@ -327,14 +333,241 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
                           </div>
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Query Prompt Template</Label>
-                            <Input
+                            <textarea
                               value={queryPrompt}
                               onChange={(e) => setQueryPrompt(e.target.value)}
-                              placeholder="Enter base research query..."
+                              placeholder="Enter your research query or prompt here..."
+                              className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             />
+                            <p className="text-xs text-gray-500">This prompt will be sent to Gemini Deep Research</p>
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Consolidate Node Configuration */}
+                  {node?.type === 'consolidate' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Model</Label>
+                        <select
+                          value={model}
+                          onChange={(e) => setModel(e.target.value)}
+                          className="flex h-10 w-[300px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          <option value="gemini-pro">Gemini Pro</option>
+                          <option value="gemini-flash">Gemini Flash</option>
+                          <option value="gpt-4">GPT-4</option>
+                          <option value="claude-3">Claude 3</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Prepend Text (Instruction)</Label>
+                        <textarea
+                          value={prependText}
+                          onChange={(e) => setPrependText(e.target.value)}
+                          placeholder="Instructions to prepend before attached documents (e.g., 'Analyze the following research documents and synthesize key findings...')"
+                          className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                        <p className="text-xs text-gray-500">This text will appear before the attached file contents in the AI prompt</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Append Text (Follow-up)</Label>
+                        <textarea
+                          value={appendText}
+                          onChange={(e) => setAppendText(e.target.value)}
+                          placeholder="Additional instructions to append after documents (e.g., 'Provide a comprehensive summary in markdown format...')"
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                        <p className="text-xs text-gray-500">This text will appear after the attached file contents</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Attachments (File Paths)</Label>
+                        <div className="space-y-2">
+                          {attachments.map((attachment, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <Input
+                                value={attachment}
+                                onChange={(e) => {
+                                  const newAttachments = [...attachments]
+                                  newAttachments[index] = e.target.value
+                                  setAttachments(newAttachments)
+                                }}
+                                placeholder="/path/to/document.txt"
+                                className="flex-1"
+                              />
+                              <Button
+                                onClick={() => {
+                                  setAttachments(attachments.filter((_, i) => i !== index))
+                                }}
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            onClick={() => setAttachments([...attachments, ''])}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Attachment
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">File paths to documents that will be consolidated</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Gemini Deep Research Node Configuration */}
+                  {(node?.type === 'gemini_deep_research' || node?.type === 'prompt') && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Research Query / Prompt</Label>
+                        <textarea
+                          value={queryPrompt}
+                          onChange={(e) => setQueryPrompt(e.target.value)}
+                          placeholder="Enter your research query or prompt here..."
+                          className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                        <p className="text-xs text-gray-500">This is the main prompt that will be sent to the AI model</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Prepend Text (Optional)</Label>
+                        <textarea
+                          value={prependText}
+                          onChange={(e) => setPrependText(e.target.value)}
+                          placeholder="Text to prepend before the main prompt..."
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Append Text (Optional)</Label>
+                        <textarea
+                          value={appendText}
+                          onChange={(e) => setAppendText(e.target.value)}
+                          placeholder="Text to append after the main prompt..."
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Transform Node Configuration */}
+                  {node?.type === 'transform' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Transform Type</Label>
+                          <select
+                            value={transformType}
+                            onChange={(e) => setTransformType(e.target.value)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="">Select Transform</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="json">JSON</option>
+                            <option value="xml">XML</option>
+                            <option value="csv">CSV</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Input Key</Label>
+                          <Input
+                            value={inputKey}
+                            onChange={(e) => setInputKey(e.target.value)}
+                            placeholder="input_data"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Output Key</Label>
+                        <Input
+                          value={outputKey}
+                          onChange={(e) => setOutputKey(e.target.value)}
+                          placeholder="transformed_data"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Export Node Configuration */}
+                  {node?.type === 'export' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Export Format</Label>
+                          <select
+                            value={exportFormat}
+                            onChange={(e) => setExportFormat(e.target.value)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="json">JSON</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="txt">Text</option>
+                            <option value="csv">CSV</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">File Path</Label>
+                          <Input
+                            value={filePath}
+                            onChange={(e) => setFilePath(e.target.value)}
+                            placeholder="output.json"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={saveIntermittently}
+                          onChange={(e) => setSaveIntermittently(e.target.checked)}
+                          className="rounded"
+                        />
+                        <Label className="text-sm">Save Intermittently</Label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Condition Node Configuration */}
+                  {node?.type === 'condition' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Condition Expression</Label>
+                        <Input
+                          value={conditionExpr}
+                          onChange={(e) => setConditionExpr(e.target.value)}
+                          placeholder="value > 10"
+                        />
+                        <p className="text-xs text-gray-500">Python expression to evaluate</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">True Output</Label>
+                          <Input
+                            value={trueOutput}
+                            onChange={(e) => setTrueOutput(e.target.value)}
+                            placeholder="true_branch"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">False Output</Label>
+                          <Input
+                            value={falseOutput}
+                            onChange={(e) => setFalseOutput(e.target.value)}
+                            placeholder="false_branch"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 

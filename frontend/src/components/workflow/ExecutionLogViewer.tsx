@@ -151,18 +151,32 @@ const ExecutionLogViewer: React.FC<ExecutionLogViewerProps> = ({
   }
 
   const formatLogData = (type: string, data: Record<string, unknown>) => {
+    // Helper to get node display name
+    const getNodeDisplayName = () => {
+      if (data.node_name && typeof data.node_name === 'string') {
+        return data.node_name
+      }
+      if (data.node_id && typeof data.node_id === 'string') {
+        return data.node_id
+      }
+      return 'unknown'
+    }
+
+    const nodeDisplayName = getNodeDisplayName()
+    const nodeType = data.node_type || 'node'
+
     switch (type) {
       case 'execution_started':
         return `Execution started for workflow: ${data.workflow_name || 'Unknown'}`
       case 'step_started':
-        return `Started executing ${data.node_type || 'node'}: ${data.node_id || 'unknown'}`
+        return `Started: "${nodeDisplayName}" (${nodeType})`
       case 'step_succeeded': {
-        const timingInfo = data.timing_policy ? ` (timing: ${JSON.stringify(data.timing_policy)})` : ''
-        const selectorInfo = data.selector_used ? ` [selector: ${data.selector_used}]` : ''
-        return `Successfully executed ${data.node_type || 'node'}: ${data.node_id || 'unknown'}${selectorInfo}${timingInfo}`
+        const timingInfo = data.timing_policy ? ` | timing: ${JSON.stringify(data.timing_policy)}` : ''
+        const selectorInfo = data.selector_used ? ` | selector: ${data.selector_used}` : ''
+        return `Completed: "${nodeDisplayName}" (${nodeType})${selectorInfo}${timingInfo}`
       }
       case 'step_failed':
-        return `Failed to execute ${data.node_type || 'node'}: ${data.node_id || 'unknown'} - ${data.error || 'Unknown error'}`
+        return `Failed: "${nodeDisplayName}" (${nodeType}) - ${data.error || 'Unknown error'}`
       case 'execution_completed':
         return `Execution completed successfully in ${typeof data.execution_time === 'number' ? data.execution_time.toFixed(2) : '0'}s`
       case 'execution_failed':

@@ -114,9 +114,15 @@ class WorkflowExecutor:
 
                 # Emit execution event for state changes
                 if self.on_execution_event and self.context and self.context.current_node_id:
+                    current_node = self.context.nodes.get(self.context.current_node_id)
+                    node_name = current_node.name if current_node and hasattr(current_node, 'name') else self.context.current_node_id
+                    node_type = current_node.type if current_node and hasattr(current_node, 'type') else 'unknown'
+
                     await self.on_execution_event("step_started", {
                         "execution_id": execution_id,
                         "node_id": self.context.current_node_id,
+                        "node_name": node_name,
+                        "node_type": node_type,
                         "state": self.state.value,
                         "timestamp": datetime.now().isoformat()
                     })
@@ -361,9 +367,11 @@ class WorkflowExecutor:
             # Emit step succeeded event
             if self.on_execution_event:
                 execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+                node_name = current_node.name if hasattr(current_node, 'name') else current_node.id
                 await self.on_execution_event("step_succeeded", {
                     "execution_id": execution_id,
                     "node_id": current_node.id,
+                    "node_name": node_name,
                     "node_type": current_node.type,
                     "result": result,
                     "timestamp": datetime.now().isoformat()
@@ -612,9 +620,13 @@ class WorkflowExecutor:
         # Emit step failed event
         if self.on_execution_event and self.context:
             execution_id = self.context.workflow.get("execution_data", {}).get("execution_options", {}).get("execution_id", "unknown")
+            node_name = node.name if node and hasattr(node, 'name') else (node.id if node else 'unknown')
+            node_type = node.type if node and hasattr(node, 'type') else 'unknown'
             await self.on_execution_event("step_failed", {
                 "execution_id": execution_id,
                 "node_id": node.id if node else None,
+                "node_name": node_name,
+                "node_type": node_type,
                 "error": str(exception),
                 "retry_count": current_retry_count,
                 "is_selector_error": is_selector_error,
