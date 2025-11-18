@@ -15,6 +15,8 @@ from nodes.prompt_node import PromptNode
 from nodes.aggregate_node import AggregateNode
 from nodes.join_node import JoinNode
 from nodes.union_node import UnionNode
+from nodes.consolidate_node import ConsolidateNode
+from nodes.splitter_node import SplitterNode
 from app.models.workflow import Workflow, Node, Edge
 
 logger = logging.getLogger(__name__)
@@ -58,6 +60,7 @@ class DAGExecutor:
     def __init__(self):
         self.node_classes = {
             "dataSource": DataSourceNode,
+            "data_source": DataSourceNode,
             "transform": TransformNode,
             "filter": FilterNode,
             "dom_action": DomActionNode,
@@ -68,6 +71,9 @@ class DAGExecutor:
             "aggregate": AggregateNode,
             "join": JoinNode,
             "union": UnionNode,
+            "consolidate": ConsolidateNode,
+            "splitter": SplitterNode,
+            "gemini_deep_research": DomActionNode,  # Reuse DomActionNode for Gemini
         }
         self.event_callbacks: List[Callable[[str, Dict[str, Any]], None]] = []
 
