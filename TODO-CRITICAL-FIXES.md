@@ -64,13 +64,22 @@
 ---
 
 ## 🔁 TASK 5: Add Retry Mechanism
-**Status**: ⏳ PENDING
-**File**: `frontend/src/components/workflow/WorkflowEditor.tsx`
+**Status**: ✅ COMPLETED
+**Files**:
+- `frontend/src/components/workflow/AiDomNode.tsx` (retry button UI)
+- `frontend/src/components/workflow/WorkflowEditor.tsx` (retry logic)
 **Problem**: Can't retry failed nodes
-**Fix**:
-- Add "Retry" button on failed nodes
-- Re-execute just failed nodes
-- Show retry count
+**Solution**: Implemented complete retry system with:
+- Retry button shown on all failed nodes (status === 'error')
+- Button displays retry count: "Retry (2)" after retries
+- retryNode() function re-executes individual failed nodes
+- Creates mini-workflow with just the failed node
+- Tracks retry count in node.data.retryCount
+- Node status progression: error → pending → running → completed/error
+- Saves retry executions to history
+- Success/error notifications for each retry attempt
+- Refresh icon with hover effects
+**Commit**: `eb95879` - "Add retry mechanism for failed nodes"
 
 ---
 
