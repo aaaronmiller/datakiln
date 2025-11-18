@@ -25,6 +25,7 @@ import AiDomNode from './AiDomNode'
 import SplitterNode from './SplitterNode'
 import NodeConfigDialog from './NodeConfigDialog'
 import ExecutionLogViewer from './ExecutionLogViewer'
+import ExecutionHistory, { saveExecutionToHistory } from './ExecutionHistory'
 import { workflowValidationService } from '../../services/workflowValidationService'
 import { useNotifications } from '../../stores/uiStore'
 import { ReactFlowWrapper } from '../ui/react-flow-wrapper'
@@ -236,6 +237,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   const [showExecutionOrder, setShowExecutionOrder] = useState(false)
   const [executionOrder, setExecutionOrder] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [executionHistoryOpen, setExecutionHistoryOpen] = useState(false)
 
   // Layout state with persistence
   const [selectedLayoutAlgorithm, setSelectedLayoutAlgorithm] = useState<LayoutAlgorithm>(() => {
@@ -1145,6 +1147,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
     setIsExecuting(true)
     const workflowId = `workflow-${Date.now()}`
+    const startTime = Date.now()
 
     try {
       const workflow = convertToWorkflowFormat()
@@ -1196,6 +1199,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       }
 
       setCurrentExecutionId(result.execution_id || workflowId)
+      const endTime = Date.now()
 
       // Update nodes based on execution result
       if (result.success) {
@@ -1203,6 +1207,21 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           ...node,
           data: { ...node.data, status: 'completed' as const, progress: 100 }
         })))
+
+        // Save to execution history
+        saveExecutionToHistory(
+          result.execution_id || workflowId,
+          workflowId,
+          workflowData.workflow.name,
+          startTime,
+          endTime,
+          'success',
+          nodes.length,
+          nodes.length,
+          0,
+          undefined,
+          [] // Logs would come from WebSocket
+        )
 
         addNotification({
           type: 'success',
@@ -1212,6 +1231,9 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       } else {
         // Mark failed nodes
         const failedNodeIds = result.failed_nodes || []
+        const failedCount = failedNodeIds.length
+        const completedCount = nodes.length - failedCount
+
         setNodes(nds => nds.map(node => ({
           ...node,
           data: {
@@ -1220,6 +1242,21 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
             progress: failedNodeIds.includes(node.id) ? 0 : 100
           }
         })))
+
+        // Save to execution history
+        saveExecutionToHistory(
+          result.execution_id || workflowId,
+          workflowId,
+          workflowData.workflow.name,
+          startTime,
+          endTime,
+          failedCount === nodes.length ? 'failed' : 'partial',
+          nodes.length,
+          completedCount,
+          failedCount,
+          result.error,
+          [] // Logs would come from WebSocket
+        )
 
         addNotification({
           type: 'error',
@@ -1232,6 +1269,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
     } catch (error) {
       console.error('Workflow execution error:', error)
+      const endTime = Date.now()
 
       // Mark all nodes as error
       setNodes(nds => nds.map(node => ({
@@ -1239,10 +1277,26 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         data: { ...node.data, status: 'error' as const, progress: 0 }
       })))
 
+      // Save to execution history
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      saveExecutionToHistory(
+        workflowId,
+        workflowId,
+        `Workflow ${new Date().toLocaleString()}`,
+        startTime,
+        endTime,
+        'failed',
+        nodes.length,
+        0,
+        nodes.length,
+        errorMessage,
+        []
+      )
+
       addNotification({
         type: 'error',
         title: 'Execution Failed',
-        message: error instanceof Error ? error.message : 'Unknown error occurred. Check console for details.'
+        message: errorMessage
       })
     } finally {
       setIsExecuting(false)
@@ -1607,6 +1661,13 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
               {isExecuting ? 'Executing...' : 'Execute Workflow'}
             </button>
             <button
+              onClick={() => setExecutionHistoryOpen(true)}
+              className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded text-xs"
+              title="View execution history"
+            >
+              History
+            </button>
+            <button
               onClick={() => {
                 // Generate performance test workflow with 50+ nodes
                 const performanceTestWorkflow = generatePerformanceTestWorkflow()
@@ -1896,6 +1957,12 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           setExecutionLogVisible(false)
           setCurrentExecutionId(null)
         }}
+      />
+
+      {/* Execution History */}
+      <ExecutionHistory
+        isOpen={executionHistoryOpen}
+        onClose={() => setExecutionHistoryOpen(false)}
       />
 
       {/* Context Menu */}
