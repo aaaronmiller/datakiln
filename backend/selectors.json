@@ -196,8 +196,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421369",
-      "updated_at": "2025-11-18 11:52:14.421440"
+      "created_at": "2025-11-18 13:17:37.048410",
+      "updated_at": "2025-11-18 13:17:37.048481"
     },
     {
       "key": "google_search_button",
@@ -213,8 +213,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421376",
-      "updated_at": "2025-11-18 11:52:14.422731"
+      "created_at": "2025-11-18 13:17:37.048418",
+      "updated_at": "2025-11-18 13:17:37.049418"
     },
     {
       "key": "perplexity_search_input",
@@ -230,8 +230,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421380",
-      "updated_at": "2025-11-18 11:52:14.423707"
+      "created_at": "2025-11-18 13:17:37.048422",
+      "updated_at": "2025-11-18 13:17:37.050180"
     },
     {
       "key": "perplexity_send_button",
@@ -247,8 +247,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421384",
-      "updated_at": "2025-11-18 11:52:14.424811"
+      "created_at": "2025-11-18 13:17:37.048426",
+      "updated_at": "2025-11-18 13:17:37.050994"
     },
     {
       "key": "contenteditable_input",
@@ -264,8 +264,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421388",
-      "updated_at": "2025-11-18 11:52:14.425901"
+      "created_at": "2025-11-18 13:17:37.048430",
+      "updated_at": "2025-11-18 13:17:37.051673"
     },
     {
       "key": "submit_button",
@@ -281,8 +281,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421392",
-      "updated_at": "2025-11-18 11:52:14.427165"
+      "created_at": "2025-11-18 13:17:37.048434",
+      "updated_at": "2025-11-18 13:17:37.052423"
     },
     {
       "key": "text_input",
@@ -298,8 +298,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421395",
-      "updated_at": "2025-11-18 11:52:14.428179"
+      "created_at": "2025-11-18 13:17:37.048437",
+      "updated_at": "2025-11-18 13:17:37.053154"
     },
     {
       "key": "main_content",
@@ -315,8 +315,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421399",
-      "updated_at": "2025-11-18 11:52:14.429378"
+      "created_at": "2025-11-18 13:17:37.048441",
+      "updated_at": "2025-11-18 13:17:37.053851"
     },
     {
       "key": "article_content",
@@ -332,8 +332,134 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-11-18 11:52:14.421402",
-      "updated_at": "2025-11-18 11:52:14.430585"
+      "created_at": "2025-11-18 13:17:37.048445",
+      "updated_at": "2025-11-18 13:17:37.054710"
+    },
+    {
+      "key": "test.dynamic_button",
+      "selector": "button#primary-action",
+      "selector_type": "css",
+      "description": "Dynamic button with fallbacks",
+      "provider": null,
+      "context": null,
+      "fallback_selectors": [
+        "button.primary",
+        "button[data-action='primary']",
+        "button:has-text('Submit')"
+      ],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
+      "attributes": {},
+      "created_at": "2025-11-18 13:17:27.899793",
+      "updated_at": "2025-11-18 13:17:27.899797"
+    },
+    {
+      "key": "youtube.transcript_button",
+      "selector": "button[aria-label='Show transcript']",
+      "selector_type": "css",
+      "description": "YouTube transcript toggle button",
+      "provider": "youtube",
+      "context": "video",
+      "fallback_selectors": [
+        "button:has-text('Transcript')",
+        "ytd-video-description-transcript-section-renderer button",
+        "#expand >> text=Transcript"
+      ],
+      "timing_policy": {
+        "default_delay_ms": 2000,
+        "wait_for_selector_timeout_ms": 8000,
+        "action_timeout_ms": 10000
+      },
+      "attributes": {},
+      "created_at": "2025-11-18 13:17:37.056911",
+      "updated_at": "2025-11-18 13:17:37.056915"
+    },
+    {
+      "key": "youtube.transcript_container",
+      "selector": "ytd-transcript-segment-list-renderer",
+      "selector_type": "css",
+      "description": "YouTube transcript container",
+      "provider": "youtube",
+      "context": "video",
+      "fallback_selectors": [
+        "#segments-container",
+        "[role='list'] ytd-transcript-segment-renderer",
+        ".ytd-transcript-renderer"
+      ],
+      "timing_policy": {
+        "default_delay_ms": 3000,
+        "wait_for_selector_timeout_ms": 10000,
+        "action_timeout_ms": 15000
+      },
+      "attributes": {},
+      "created_at": "2025-11-18 13:17:37.057774",
+      "updated_at": "2025-11-18 13:17:37.057778"
+    },
+    {
+      "key": "youtube.transcript_text",
+      "selector": "ytd-transcript-segment-renderer .segment-text",
+      "selector_type": "css",
+      "description": "YouTube transcript text segments",
+      "provider": "youtube",
+      "context": "video",
+      "fallback_selectors": [
+        "yt-formatted-string.segment-text",
+        "#segments-container .segment-text",
+        "[role='listitem'] .segment-text"
+      ],
+      "timing_policy": {
+        "default_delay_ms": 2000,
+        "wait_for_selector_timeout_ms": 8000,
+        "action_timeout_ms": 10000
+      },
+      "attributes": {},
+      "created_at": "2025-11-18 13:17:37.058623",
+      "updated_at": "2025-11-18 13:17:37.058628"
+    },
+    {
+      "key": "youtube.video_title",
+      "selector": "h1.ytd-watch-metadata yt-formatted-string",
+      "selector_type": "css",
+      "description": "YouTube video title",
+      "provider": "youtube",
+      "context": "video",
+      "fallback_selectors": [
+        "h1.title",
+        "#title h1",
+        "ytd-watch-metadata h1"
+      ],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 8000
+      },
+      "attributes": {},
+      "created_at": "2025-11-18 13:17:37.059514",
+      "updated_at": "2025-11-18 13:17:37.059518"
+    },
+    {
+      "key": "youtube.description_text",
+      "selector": "ytd-text-inline-expander #description-inline-expander",
+      "selector_type": "css",
+      "description": "YouTube video description",
+      "provider": "youtube",
+      "context": "video",
+      "fallback_selectors": [
+        "#description",
+        "ytd-video-secondary-info-renderer #description",
+        ".ytd-expander .content"
+      ],
+      "timing_policy": {
+        "default_delay_ms": 1500,
+        "wait_for_selector_timeout_ms": 6000,
+        "action_timeout_ms": 10000
+      },
+      "attributes": {},
+      "created_at": "2025-11-18 13:17:37.060372",
+      "updated_at": "2025-11-18 13:17:37.060376"
     }
   ],
   "provider_mappings": {
@@ -350,6 +476,13 @@
     "gemini_deep_research": [
       "google_search_input",
       "google_search_button"
+    ],
+    "youtube": [
+      "youtube.transcript_button",
+      "youtube.transcript_container",
+      "youtube.transcript_text",
+      "youtube.video_title",
+      "youtube.description_text"
     ]
   },
   "context_mappings": {
@@ -378,7 +511,14 @@
       "generic.articleContent",
       "main_content",
       "article_content"
+    ],
+    "video": [
+      "youtube.transcript_button",
+      "youtube.transcript_container",
+      "youtube.transcript_text",
+      "youtube.video_title",
+      "youtube.description_text"
     ]
   },
-  "exported_at": "2025-11-18T11:52:14.430807"
+  "exported_at": "2025-11-18T13:17:37.060538"
 }

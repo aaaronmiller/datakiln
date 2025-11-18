@@ -1,0 +1,85 @@
+{
+  "id": "youtube-transcript-workflow",
+  "name": "YouTube Transcript Extraction",
+  "start_node": "navigate",
+  "nodes": {
+    "navigate": {
+      "id": "navigate",
+      "type": "dom_action",
+      "name": "Navigate to YouTube Video",
+      "data": {
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "actions": []
+      }
+    },
+    "click_transcript": {
+      "id": "click_transcript",
+      "type": "dom_action",
+      "name": "Click Transcript Button",
+      "config": {
+        "provider": "youtube",
+        "output": "next",
+        "actions": [
+          {
+            "selector_key": "youtube.transcript_button",
+            "action": "click",
+            "delayAfter": 2000
+          }
+        ]
+      }
+    },
+    "extract_transcript": {
+      "id": "extract_transcript",
+      "type": "dom_action",
+      "name": "Extract Transcript Text",
+      "config": {
+        "provider": "youtube",
+        "output": "next",
+        "actions": [
+          {
+            "selector_key": "youtube.transcript_container",
+            "action": "waitForVisible",
+            "delay": 3000
+          },
+          {
+            "selector_key": "youtube.transcript_text",
+            "action": "extract"
+          }
+        ]
+      }
+    },
+    "extract_metadata": {
+      "id": "extract_metadata",
+      "type": "dom_action",
+      "name": "Extract Video Metadata",
+      "config": {
+        "provider": "youtube",
+        "output": "next",
+        "actions": [
+          {
+            "selector_key": "youtube.video_title",
+            "action": "extract"
+          },
+          {
+            "selector_key": "youtube.description_text",
+            "action": "extract"
+          }
+        ]
+      }
+    }
+  },
+  "edges": [
+    {
+      "source": "navigate",
+      "target": "click_transcript"
+    },
+    {
+      "source": "click_transcript",
+      "target": "extract_transcript"
+    },
+    {
+      "source": "extract_transcript",
+      "target": "extract_metadata"
+    }
+  ]
+}

@@ -1,536 +1,409 @@
-// DataKiln Content Script - Enhanced Chat Capture and Workflow Integration
-class DataKilnContentScript {
-  constructor() {
-    this.hostname = window.location.hostname;
-    this.site = this.detectSite();
-    this.userId = null;
-    this.settings = {};
-    this.lastCapturedMessages = [];
-    this.captureInterval = null;
-    
-    if (this.site) {
-      this.init();
-    }
-  }
+// DataKiln Chrome Extension - Content Script
+// Handles DOM element selection and interaction
 
-  detectSite() {
-    if (this.hostname.includes('chat.openai.com')) return 'chatgpt';
-    if (this.hostname.includes('gemini.google.com')) return 'gemini';
-    if (this.hostname.includes('claude.ai')) return 'claude';
-    return null;
-  }
+let pickerActive = false;
+let highlightedElement = null;
+let overlay = null;
+let tooltip = null;
 
-  async init() {
-    try {
-      await this.loadSettings();
-      
-      if (!this.settings.enableCapture) return;
-      
-      await this.setupUserId();
-      this.setupSelectors();
-      this.setupChatCapture();
-      this.setupWorkflowIntegration();
-      this.injectUI();
-      
-      console.log(`DataKiln content script initialized for ${this.site}`);
-      
-    } catch (error) {
-      console.error('DataKiln content script initialization failed:', error);
-    }
-  }
+// Initialize
+(function init() {
+  createOverlay();
+  createTooltip();
+  setupMessageListener();
+  loadPickerState();
+})();
 
-  async loadSettings() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get([
-        'enableCapture', 
-        'enableWorkflow',
-        'sites', 
-        'userId',
-        'autoAnalyze'
-      ], (result) => {
-        this.settings = {
-          enableCapture: result.enableCapture || false,
-          enableWorkflow: result.enableWorkflow !== false,
-          sites: result.sites || ['chatgpt', 'gemini', 'claude'],
-          userId: result.userId,
-          autoAnalyze: result.autoAnalyze || false
-        };
-        resolve();
-      });
-    });
-  }
-
-  async setupUserId() {
-    if (!this.settings.userId) {
-      this.userId = this.generateUUID();
-      chrome.storage.sync.set({ userId: this.userId });
-    } else {
-      this.userId = this.settings.userId;
-    }
-  }
-
-  setupSelectors() {
-    // Enhanced selectors with better accuracy
-    this.selectors = {
-      chatgpt: {
-        container: '[data-testid="conversation-turn"], .group',
-        user: '[data-message-author-role="user"], .whitespace-pre-wrap:not(.markdown)',
-        assistant: '[data-message-author-role="assistant"], .markdown',
-        newMessage: '[data-testid="conversation-turn"]:last-child',
-        inputArea: '#prompt-textarea, textarea[placeholder*="message"]'
-      },
-      gemini: {
-        container: '.conversation-container .message, [data-test-id="message"]',
-        user: '.user-message, [data-test-id="user-message"]',
-        assistant: '.model-message, [data-test-id="model-message"]',
-        newMessage: '.message:last-child',
-        inputArea: '.ql-editor, textarea[placeholder*="Enter"]'
-      },
-      claude: {
-        container: '.message, [data-testid="message"]',
-        user: '.user-message, [data-testid="user-message"]',
-        assistant: '.assistant-message, [data-testid="assistant-message"]',
-        newMessage: '.message:last-child',
-        inputArea: '.ProseMirror, textarea[placeholder*="Talk"]'
-      }
-    };
-  }
-
-  setupChatCapture() {
-    if (!this.settings.sites.includes(this.site)) return;
-
-    // Set up mutation observer for real-time capture
-    this.observer = new MutationObserver((mutations) => {
-      this.handleMutations(mutations);
-    });
-
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-
-    // Initial capture after page load
-    setTimeout(() => this.captureMessages(), 3000);
-
-    // Periodic capture as backup
-    this.captureInterval = setInterval(() => {
-      this.captureMessages();
-    }, 30000); // Every 30 seconds
-  }
-
-  handleMutations(mutations) {
-    let shouldCapture = false;
-    
-    mutations.forEach(mutation => {
-      if (mutation.type === 'childList') {
-        mutation.addedNodes.forEach(node => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const siteSelectors = this.selectors[this.site];
-            if (node.matches && (
-              node.matches(siteSelectors.container) ||
-              node.querySelector(siteSelectors.container)
-            )) {
-              shouldCapture = true;
-            }
-          }
-        });
-      }
-    });
-
-    if (shouldCapture) {
-      // Debounce capture to avoid excessive calls
-      clearTimeout(this.captureTimeout);
-      this.captureTimeout = setTimeout(() => {
-        this.captureMessages();
-      }, 1000);
-    }
-  }
-
-  captureMessages() {
-    try {
-      const siteSelectors = this.selectors[this.site];
-      const messages = [];
-      
-      // Get all message containers
-      const containers = document.querySelectorAll(siteSelectors.container);
-      
-      containers.forEach((container, index) => {
-        const userElement = container.querySelector(siteSelectors.user);
-        const assistantElement = container.querySelector(siteSelectors.assistant);
-        
-        if (userElement) {
-          const content = this.extractTextContent(userElement);
-          if (content && content.length > 0) {
-            messages.push({
-              role: 'user',
-              content: content,
-              timestamp: new Date().toISOString(),
-              index: index
-            });
-          }
-        }
-        
-        if (assistantElement) {
-          const content = this.extractTextContent(assistantElement);
-          if (content && content.length > 0) {
-            messages.push({
-              role: 'assistant',
-              content: content,
-              timestamp: new Date().toISOString(),
-              index: index
-            });
-          }
-        }
-      });
-
-      // Only send if messages have changed
-      if (this.hasMessagesChanged(messages)) {
-        this.lastCapturedMessages = messages;
-        
-        const chatData = {
-          site: this.site,
-          userId: this.userId,
-          timestamp: new Date().toISOString(),
-          url: window.location.href,
-          title: document.title,
-          model: this.detectModel(),
-          messages: messages,
-          messageCount: messages.length
-        };
-
-        // Send to background script
-        chrome.runtime.sendMessage({
-          type: 'captureChat',
-          data: chatData
-        });
-
-        // Auto-analyze if enabled
-        if (this.settings.autoAnalyze && messages.length > 0) {
-          this.triggerAutoAnalysis(chatData);
-        }
-      }
-      
-    } catch (error) {
-      console.error('Message capture failed:', error);
-    }
-  }
-
-  extractTextContent(element) {
-    if (!element) return '';
-    
-    // Handle different content structures
-    let content = '';
-    
-    // Try to get clean text content
-    if (element.textContent) {
-      content = element.textContent.trim();
-    }
-    
-    // Handle code blocks and formatted content
-    const codeBlocks = element.querySelectorAll('code, pre');
-    codeBlocks.forEach(block => {
-      if (block.textContent) {
-        content += '\n```\n' + block.textContent + '\n```\n';
-      }
-    });
-    
-    return content;
-  }
-
-  hasMessagesChanged(newMessages) {
-    if (newMessages.length !== this.lastCapturedMessages.length) {
-      return true;
-    }
-    
-    for (let i = 0; i < newMessages.length; i++) {
-      if (newMessages[i].content !== this.lastCapturedMessages[i]?.content) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
-
-  detectModel() {
-    // Try to detect the specific model being used
-    switch (this.site) {
-      case 'chatgpt':
-        // Look for model indicators in the UI
-        const modelElement = document.querySelector('[data-testid="model-switcher"], .model-name');
-        if (modelElement) {
-          return modelElement.textContent.trim();
-        }
-        return 'ChatGPT';
-        
-      case 'gemini':
-        return 'Gemini';
-        
-      case 'claude':
-        // Look for Claude model version
-        const claudeModel = document.querySelector('.model-name, [data-testid="model"]');
-        if (claudeModel) {
-          return claudeModel.textContent.trim();
-        }
-        return 'Claude';
-        
-      default:
-        return this.site;
-    }
-  }
-
-  setupWorkflowIntegration() {
-    if (!this.settings.enableWorkflow) return;
-    
-    // Add keyboard shortcuts for quick workflow execution
-    document.addEventListener('keydown', (event) => {
-      // Ctrl+Shift+D for deep research
-      if (event.ctrlKey && event.shiftKey && event.key === 'D') {
-        event.preventDefault();
-        this.executeQuickWorkflow('deep-research');
-      }
-      
-      // Ctrl+Shift+A for text analysis
-      if (event.ctrlKey && event.shiftKey && event.key === 'A') {
-        event.preventDefault();
-        this.executeQuickWorkflow('text-analysis');
-      }
-    });
-  }
-
-  async executeQuickWorkflow(workflowId) {
-    try {
-      // Get selected text or last AI response
-      let content = window.getSelection().toString();
-      
-      if (!content && this.lastCapturedMessages.length > 0) {
-        const lastAssistantMessage = this.lastCapturedMessages
-          .filter(m => m.role === 'assistant')
-          .pop();
-        content = lastAssistantMessage?.content || '';
-      }
-      
-      if (!content) {
-        this.showNotification('No content selected for workflow execution', 'warning');
-        return;
-      }
-      
-      // Execute workflow via background script
-      const response = await chrome.runtime.sendMessage({
-        type: 'executeWorkflow',
-        data: {
-          workflow_id: workflowId,
-          input_data: {
-            type: 'text',
-            content: content,
-            source: this.site
-          },
-          activation_source: 'keyboard_shortcut'
-        }
-      });
-      
-      if (response.success) {
-        this.showNotification(`${workflowId} workflow started!`, 'success');
-      } else {
-        this.showNotification(`Failed to start workflow: ${response.error}`, 'error');
-      }
-      
-    } catch (error) {
-      console.error('Quick workflow execution failed:', error);
-      this.showNotification('Workflow execution failed', 'error');
-    }
-  }
-
-  async triggerAutoAnalysis(chatData) {
-    try {
-      // Only analyze if there are recent assistant messages
-      const recentAssistantMessages = chatData.messages
-        .filter(m => m.role === 'assistant')
-        .slice(-2); // Last 2 assistant messages
-      
-      if (recentAssistantMessages.length === 0) return;
-      
-      // Execute chat capture analysis workflow
-      await chrome.runtime.sendMessage({
-        type: 'executeWorkflow',
-        data: {
-          workflow_id: 'chat-capture-analysis',
-          input_data: {
-            type: 'chat',
-            messages: recentAssistantMessages,
-            site: this.site,
-            context: chatData
-          },
-          activation_source: 'auto_analysis'
-        }
-      });
-      
-    } catch (error) {
-      console.error('Auto-analysis failed:', error);
-    }
-  }
-
-  injectUI() {
-    // Inject a small floating button for quick access
-    const floatingButton = document.createElement('div');
-    floatingButton.id = 'datakiln-floating-button';
-    floatingButton.innerHTML = '⚡';
-    floatingButton.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
-      background: #3b82f6;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 10000;
-      font-size: 18px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      transition: all 0.3s ease;
-    `;
-    
-    floatingButton.addEventListener('click', () => {
-      this.showQuickMenu();
-    });
-    
-    floatingButton.addEventListener('mouseenter', () => {
-      floatingButton.style.transform = 'scale(1.1)';
-    });
-    
-    floatingButton.addEventListener('mouseleave', () => {
-      floatingButton.style.transform = 'scale(1)';
-    });
-    
-    document.body.appendChild(floatingButton);
-  }
-
-  showQuickMenu() {
-    // Create a quick menu for workflow selection
-    const menu = document.createElement('div');
-    menu.id = 'datakiln-quick-menu';
-    menu.style.cssText = `
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      z-index: 10001;
-      min-width: 200px;
-      padding: 8px;
-    `;
-    
-    const workflows = [
-      { id: 'deep-research', name: '🔍 Deep Research', key: 'Ctrl+Shift+D' },
-      { id: 'text-analysis', name: '📝 Text Analysis', key: 'Ctrl+Shift+A' },
-      { id: 'chat-capture-analysis', name: '💬 Analyze Chat', key: '' }
-    ];
-    
-    workflows.forEach(workflow => {
-      const item = document.createElement('div');
-      item.style.cssText = `
-        padding: 8px 12px;
-        cursor: pointer;
-        border-radius: 4px;
-        font-size: 14px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      `;
-      
-      item.innerHTML = `
-        <span>${workflow.name}</span>
-        <small style="color: #666;">${workflow.key}</small>
-      `;
-      
-      item.addEventListener('mouseenter', () => {
-        item.style.background = '#f3f4f6';
-      });
-      
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'transparent';
-      });
-      
-      item.addEventListener('click', () => {
-        this.executeQuickWorkflow(workflow.id);
-        document.body.removeChild(menu);
-      });
-      
-      menu.appendChild(item);
-    });
-    
-    // Close menu when clicking outside
-    const closeMenu = (event) => {
-      if (!menu.contains(event.target)) {
-        document.body.removeChild(menu);
-        document.removeEventListener('click', closeMenu);
-      }
-    };
-    
-    setTimeout(() => {
-      document.addEventListener('click', closeMenu);
-    }, 100);
-    
-    document.body.appendChild(menu);
-  }
-
-  showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-      color: white;
-      padding: 12px 20px;
-      border-radius: 6px;
-      z-index: 10002;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
-    }, 3000);
-  }
-
-  generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
-  // Cleanup on page unload
-  cleanup() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
-    if (this.captureInterval) {
-      clearInterval(this.captureInterval);
-    }
-    if (this.captureTimeout) {
-      clearTimeout(this.captureTimeout);
-    }
+// Load picker state from storage
+async function loadPickerState() {
+  const result = await chrome.storage.local.get(['pickerActive']);
+  if (result.pickerActive) {
+    activatePicker();
   }
 }
 
-// Initialize content script
-const dataKilnContent = new DataKilnContentScript();
+// Setup message listener
+function setupMessageListener() {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'TOGGLE_PICKER') {
+      if (message.active) {
+        activatePicker();
+      } else {
+        deactivatePicker();
+      }
+    }
+    sendResponse({ success: true });
+  });
+}
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-  dataKilnContent.cleanup();
-});
+// Create overlay for highlighting elements
+function createOverlay() {
+  overlay = document.createElement('div');
+  overlay.id = 'datakiln-overlay';
+  overlay.style.cssText = `
+    position: absolute;
+    pointer-events: none;
+    z-index: 999998;
+    border: 3px solid #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transition: all 0.1s ease;
+    display: none;
+  `;
+  document.body.appendChild(overlay);
+}
+
+// Create tooltip
+function createTooltip() {
+  tooltip = document.createElement('div');
+  tooltip.id = 'datakiln-tooltip';
+  tooltip.style.cssText = `
+    position: absolute;
+    z-index: 999999;
+    background: #667eea;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  `;
+  document.body.appendChild(tooltip);
+}
+
+// Activate picker mode
+function activatePicker() {
+  pickerActive = true;
+  document.body.style.cursor = 'crosshair';
+  document.addEventListener('mouseover', handleMouseOver);
+  document.addEventListener('mouseout', handleMouseOut);
+  document.addEventListener('click', handleClick, true);
+  document.addEventListener('keydown', handleKeyDown);
+  
+  showNotification('Element Picker Active - Click elements to capture | ESC to stop');
+}
+
+// Deactivate picker mode
+function deactivatePicker() {
+  pickerActive = false;
+  document.body.style.cursor = 'default';
+  document.removeEventListener('mouseover', handleMouseOver);
+  document.removeEventListener('mouseout', handleMouseOut);
+  document.removeEventListener('click', handleClick, true);
+  document.removeEventListener('keydown', handleKeyDown);
+  
+  hideOverlay();
+  hideTooltip();
+  hideNotification();
+}
+
+// Handle mouse over element
+function handleMouseOver(e) {
+  if (!pickerActive) return;
+  if (e.target === overlay || e.target === tooltip) return;
+  
+  highlightedElement = e.target;
+  highlightElement(e.target);
+  showElementInfo(e.target, e);
+}
+
+// Handle mouse out
+function handleMouseOut(e) {
+  if (!pickerActive) return;
+  if (e.target === highlightedElement) {
+    hideOverlay();
+    hideTooltip();
+  }
+}
+
+// Handle element click
+function handleClick(e) {
+  if (!pickerActive) return;
+  
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const element = e.target;
+  if (element === overlay || element === tooltip) return;
+  
+  // Show action selection dialog
+  showActionDialog(element, e);
+}
+
+// Handle keyboard events
+function handleKeyDown(e) {
+  if (!pickerActive) return;
+  
+  // ESC to stop picker
+  if (e.key === 'Escape') {
+    deactivatePicker();
+    chrome.runtime.sendMessage({ type: 'PICKER_STOPPED' });
+  }
+}
+
+// Highlight element
+function highlightElement(element) {
+  const rect = element.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  
+  overlay.style.display = 'block';
+  overlay.style.top = rect.top + scrollTop + 'px';
+  overlay.style.left = rect.left + scrollLeft + 'px';
+  overlay.style.width = rect.width + 'px';
+  overlay.style.height = rect.height + 'px';
+}
+
+// Show element info tooltip
+function showElementInfo(element, e) {
+  const selector = getOptimalSelector(element);
+  const tagName = element.tagName.toLowerCase();
+  const text = element.textContent.trim().substring(0, 30);
+  
+  tooltip.innerHTML = `
+    <div style="margin-bottom: 4px;"><strong>${tagName}</strong></div>
+    <div style="font-size: 10px; opacity: 0.9;">${selector}</div>
+    ${text ? '<div style="margin-top: 4px; font-size: 10px; opacity: 0.8;">"' + text + '..."</div>' : ''}
+  `;
+  
+  tooltip.style.display = 'block';
+  tooltip.style.top = (e.pageY + 15) + 'px';
+  tooltip.style.left = (e.pageX + 15) + 'px';
+}
+
+// Hide overlay
+function hideOverlay() {
+  overlay.style.display = 'none';
+}
+
+// Hide tooltip
+function hideTooltip() {
+  tooltip.style.display = 'none';
+}
+
+// Show action selection dialog
+function showActionDialog(element, clickEvent) {
+  const selector = getOptimalSelector(element);
+  const rect = element.getBoundingClientRect();
+  
+  // Create dialog
+  const dialog = document.createElement('div');
+  dialog.id = 'datakiln-action-dialog';
+  dialog.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000000;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    min-width: 320px;
+    font-family: sans-serif;
+  `;
+  
+  dialog.innerHTML = `
+    <div style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #1a202c;">
+      Select Action
+    </div>
+    <div style="font-size: 12px; color: #718096; margin-bottom: 16px; word-break: break-all;">
+      <strong>Element:</strong> ${selector}
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button class="action-btn" data-action="click" style="padding: 10px; border: 2px solid #667eea; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        🖱️ Click
+      </button>
+      <button class="action-btn" data-action="type" style="padding: 10px; border: 2px solid #48bb78; background: #48bb78; color: white; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        ⌨️ Type Text
+      </button>
+      <button class="action-btn" data-action="paste" style="padding: 10px; border: 2px solid #ed8936; background: #ed8936; color: white; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        📋 Paste from Clipboard
+      </button>
+      <button class="action-btn" data-action="extract" style="padding: 10px; border: 2px solid #9f7aea; background: #9f7aea; color: white; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        📤 Extract Text
+      </button>
+      <button class="action-btn" data-action="wait" style="padding: 10px; border: 2px solid #cbd5e0; background: #cbd5e0; color: #2d3748; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        ⏱️ Wait
+      </button>
+    </div>
+    <button id="cancel-action" style="margin-top: 12px; width: 100%; padding: 8px; border: none; background: #edf2f7; color: #2d3748; border-radius: 6px; cursor: pointer; font-weight: 500;">
+      Cancel
+    </button>
+  `;
+  
+  document.body.appendChild(dialog);
+  
+  // Handle action selection
+  dialog.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const actionType = btn.dataset.action;
+      await captureAction(element, actionType, selector);
+      document.body.removeChild(dialog);
+    });
+  });
+  
+  // Handle cancel
+  document.getElementById('cancel-action').addEventListener('click', () => {
+    document.body.removeChild(dialog);
+  });
+}
+
+// Capture action
+async function captureAction(element, actionType, selector) {
+  let value = '';
+  
+  if (actionType === 'type') {
+    value = prompt('Enter text to type:');
+    if (!value) return;
+  } else if (actionType === 'paste') {
+    try {
+      value = await navigator.clipboard.readText();
+    } catch (err) {
+      value = prompt('Clipboard access denied. Enter text manually:');
+      if (!value) return;
+    }
+  } else if (actionType === 'wait') {
+    const delay = prompt('Enter wait time in milliseconds:', '1000');
+    if (!delay) return;
+    value = delay;
+  }
+  
+  const action = {
+    selector: selector,
+    actionType: actionType,
+    value: value,
+    delay: 1000,
+    elementTag: element.tagName.toLowerCase(),
+    elementText: element.textContent.trim().substring(0, 50),
+    timestamp: new Date().toISOString()
+  };
+  
+  // Send to background/popup
+  chrome.runtime.sendMessage({
+    type: 'ACTION_CAPTURED',
+    action: action
+  });
+  
+  // Show success feedback
+  showNotification(`Action captured: ${actionType} on ${selector}`, 2000);
+}
+
+// Get optimal CSS selector for element
+function getOptimalSelector(element) {
+  // Try ID first
+  if (element.id) {
+    return '#' + element.id;
+  }
+  
+  // Try unique class
+  if (element.className && typeof element.className === 'string') {
+    const classes = element.className.trim().split(/\s+/);
+    for (let cls of classes) {
+      if (cls && document.querySelectorAll('.' + cls).length === 1) {
+        return '.' + cls;
+      }
+    }
+  }
+  
+  // Try data attributes
+  for (let attr of element.attributes) {
+    if (attr.name.startsWith('data-') || attr.name === 'name') {
+      const selector = element.tagName.toLowerCase() + '[' + attr.name + '="' + attr.value + '"]';
+      if (document.querySelectorAll(selector).length === 1) {
+        return selector;
+      }
+    }
+  }
+  
+  // Try aria-label
+  if (element.getAttribute('aria-label')) {
+    const selector = element.tagName.toLowerCase() + '[aria-label="' + element.getAttribute('aria-label') + '"]';
+    return selector;
+  }
+  
+  // Build path
+  let path = [];
+  let current = element;
+  
+  while (current && current.tagName) {
+    let selector = current.tagName.toLowerCase();
+    
+    if (current.id) {
+      selector += '#' + current.id;
+      path.unshift(selector);
+      break;
+    }
+    
+    if (current.className && typeof current.className === 'string') {
+      const classes = current.className.trim().split(/\s+/).filter(c => c);
+      if (classes.length > 0) {
+        selector += '.' + classes.join('.');
+      }
+    }
+    
+    // Add nth-child if needed
+    let sibling = current;
+    let nth = 1;
+    while (sibling.previousElementSibling) {
+      sibling = sibling.previousElementSibling;
+      if (sibling.tagName === current.tagName) nth++;
+    }
+    if (nth > 1 || current.nextElementSibling) {
+      selector += ':nth-child(' + nth + ')';
+    }
+    
+    path.unshift(selector);
+    current = current.parentElement;
+    
+    if (path.length > 5) break; // Limit depth
+  }
+  
+  return path.join(' > ');
+}
+
+// Show notification banner
+function showNotification(message, duration) {
+  duration = duration || 3000;
+  
+  let notification = document.getElementById('datakiln-notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.id = 'datakiln-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000001;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      font-family: sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      animation: slideIn 0.3s ease;
+    `;
+    document.body.appendChild(notification);
+  }
+  
+  notification.textContent = message;
+  notification.style.display = 'block';
+  
+  if (duration > 0) {
+    setTimeout(() => {
+      hideNotification();
+    }, duration);
+  }
+}
+
+// Hide notification
+function hideNotification() {
+  const notification = document.getElementById('datakiln-notification');
+  if (notification) {
+    notification.style.display = 'none';
+  }
+}
