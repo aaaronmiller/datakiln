@@ -14,6 +14,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ReactFlowProvider } from '@xyflow/react'
 import WorkflowEditor from './WorkflowEditor'
 import { workflowValidationService } from '../../services/workflowValidationService'
@@ -77,11 +78,13 @@ const createTestEdges = (nodeCount: number) => {
 }
 
 const renderWorkflowEditor = (props = {}) => {
-  return render(
+  const user = userEvent.setup()
+  const result = render(
     <ReactFlowProvider>
       <WorkflowEditor {...props} />
     </ReactFlowProvider>
   )
+  return { ...result, user }
 }
 
 describe('Workflow UI Integration Tests', () => {
@@ -100,14 +103,14 @@ describe('Workflow UI Integration Tests', () => {
 
   describe('Minimap Functionality', () => {
     it('should render minimap component', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
       await waitFor(() => {
         expect(screen.getByTestId('rf__minimap')).toBeInTheDocument()
       })
     })
 
     it('should allow minimap navigation', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
       const minimap = await screen.findByTestId('rf__minimap')
 
       // Minimap should be pannable and zoomable
@@ -169,7 +172,7 @@ describe('Workflow UI Integration Tests', () => {
     })
 
     it('should support drag and drop from palette', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
 
       // Find node palette
       const palette = screen.getByText('Node Palette')
@@ -228,7 +231,7 @@ describe('Workflow UI Integration Tests', () => {
     })
 
     it('should support template loading', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
 
       // Switch to templates tab
       const templatesTab = screen.getByText('Templates')
@@ -411,7 +414,7 @@ describe('Workflow UI Integration Tests', () => {
     })
 
     it('should have proper ARIA labels and roles', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
 
       // Check for ARIA landmarks
       const mainRegion = screen.getByRole('main')
@@ -437,7 +440,7 @@ describe('Workflow UI Integration Tests', () => {
     })
 
     it('should maintain focus management', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
 
       // Test focus trapping in modals
       const configButton = screen.getByText('🤖')
@@ -456,14 +459,14 @@ describe('Workflow UI Integration Tests', () => {
       Object.defineProperty(window, 'innerWidth', { value: 768 })
       Object.defineProperty(window, 'innerHeight', { value: 1024 })
 
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
 
       // Should adapt to mobile viewport
       expect(screen.getByText('Node Palette')).toBeInTheDocument()
     })
 
     it('should handle touch events', async () => {
-      renderWorkflowEditor()
+      const { user } = renderWorkflowEditor()
 
       // Touch event simulation would require additional setup
       // This tests the foundation for touch support

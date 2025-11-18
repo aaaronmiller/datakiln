@@ -546,7 +546,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
       // For split/parallel: allow multiple from source if type supports (e.g., splitter node future)
       if (sourceNode.type === 'condition') {
-        params.targetHandle = params.targetHandle || (params.data?.branch === 'true' ? 'true' : 'false')
+        params.targetHandle = params.targetHandle || 'false'
       }
 
       const newEdge = { ...params, id: `${params.source}-${params.target}-${Date.now()}`, type: 'default' } as Edge
@@ -990,7 +990,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     const workflowNodes = nodes.map((node: Node) => ({
       id: node.id,
       type: node.type,
-      name: (node.data as AiDomNodeData)?.name || 'Unnamed',
+      name: (node.data as unknown as AiDomNodeData)?.name || 'Unnamed',
       position: node.position,
       data: node.data,
     }))

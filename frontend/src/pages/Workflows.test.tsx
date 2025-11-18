@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import Workflows from './Workflows'
-import { Toaster } from '../components/ui/toast'
 
 // Mock navigate
 const mockNavigate = vi.fn()

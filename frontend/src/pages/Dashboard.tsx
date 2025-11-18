@@ -5,11 +5,21 @@ import { QuickRunTile, RecentActivityWidget, QueueStatusWidget, SystemStatusWidg
 import { useToast } from "../hooks/use-toast"
 import websocketService from "../services/websocketService"
 
+interface SystemStatus {
+  active_runs: number
+  recent_results: number
+  system_health: string
+  uptime: string
+  cpu_usage: number
+  memory_usage: number
+  last_updated: string
+}
+
 // Default system status values from environment
 const getDefaultSystemStatus = () => ({
   active_runs: 0,
   recent_results: 0,
-  system_health: import.meta.env.VITE_DEFAULT_SYSTEM_HEALTH || 'healthy',
+  system_health: 'healthy',
   uptime: '2d 14h 32m',
   cpu_usage: 23.5,
   memory_usage: 67.8,
@@ -181,12 +191,16 @@ const Dashboard: React.FC = () => {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickRunTile
-            type="deep-research"
-            onRun={handleQuickRun}
+            title="Deep Research"
+            description="Start a deep research task"
+            icon="🔍"
+            onRun={() => handleQuickRun('deep-research')}
           />
           <QuickRunTile
-            type="transcript-analysis"
-            onRun={handleQuickRun}
+            title="Transcript Analysis"
+            description="Analyze a transcript"
+            icon="📝"
+            onRun={() => handleQuickRun('transcript-analysis')}
           />
 
           {/* Additional Quick Actions */}
@@ -248,8 +262,8 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-1">
           <QueueStatusWidget
             queueData={queueStatus || {
-              pending_jobs: parseInt(import.meta.env.VITE_DEFAULT_QUEUE_PENDING) || 3,
-              processing_jobs: parseInt(import.meta.env.VITE_DEFAULT_QUEUE_PROCESSING) || 2,
+              pending_jobs: 3,
+              processing_jobs: 2,
               completed_today: 15,
               failed_today: 1,
               average_processing_time: '45s',

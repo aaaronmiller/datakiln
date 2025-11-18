@@ -208,25 +208,17 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   // Handle node selection changes
   const handleNodeSelectionChange = useCallback(
     (changes: NodeChange[]) => {
-      setNodes((nds) => {
-        const updatedNodes = onNodesChange ? onNodesChange(changes, nds) : nds
-        onChange?.(updatedNodes, edges)
-        return updatedNodes
-      })
+      onNodesChange(changes)
     },
-    [edges, onChange, setNodes, onNodesChange]
+    [onNodesChange]
   )
 
   // Handle edge connection changes
   const handleEdgeChange = useCallback(
     (changes: EdgeChange[]) => {
-      setEdges((eds) => {
-        const updatedEdges = onEdgesChange ? onEdgesChange(changes, eds) : eds
-        onChange?.(nodes, updatedEdges)
-        return updatedEdges
-      })
+      onEdgesChange(changes)
     },
-    [nodes, onChange, setEdges, onEdgesChange]
+    [onEdgesChange]
   )
 
   // Phase 5: Enhanced Connection Validation

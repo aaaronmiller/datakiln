@@ -10,9 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      # Add any required services here (e.g., PostgreSQL, Redis)
-
     steps:
     - uses: actions/checkout@v4
 
