@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { QuickRunTile, RecentActivityWidget, QueueStatusWidget, SystemStatusWidget } from "../components/dashboard"
 import { useToast } from "../hooks/use-toast"
 import websocketService from "../services/websocketService"
+import { SIMPLE_DEEP_RESEARCH, DEEPER_RESEARCH } from "../types/workflow-predefined"
 
 interface SystemStatus {
   active_runs: number
@@ -235,6 +236,108 @@ const Dashboard: React.FC = () => {
                 <h3 className="font-medium text-gray-900">View Results</h3>
                 <p className="text-sm text-gray-600">Browse recent outputs</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Workflow Templates Section */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Workflow Templates</h2>
+        <p className="text-sm text-gray-600 mb-4">Start with pre-built workflows or customize them to your needs</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Simple Deep Research Workflow */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-5 hover:shadow-lg transition-all">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <span className="text-2xl">🔬</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Simple Deep Research</h3>
+                  <p className="text-xs text-gray-600 mt-1">Single-stream research workflow</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 mb-4">
+              Basic research workflow with one AI research stream. Perfect for quick fact-finding and topic exploration.
+            </p>
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-4">
+              <span className="bg-white px-2 py-1 rounded border border-blue-200">
+                {SIMPLE_DEEP_RESEARCH.nodes.length} nodes
+              </span>
+              <span className="bg-white px-2 py-1 rounded border border-blue-200">
+                {SIMPLE_DEEP_RESEARCH.edges.length} connections
+              </span>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => navigate('/workflows/simple-deep')}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                Open in Editor
+              </button>
+              <button
+                onClick={() => {
+                  toast({
+                    title: "Workflow Loaded",
+                    description: "Simple Deep Research workflow loaded. Configure and execute it in the workflow editor.",
+                  })
+                  navigate('/workflows/simple-deep')
+                }}
+                className="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors text-sm font-medium"
+              >
+                Quick Start
+              </button>
+            </div>
+          </div>
+
+          {/* Deeper Research Workflow (3 parallel streams) */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 p-5 hover:shadow-lg transition-all">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-500 rounded-lg">
+                  <span className="text-2xl">🧠</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Deeper Research</h3>
+                  <p className="text-xs text-gray-600 mt-1">3 parallel research streams</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 mb-4">
+              Advanced workflow with 3 parallel research streams that consolidate findings. Ideal for comprehensive analysis.
+            </p>
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-4">
+              <span className="bg-white px-2 py-1 rounded border border-purple-200">
+                {DEEPER_RESEARCH.nodes.length} nodes
+              </span>
+              <span className="bg-white px-2 py-1 rounded border border-purple-200">
+                {DEEPER_RESEARCH.edges.length} connections
+              </span>
+              <span className="bg-white px-2 py-1 rounded border border-purple-200">
+                + consolidation
+              </span>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => navigate('/workflows/deeper-research')}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium"
+              >
+                Open in Editor
+              </button>
+              <button
+                onClick={() => {
+                  toast({
+                    title: "Workflow Loaded",
+                    description: "Deeper Research workflow loaded. Configure prompts and execute it in the workflow editor.",
+                  })
+                  navigate('/workflows/deeper-research')
+                }}
+                className="px-4 py-2 bg-white border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 transition-colors text-sm font-medium"
+              >
+                Quick Start
+              </button>
             </div>
           </div>
         </div>
