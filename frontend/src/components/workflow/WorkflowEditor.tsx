@@ -1007,7 +1007,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     }
   }, [nodes, edges])
 
-  // Save the current workflow
+  // Save the current workflow - NOW WITH LOCALSTORAGE!
   const saveWorkflow = useCallback(async () => {
     if (nodes.length === 0) {
       addNotification({
@@ -1020,9 +1020,10 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
     try {
       const workflow = convertToWorkflowFormat()
+      const timestamp = Date.now()
       const workflowData = {
-        id: `workflow-${Date.now()}`,
-        name: `Workflow ${Date.now()}`,
+        id: `workflow-${timestamp}`,
+        name: prompt('Enter workflow name:', `Workflow ${new Date().toLocaleString()}`) || `Workflow ${timestamp}`,
         description: 'Created in workflow editor',
         nodes: workflow.nodes,
         edges: workflow.edges,
@@ -1032,24 +1033,33 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         }
       }
 
-      // Use fetch directly to call the backend
-      const response = await fetch('http://localhost:8000/workflows', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(workflowData),
-      })
+      // Save to localStorage
+      const savedWorkflows = JSON.parse(localStorage.getItem('datakiln_workflows') || '[]')
+      savedWorkflows.push(workflowData)
+      localStorage.setItem('datakiln_workflows', JSON.stringify(savedWorkflows))
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // Also try to save to backend
+      try {
+        const response = await fetch('http://localhost:8000/workflows', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(workflowData),
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log('Workflow also saved to backend:', result)
+        }
+      } catch (backendError) {
+        console.warn('Backend save failed, but saved to localStorage:', backendError)
       }
 
-      const result = await response.json()
       addNotification({
         type: 'success',
         title: 'Workflow Saved',
-        message: `Workflow saved successfully with ID: ${result.id}`
+        message: `Workflow "${workflowData.name}" saved successfully!`
       })
     } catch (error) {
       console.error('Workflow save error:', error)
@@ -1122,7 +1132,7 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     }
   }, [nodes, edges, selectedLayoutAlgorithm, onChange, setNodes, addNotification])
 
-  // Execute the current workflow
+  // Execute the current workflow - CALLS REAL BACKEND API
   const executeWorkflow = useCallback(async () => {
     if (nodes.length === 0) {
       addNotification({
@@ -1134,66 +1144,90 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
     }
 
     setIsExecuting(true)
+    const workflowId = `workflow-${Date.now()}`
+
     try {
       const workflow = convertToWorkflowFormat()
-      const workflowId = `workflow-${Date.now()}`
 
-      // Mark all nodes as running with initial progress
-      setNodes(nds => nds.map(node => ({
-        ...node,
-        data: { ...node.data, status: 'running' as const, progress: 0 }
-      })))
-
-      // Simulate progress updates for demonstration
-      const executionOrder = calculateExecutionOrder()
-      let completedCount = 0
-
-      for (const nodeId of executionOrder) {
-        // Simulate execution time
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
-
-        // Update progress for current node
-        setNodes(nds => nds.map(node => {
-          if (node.id === nodeId) {
-            return {
-              ...node,
-              data: { ...node.data, progress: 100, status: 'completed' as const }
-            }
-          }
-          return node
-        }))
-
-        completedCount++
-        const overallProgress = (completedCount / executionOrder.length) * 100
-
-        // Update remaining nodes with progress
-        setNodes(nds => nds.map(node => {
-          if (executionOrder.slice(completedCount).includes(node.id) && node.data.status === 'running') {
-            return {
-              ...node,
-              data: { ...node.data, progress: Math.min(overallProgress + Math.random() * 20, 90) }
-            }
-          }
-          return node
-        }))
+      // Prepare workflow data for backend
+      const workflowData = {
+        workflow: {
+          id: workflowId,
+          name: `Workflow ${new Date().toLocaleString()}`,
+          start_node: nodes[0]?.id || '',
+          nodes: workflow.nodes,
+          edges: workflow.edges
+        },
+        execution_options: {
+          timeout: 300,
+          streaming: false
+        }
       }
 
-      // Mark all as completed
-      setTimeout(() => {
+      // Mark all nodes as pending
+      setNodes(nds => nds.map(node => ({
+        ...node,
+        data: { ...node.data, status: 'pending' as const, progress: 0 }
+      })))
+
+      console.log('Executing workflow:', workflowData)
+
+      // Call REAL backend API
+      const response = await fetch(`http://localhost:8000/api/v1/workflows/${workflowId}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(workflowData),
+      })
+
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Non-JSON response:', text)
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 200)}`)
+      }
+
+      const result = await response.json()
+      console.log('Execution result:', result)
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}: ${JSON.stringify(result)}`)
+      }
+
+      setCurrentExecutionId(result.execution_id || workflowId)
+
+      // Update nodes based on execution result
+      if (result.success) {
         setNodes(nds => nds.map(node => ({
           ...node,
           data: { ...node.data, status: 'completed' as const, progress: 100 }
         })))
-      }, 500)
 
-      addNotification({
-        type: 'success',
-        title: 'Workflow Execution Completed',
-        message: `Successfully executed ${executionOrder.length} nodes`
-      })
+        addNotification({
+          type: 'success',
+          title: 'Workflow Execution Completed',
+          message: `Successfully executed workflow. Execution ID: ${result.execution_id || workflowId}`
+        })
+      } else {
+        // Mark failed nodes
+        const failedNodeIds = result.failed_nodes || []
+        setNodes(nds => nds.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            status: failedNodeIds.includes(node.id) ? 'error' as const : 'completed' as const,
+            progress: failedNodeIds.includes(node.id) ? 0 : 100
+          }
+        })))
 
-      // For now, simulate the API call success
-      setCurrentExecutionId(workflowId)
+        addNotification({
+          type: 'error',
+          title: 'Workflow Execution Failed',
+          message: result.error || 'Some nodes failed to execute. Check execution log for details.'
+        })
+      }
+
       setExecutionLogVisible(true)
 
     } catch (error) {
@@ -1202,18 +1236,18 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       // Mark all nodes as error
       setNodes(nds => nds.map(node => ({
         ...node,
-        data: { ...node.data, status: 'error' as const }
+        data: { ...node.data, status: 'error' as const, progress: 0 }
       })))
 
       addNotification({
         type: 'error',
         title: 'Execution Failed',
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
+        message: error instanceof Error ? error.message : 'Unknown error occurred. Check console for details.'
       })
     } finally {
       setIsExecuting(false)
     }
-  }, [nodes, addNotification, convertToWorkflowFormat, calculateExecutionOrder])
+  }, [nodes, addNotification, convertToWorkflowFormat, setNodes])
 
   return (
     <div className="w-full h-full flex animate-in fade-in duration-500" role="application" aria-label="Workflow Editor Application">

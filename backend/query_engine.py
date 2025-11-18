@@ -61,10 +61,15 @@ class QueryEngine:
         start_time = time.time()
 
         try:
+            logger.info(f"Starting workflow execution: {workflow_id}")
+            logger.info(f"Workflow config: {workflow_config}")
+
             # Validate workflow
             validation_result = self.graph_validator.validate_workflow(workflow_config)
             if not validation_result["valid"]:
-                raise ValueError(f"Invalid workflow: {validation_result['errors']}")
+                error_msg = f"Invalid workflow: {validation_result['errors']}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
 
             # Set up execution options
             if not execution_options:
@@ -81,13 +86,20 @@ class QueryEngine:
                 workflow_config["execution_data"] = {}
             workflow_config["execution_data"]["execution_options"] = execution_options
 
+            logger.info(f"Converting workflow config to Workflow object")
+
             # Convert workflow config to Workflow object for DAGExecutor
             workflow_obj = self._dict_to_workflow(workflow_config)
+
+            logger.info(f"Workflow object created with {len(workflow_obj.nodes)} nodes")
 
             # Create streaming callback
             async def on_execution_event(event_type: str, event_data: Dict[str, Any]):
                 """Callback to stream execution events"""
-                await broadcast_execution_event(execution_id, event_type, event_data)
+                try:
+                    await broadcast_execution_event(execution_id, event_type, event_data)
+                except Exception as e:
+                    logger.warning(f"Failed to broadcast event: {e}")
 
             # Execute workflow using DAG executor with streaming
             context = {
@@ -97,7 +109,9 @@ class QueryEngine:
                 "on_execution_event": on_execution_event
             }
 
+            logger.info(f"Executing workflow with DAG executor")
             result = await self.dag_executor.execute_workflow(workflow_obj, context)
+            logger.info(f"Workflow execution result: {result}")
 
             # Add performance metrics
             execution_time = time.time() - start_time
@@ -118,11 +132,26 @@ class QueryEngine:
             return result
 
         except Exception as e:
+            execution_time = time.time() - start_time
+            error_details = {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "traceback": None
+            }
+
+            # Get full traceback for debugging
+            import traceback
+            error_details["traceback"] = traceback.format_exc()
+
+            logger.error(f"Workflow execution failed: {e}")
+            logger.error(f"Full traceback:\n{error_details['traceback']}")
+
             error_result = {
                 "success": False,
                 "error": str(e),
+                "error_details": error_details,
                 "execution_id": execution_id,
-                "execution_time": time.time() - start_time,
+                "execution_time": execution_time,
                 "timestamp": datetime.now().isoformat()
             }
 
