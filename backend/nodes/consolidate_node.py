@@ -22,32 +22,33 @@ class ConsolidateNode(BaseNode):
             # Get input data from previous nodes
             input_data = self._gather_input_data(context)
 
+            # Read attachment files
+            attachment_contents = self._read_attachment_files()
+
             # Create temp files for data passage confirmation
             temp_files = self._create_temp_files(input_data)
 
-            # Prepare consolidated prompt
-            consolidated_prompt = self._prepare_consolidated_prompt(input_data)
+            # Prepare consolidated prompt with file contents
+            consolidated_prompt = self._prepare_consolidated_prompt(input_data, attachment_contents)
 
             # Get AI provider from context
             provider = context.get("provider")
             if not provider:
                 raise ValueError("AI provider not available in context")
 
-            # Prepare provider request with attachments
-            all_attachments = self.attachments + temp_files
+            # Prepare provider request
             provider_request = {
                 "prompt": consolidated_prompt,
                 "model": self.model,
                 "max_tokens": 2000,
-                "temperature": 0.7,
-                "attachments": all_attachments
+                "temperature": 0.7
             }
 
             # Execute consolidation
             result = provider.generate_response(provider_request)
 
             # Handle outputs
-            output_result = self._handle_outputs(result, context)
+            output_result = self._handle_outputs(result, context, attachment_contents)
 
             # Clean up temp files
             self._cleanup_temp_files(temp_files)
@@ -71,17 +72,48 @@ class ConsolidateNode(BaseNode):
 
         return input_data
 
-    def _prepare_consolidated_prompt(self, input_data: Dict[str, Any]) -> str:
-        """Prepare consolidated prompt from input data"""
+    def _read_attachment_files(self) -> Dict[str, str]:
+        """Read contents from attachment files"""
+        import os
+
+        attachment_contents = {}
+
+        for file_path in self.attachments:
+            try:
+                if os.path.exists(file_path):
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        attachment_contents[file_path] = content
+                        print(f"✓ Read attachment: {file_path} ({len(content)} chars)")
+                else:
+                    print(f"✗ Attachment not found: {file_path}")
+                    attachment_contents[file_path] = f"[FILE NOT FOUND: {file_path}]"
+            except Exception as e:
+                print(f"✗ Failed to read {file_path}: {str(e)}")
+                attachment_contents[file_path] = f"[ERROR READING FILE: {str(e)}]"
+
+        return attachment_contents
+
+    def _prepare_consolidated_prompt(self, input_data: Dict[str, Any], attachment_contents: Dict[str, str] = None) -> str:
+        """Prepare consolidated prompt from input data and file attachments"""
         parts = []
 
         # Add prepend text
         if self.prepend_text:
             parts.append(self.prepend_text)
 
+        # Add attachment file contents
+        if attachment_contents:
+            parts.append("\n## Attached Research Documents:\n")
+            for file_path, content in attachment_contents.items():
+                filename = file_path.split('/')[-1]
+                parts.append(f"\n### Document: {filename}\n")
+                parts.append(content)
+                parts.append("\n---\n")
+
         # Add consolidated input data
         if input_data:
-            parts.append("Consolidate the following inputs:")
+            parts.append("\n## Data from Previous Nodes:")
             for node_id, data in input_data.items():
                 parts.append(f"\nFrom {node_id}:")
                 if isinstance(data, (dict, list)):
@@ -92,6 +124,7 @@ class ConsolidateNode(BaseNode):
 
         # Add append text
         if self.append_text:
+            parts.append("\n")
             parts.append(self.append_text)
 
         return "\n".join(parts)
@@ -134,12 +167,14 @@ class ConsolidateNode(BaseNode):
             except Exception as e:
                 print(f"Failed to cleanup temp file {temp_file}: {str(e)}")
 
-    def _handle_outputs(self, result: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_outputs(self, result: Dict[str, Any], context: Dict[str, Any], attachment_contents: Dict[str, str] = None) -> Dict[str, Any]:
         """Handle output destinations"""
         output_data = {
             "consolidated_result": result.get("response", ""),
             "model_used": self.model,
-            "attachments_count": len(self.attachments),
+            "attachments_read": len(attachment_contents) if attachment_contents else 0,
+            "attachments_total": len(self.attachments),
+            "total_input_chars": sum(len(c) for c in attachment_contents.values()) if attachment_contents else 0,
             "input_sources": list(context.get("execution_data", {}).get("workflow_state", {}).keys())
         }
 
