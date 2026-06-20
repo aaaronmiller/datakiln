@@ -1,15 +1,17 @@
 import React from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
-import { WorkflowNodeData } from '../../types/workflow';
+import { Handle, Position } from '@xyflow/react';
 
-interface SplitterNodeData extends WorkflowNodeData {
-  num_splits: number;
-  model?: string;
-  structure?: 'json_array' | 'structured';
-  prompt?: string;
+interface SplitterNodeProps {
+  data: {
+    name?: string;
+    num_splits?: number;
+    model?: string;
+    structure?: 'json_array' | 'structured';
+    prompt?: string;
+  };
 }
 
-const SplitterNode: React.FC<NodeProps<SplitterNodeData>> = ({ data }) => {
+const SplitterNode: React.FC<SplitterNodeProps> = ({ data }) => {
   const numOutputs = data.num_splits || 3;
   const structure = data.structure || 'json_array';
 

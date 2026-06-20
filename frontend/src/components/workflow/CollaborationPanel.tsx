@@ -107,7 +107,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
     if (!workflowId) return
 
     const ws = new WebSocket(
-      `ws://localhost:8000/ws/workflow/${workflowId}?user_id=${currentUserId}&user_name=${encodeURIComponent('Current User')}`
+      `/ws/workflow/${workflowId}?user_id=${currentUserId}&user_name=${encodeURIComponent('Current User')}`
     )
 
     ws.onopen = () => {

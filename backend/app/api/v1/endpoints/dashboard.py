@@ -82,8 +82,8 @@ async def quick_run_deep_research(request: Dict[str, Any], background_tasks: Bac
         task_id = str(uuid.uuid4())
 
         # Get project root directory
-        project_root = Path(__file__).parent.parent.parent.parent
-        script_path = project_root / "backend" / "scripts" / "deep_research.py"
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        script_path = project_root / "scripts" / "deep_research.py"
 
         if not script_path.exists():
             raise HTTPException(status_code=500, detail="Deep research script not found")

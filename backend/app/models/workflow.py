@@ -35,13 +35,19 @@ class Node(BaseModel):
 
 class Edge(BaseModel):
     id: str
-    from_: str = Field(..., alias="from")
-    to: str
+    source: Optional[str] = None
+    target: Optional[str] = None
+    from_: Optional[str] = Field(None, alias="from")
+    to: Optional[str] = None
+    label: Optional[str] = None
+    type: Optional[str] = None
     meta: Dict[str, Any] = Field(default_factory=dict)
 
 class Workflow(BaseModel):
-    id: str
-    name: str
+    model_config = ConfigDict(extra='allow')  # Allow execution_data to be set dynamically
+
+    id: str = ""
+    name: str = ""
     description: Optional[str] = None
     metadata: Optional[WorkflowMetadata] = None
     nodes: List[Node] = Field(default_factory=list)
@@ -69,8 +75,10 @@ class Run(BaseModel):
     status: str  # "pending", "running", "completed", "failed"
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    execution_time: Optional[float] = None
     execution_order: List[str] = []
     node_results: Dict[str, Any] = {}
+    execution_options: Dict[str, Any] = {}
     error: Optional[str] = None
 
 class Result(BaseModel):

@@ -12,10 +12,8 @@ from .services.query_engine import get_query_engine
 from .services.research_service import initialize_research_service, shutdown_research_service
 
 # Import API routers
-from .api.v1.endpoints import dashboard
-# Temporarily disabled due to import issues:
-# from .api.v1.endpoints import workflows, results, artifacts, extension, selectors
-# from .api.v1.endpoints import research
+from .api.v1.endpoints import dashboard, workflows, results, artifacts, extension, selectors, custom_nodes, settings
+from .api.v1.endpoints import research
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -51,13 +49,14 @@ async def shutdown_event():
 
 # Include API routers
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
-# Temporarily disabled due to import issues:
-# app.include_router(workflows.router, prefix="/api/v1", tags=["workflows"])
-# app.include_router(results.router, prefix="/api/v1", tags=["results"])
-# app.include_router(artifacts.router, prefix="/api/v1", tags=["artifacts"])
-# app.include_router(extension.router, prefix="/api/v1/extension", tags=["extension"])
-# app.include_router(selectors.router, prefix="/api/v1/selectors", tags=["selectors"])
-# app.include_router(research.router, prefix="/api/v1/research", tags=["research"])
+app.include_router(workflows.router, prefix="/api/v1", tags=["workflows"])
+app.include_router(results.router, prefix="/api/v1", tags=["results"])
+app.include_router(artifacts.router, prefix="/api/v1", tags=["artifacts"])
+app.include_router(extension.router, prefix="/api/v1/extension", tags=["extension"])
+app.include_router(selectors.router, prefix="/api/v1/selectors", tags=["selectors"])
+app.include_router(research.router, prefix="/api/v1/research", tags=["research"])
+app.include_router(custom_nodes.router, prefix="/api/v1/custom-nodes", tags=["custom_nodes"])
+app.include_router(settings.router, prefix="/api/v1", tags=["settings"])
 
 # Pydantic models for request/response
 class QueryGraphRequest(BaseModel):

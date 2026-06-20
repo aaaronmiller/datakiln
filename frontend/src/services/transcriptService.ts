@@ -24,14 +24,25 @@ interface TranscriptResult {
 
 class TranscriptService {
   private baseUrl: string
+  private useProxy: boolean
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
-    this.baseUrl = baseUrl
+  constructor(baseUrl?: string) {
+    if (baseUrl) {
+      this.baseUrl = baseUrl
+      this.useProxy = false
+    } else {
+      this.baseUrl = ''
+      this.useProxy = true
+    }
+  }
+
+  private url(path: string): string {
+    return `${this.baseUrl}/api/v1${path}`
   }
 
   async processYouTubeTranscript(url: string): Promise<TranscriptResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/workflows/youtube/transcript`, {
+      const response = await fetch(this.url('/workflows/youtube/transcript'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +64,7 @@ class TranscriptService {
 
   async analyzeTranscript(transcriptText: string, url: string): Promise<TranscriptResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/transcript/analyze`, {
+      const response = await fetch(this.url('/transcript/analyze'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

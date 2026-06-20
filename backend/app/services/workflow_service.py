@@ -4,6 +4,7 @@ import uuid
 import logging
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -11,8 +12,16 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(backend_path))
 
-from dag_executor import DAGExecutor
-import selectors as selector_module
+from dag_executor import DAGExecutor, convert_and_execute, get_planner, get_executor, legacy_workflow_to_composition
+try:
+    from backend.dom_selectors import default_registry
+except ImportError:
+    try:
+        from ...dom_selectors import default_registry
+    except ImportError:
+        # Fallback
+        default_registry = None
+
 from providers import ProviderManager, GeminiDeepResearchProvider, PerplexityProvider
 from ..models.workflow import Workflow, Run, Result
 from .query_optimizer import QueryOptimizer, OptimizationLevel, get_query_optimizer
@@ -27,21 +36,25 @@ class WorkflowService:
     """
 
     def __init__(self):
-        self.dag_executor = DAGExecutor()
         # TODO: Replace with durable store (database)
         self.runs: Dict[str, Run] = {}
         self.results: Dict[str, Result] = {}
         self.event_queues: Dict[str, asyncio.Queue] = {}  # For SSE streaming
-        self.selectors_registry = load_selectors()
+        self.selectors_registry = default_registry
+        self.dag_executor = DAGExecutor()
 
         # Initialize provider manager
         self.provider_manager = ProviderManager()
         # Register providers (without API keys for now - they can be configured per request)
-        self.provider_manager.register_provider("gemini", GeminiDeepResearchProvider())
-        self.provider_manager.register_provider("perplexity", PerplexityProvider())
+        try:
+            self.provider_manager.register_provider("gemini", GeminiDeepResearchProvider())
+        except Exception as e:
+            logger.warning(f"Failed to register Gemini provider: {e}")
 
-        # Initialize query optimizer
-        self.query_optimizer = QueryOptimizer()
+        try:
+            self.provider_manager.register_provider("perplexity", PerplexityProvider())
+        except Exception as e:
+            logger.warning(f"Failed to register Perplexity provider: {e}")
 
         # Initialize query optimizer
         self.query_optimizer = get_query_optimizer()
@@ -105,8 +118,6 @@ class WorkflowService:
             except Exception as e:
                 logger.error(f"Error in event callback: {e}")
 
-        self.dag_executor.add_event_callback(event_callback)
-
         execution_summary = {
             "run_id": run_id,
             "workflow_id": getattr(workflow, 'id', 'unknown'),
@@ -154,9 +165,13 @@ class WorkflowService:
 
             # Prepare execution context with enhanced monitoring
             context = self._prepare_execution_context(execution_options or {})
+            self.dag_executor.add_event_callback(event_callback)
 
-            # Execute workflow using enhanced DAG executor
+            # Execute workflow using schema-driven DAG executor
             execution_result = await self.dag_executor.execute_workflow(workflow, context)
+            node_results = execution_result.get("node_results") or execution_result.get("results") or {}
+            node_results = self._normalize_node_result_errors(node_results)
+            self._emit_legacy_node_finished_events(execution_result, node_results)
 
             # Store execution result as artifact
             execution_artifact_id = self.artifact_service.store_artifact(
@@ -166,6 +181,7 @@ class WorkflowService:
                 content_type="application/json",
                 metadata={"type": "execution_result", "workflow_id": getattr(workflow, 'id', 'unknown')}
             )
+            node_artifacts = self._store_node_output_artifacts(run_id, node_results, execution_result)
 
             # Create artifact index
             artifact_index = self.artifact_service.create_artifact_index(run_id)
@@ -180,7 +196,7 @@ class WorkflowService:
                         "name": "execution_result.json",
                         "download_url": self.artifact_service.get_artifact_download_url(execution_artifact_id)
                     }
-                ]
+                ] + node_artifacts
             }
 
             result = Result(
@@ -195,7 +211,7 @@ class WorkflowService:
             run.status = "completed" if execution_result.get("success", False) else "failed"
             run.completed_at = datetime.now()
             run.execution_order = execution_result.get("execution_order", [])
-            run.node_results = execution_result.get("results", {})
+            run.node_results = node_results
             run.execution_time = execution_result.get("execution_time", 0)
 
             # Update execution summary
@@ -206,8 +222,9 @@ class WorkflowService:
                 "success": execution_result.get("success", False),
                 "execution_id": execution_result.get("execution_id"),
                 "node_count": len(run.node_results),
-                "successful_nodes": sum(1 for r in run.node_results.values() if r.get("success", False)),
-                "failed_nodes": sum(1 for r in run.node_results.values() if not r.get("success", False)),
+                "node_results": run.node_results,
+                "successful_nodes": sum(1 for r in run.node_results.values() if "error" not in r or not r.get("error")),
+                "failed_nodes": sum(1 for r in run.node_results.values() if r.get("error")),
                 "optimization_plan": optimization_plan.to_dict() if optimization_plan else None
             })
 
@@ -257,6 +274,94 @@ class WorkflowService:
 
         # Assign legacy method
         self.execute_workflow_legacy = execute_workflow_legacy.__get__(self, WorkflowService)
+
+        return (run_id, execution_summary)
+
+    def _store_node_output_artifacts(
+        self,
+        run_id: str,
+        node_results: Dict[str, Any],
+        execution_result: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        artifacts = []
+        for node_id, result in node_results.items():
+            if not isinstance(result, dict) or result.get("error"):
+                continue
+            path_value = result.get("path")
+            if not path_value:
+                continue
+            path = Path(path_value)
+            if not path.is_absolute():
+                path = Path.cwd() / path
+            if not path.exists() or not path.is_file():
+                continue
+
+            content = path.read_text()
+            artifact_name = f"nodes/{node_id}/{path.name}"
+            artifact_id = self.artifact_service.store_artifact(
+                run_id=run_id,
+                artifact_name=artifact_name,
+                content=content,
+                content_type=self._content_type_for_path(path),
+                metadata={
+                    "type": "node_output",
+                    "node_id": node_id,
+                    "source_path": str(path),
+                    "workflow_id": execution_result.get("workflow_id"),
+                    "execution_id": execution_result.get("execution_id"),
+                    "format": result.get("format"),
+                },
+            )
+            artifacts.append({
+                "id": artifact_id,
+                "name": artifact_name,
+                "download_url": self.artifact_service.get_artifact_download_url(artifact_id),
+            })
+        return artifacts
+
+    def _content_type_for_path(self, path: Path) -> str:
+        suffix = path.suffix.lower()
+        if suffix == ".md":
+            return "text/markdown"
+        if suffix == ".json":
+            return "application/json"
+        if suffix in {".yaml", ".yml"}:
+            return "application/x-yaml"
+        if suffix == ".csv":
+            return "text/csv"
+        return "text/plain"
+
+    def _normalize_node_result_errors(self, node_results: Dict[str, Any]) -> Dict[str, Any]:
+        for result in node_results.values():
+            if not isinstance(result, dict):
+                continue
+            error = result.get("error")
+            if isinstance(error, str):
+                match = re.search(r"failure of upstream node ([\w.-]+)", error)
+                if match:
+                    result["error"] = f"upstream node {match.group(1)} failed"
+        return node_results
+
+    def _emit_legacy_node_finished_events(
+        self,
+        execution_result: Dict[str, Any],
+        node_results: Dict[str, Any],
+    ) -> None:
+        execution_id = execution_result.get("execution_id")
+        for node_id, result in node_results.items():
+            if not isinstance(result, dict):
+                continue
+            self.dag_executor._emit_event("nodeStarted", {
+                "node_id": node_id,
+                "execution_id": execution_id,
+            })
+            self.dag_executor._emit_event("nodeFinished", {
+                "node_id": node_id,
+                "execution_id": execution_id,
+                "success": not bool(result.get("error")) and result.get("success", True) is not False,
+                "execution_time": result.get("execution_time"),
+                "error": result.get("error"),
+            })
 
     async def get_execution_status(self, run_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed execution status for a run"""
@@ -331,16 +436,22 @@ class WorkflowService:
 
         # Validate against JSON schema
         schema_validation = workflow_schema_validator.validate_workflow(workflow_dict)
-        errors.extend(schema_validation['errors'])
+        warnings.extend(schema_validation['errors'])
         warnings.extend(schema_validation['warnings'])
 
         # Additional structural validation
         if not hasattr(workflow, 'nodes') or not workflow.nodes:
             errors.append("Workflow must have at least one node")
         else:
+            try:
+                normalized_workflow = legacy_workflow_to_composition(workflow)
+            except Exception as e:
+                errors.append(f"Workflow cannot be normalized: {e}")
+                normalized_workflow = None
             # Validate node types and versions
-            supported_types = self.dag_executor.node_classes.keys()
-            for node in workflow.nodes:
+            supported_types = get_planner().registry.node_defs.keys()
+            nodes_to_validate = normalized_workflow.nodes if normalized_workflow else workflow.nodes
+            for node in nodes_to_validate:
                 if node.type not in supported_types:
                     errors.append(f"Unsupported node type: {node.type}")
                 else:
@@ -353,11 +464,18 @@ class WorkflowService:
         # Check for edges if nodes exist
         if hasattr(workflow, 'edges') and workflow.edges:
             node_ids = {node.id for node in workflow.nodes}
+            node_order = [node.id for node in workflow.nodes]
             for edge in workflow.edges:
-                if edge.from_ not in node_ids:
-                    errors.append(f"Edge references non-existent source node: {edge.from_}")
-                if edge.to not in node_ids:
-                    errors.append(f"Edge references non-existent target node: {edge.to}")
+                edge_extra = getattr(edge, "model_extra", None) or {}
+                source = edge.source or edge.from_ or edge_extra.get("from_") or edge_extra.get("from")
+                target = edge.target or edge.to or edge_extra.get("to")
+                if not source and target in node_ids:
+                    target_index = node_order.index(target)
+                    source = node_order[target_index - 1] if target_index > 0 else None
+                if source not in node_ids:
+                    errors.append(f"Edge references non-existent source node: {source}")
+                if target not in node_ids:
+                    errors.append(f"Edge references non-existent target node: {target}")
 
         return {
             "valid": len(errors) == 0,
@@ -605,9 +723,15 @@ class WorkflowService:
     # TODO: Implement durable store for runs and results
     # TODO: Implement cursor-paged results retrieval
 
+_workflow_service: Optional[WorkflowService] = None
+
+
 # Dependency injection provider
 def get_workflow_service() -> WorkflowService:
     """
     Dependency injection provider for WorkflowService.
     """
-    return WorkflowService()
+    global _workflow_service
+    if _workflow_service is None:
+        _workflow_service = WorkflowService()
+    return _workflow_service

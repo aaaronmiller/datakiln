@@ -50,6 +50,14 @@ class DomActionNode(BaseNode):
                 self.output = self.config["output"]
             if "actions" in self.config and not self.actions:
                 self.actions = [DomActionConfig(**action) for action in self.config["actions"]]
+        has_multi_action_config = bool(self.actions) or bool(
+            self.config and isinstance(self.config, dict) and self.config.get("actions")
+        )
+        if not has_multi_action_config:
+            if self.action and not self.selector_key:
+                raise ValueError("selector_key is required for legacy DOM actions")
+            if self.selector_key and not self.action:
+                raise ValueError("action is required for legacy DOM actions")
         return self
 
     # Legacy properties for backward compatibility

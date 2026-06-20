@@ -30,23 +30,31 @@ import { useNotifications } from '../../stores/uiStore'
 import { ReactFlowWrapper } from '../ui/react-flow-wrapper'
 import { applyLayoutWithWorker, LayoutAlgorithm, LayoutOptions } from './layoutAlgorithms'
 
-// MVP Node types - Phase 1: Only AiDomNode
+// Node type component mapping — each type gets its own visual component
+// Types without a dedicated component use the GenericNodeComponent
+const GenericNodeComponent: React.FC<any> = ({ data }) => (
+  <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 min-w-[160px] shadow-sm">
+    <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{data.name || 'Unnamed'}</div>
+    <div className="text-xs text-gray-500 dark:text-gray-400">{data.type || 'unknown'}</div>
+  </div>
+)
+
 const nodeTypes = {
   ai_dom: AiDomNode,
   splitter: SplitterNode as any,
-  gemini_deep_research: AiDomNode, // Reuse for now
-  consolidate: AiDomNode,
-  // Add more as components created
-  ...Object.fromEntries(WORKFLOW_NODE_TYPES.map(n => [n.type, AiDomNode])) // Fallback
-};
+  // Map all registered types to at least have proper display
+  ...Object.fromEntries(
+    WORKFLOW_NODE_TYPES.map(n => [n.type, GenericNodeComponent])
+  ),
+}
 
-// Node categories for the palette
-const NODE_CATEGORIES = {
-  provider: {
-    label: 'Providers',
-    icon: '🤖',
-    color: 'bg-purple-500',
-    nodes: WORKFLOW_NODE_TYPES.filter(n => n.category === 'process' && (n.type === 'provider' || n.type === 'ai_dom'))
+// Node categories for the palette — driven by WORKFLOW_NODE_TYPES
+const NODE_CATEGORIES: Record<string, { label: string; icon: string; color: string; nodes: typeof WORKFLOW_NODE_TYPES }> = {
+  input: {
+    label: 'Input',
+    icon: '📡',
+    color: 'bg-cyan-500',
+    nodes: WORKFLOW_NODE_TYPES.filter(n => n.category === 'input')
   },
   action: {
     label: 'Actions',
@@ -54,11 +62,11 @@ const NODE_CATEGORIES = {
     color: 'bg-blue-500',
     nodes: WORKFLOW_NODE_TYPES.filter(n => n.category === 'action')
   },
-  transform: {
-    label: 'Transform',
-    icon: '🔄',
-    color: 'bg-orange-500',
-    nodes: WORKFLOW_NODE_TYPES.filter(n => n.category === 'process' && ['transform', 'filter', 'aggregate', 'join', 'union', 'consolidate'].includes(n.type))
+  process: {
+    label: 'Process',
+    icon: '⚙️',
+    color: 'bg-purple-500',
+    nodes: WORKFLOW_NODE_TYPES.filter(n => n.category === 'process')
   },
   control: {
     label: 'Control',
@@ -72,7 +80,7 @@ const NODE_CATEGORIES = {
     color: 'bg-red-500',
     nodes: WORKFLOW_NODE_TYPES.filter(n => n.category === 'output')
   }
-};
+}
 
 // Node templates
 const NODE_TEMPLATES = [
@@ -546,7 +554,8 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
       // For split/parallel: allow multiple from source if type supports (e.g., splitter node future)
       if (sourceNode.type === 'condition') {
-        params.targetHandle = params.targetHandle || (params.data?.branch === 'true' ? 'true' : 'false')
+        const branch = (sourceNode.data as any)?.branch || 'true'
+        params.targetHandle = params.targetHandle || (branch === 'true' ? 'true' : 'false')
       }
 
       const newEdge = { ...params, id: `${params.source}-${params.target}-${Date.now()}`, type: 'default' } as Edge
@@ -987,13 +996,16 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
 
   // Convert workflow nodes to backend format
   const convertToWorkflowFormat = useCallback(() => {
-    const workflowNodes = nodes.map((node: Node) => ({
-      id: node.id,
-      type: node.type,
-      name: (node.data as AiDomNodeData)?.name || 'Unnamed',
-      position: node.position,
-      data: node.data,
-    }))
+    const workflowNodes = nodes.map((node: Node) => {
+      const nodeData = node.data as Record<string, unknown>
+      return {
+        id: node.id,
+        type: node.type,
+        name: (nodeData?.name as string) || 'Unnamed',
+        position: node.position,
+        data: node.data,
+      }
+    })
 
     const workflowEdges = edges.map((edge: Edge) => ({
       id: edge.id,
@@ -1032,8 +1044,8 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
         }
       }
 
-      // Use fetch directly to call the backend
-      const response = await fetch('http://localhost:8000/workflows', {
+      // Use fetch through the Vite proxy to call the backend
+      const response = await fetch('/api/v1/workflows', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

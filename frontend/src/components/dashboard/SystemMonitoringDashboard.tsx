@@ -45,7 +45,7 @@ const SystemMonitoringDashboard: React.FC = () => {
 
   // WebSocket connection for real-time updates
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
+    const ws = new WebSocket('/ws/monitoring');
     
     ws.onopen = () => {
       setIsConnected(true);

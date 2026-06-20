@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
 import { Select } from "../components/ui/select"
 import { Plus, Search, Filter, Play, Edit, MoreVertical, Download, Upload } from "lucide-react"
+import { SIMPLE_DEEP_RESEARCH, DEEPER_RESEARCH } from '../types/workflow-predefined'
 
 interface Workflow {
   id: string

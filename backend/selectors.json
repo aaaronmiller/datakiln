@@ -2,14 +2,14 @@
   "selectors": [
     {
       "key": "gemini.searchButton",
-      "selector": "input[value='Google Search']",
+      "selector": "button[aria-label*='Send']",
       "selector_type": "css",
-      "description": "Gemini search button",
+      "description": "Gemini send button",
       "provider": "gemini",
       "context": "search",
       "fallback_selectors": [
-        "input[type='submit']",
-        "button:has-text('Search')"
+        "mat-icon[fonticon='send']",
+        "button:has(mat-icon[fonticon='send'])"
       ],
       "timing_policy": {
         "default_delay_ms": 8000,
@@ -22,14 +22,15 @@
     },
     {
       "key": "perplexity.searchInput",
-      "selector": "textarea[data-testid='search-input']",
+      "selector": "[contenteditable='true']",
       "selector_type": "css",
       "description": "Perplexity search input",
       "provider": "perplexity",
       "context": "search",
       "fallback_selectors": [
-        "textarea[placeholder*='search']",
-        "[contenteditable='true']"
+        "[role='textbox']",
+        "[data-lexical-editor='true']",
+        "textarea"
       ],
       "timing_policy": {
         "default_delay_ms": 2000,
@@ -42,14 +43,15 @@
     },
     {
       "key": "perplexity.submitButton",
-      "selector": "button[data-testid='send-button']",
+      "selector": "button[aria-label*='Submit']",
       "selector_type": "css",
       "description": "Perplexity submit button",
       "provider": "perplexity",
       "context": "search",
       "fallback_selectors": [
-        "button[type='submit']",
-        "button:has-text('Send')"
+        "button[aria-label*='Send']",
+        "button[data-testid='send-button']",
+        "button:has-text('Ask')"
       ],
       "timing_policy": {
         "default_delay_ms": 1000,
@@ -164,14 +166,14 @@
     },
     {
       "key": "gemini.textInput",
-      "selector": "input[name='q']",
+      "selector": "rich-textarea [contenteditable='true']",
       "selector_type": "css",
-      "description": "Gemini search input field",
+      "description": "Gemini prompt input",
       "provider": "gemini",
       "context": "search",
       "fallback_selectors": [
-        "input[type='text']",
-        "[contenteditable='true']"
+        "[contenteditable='true']",
+        "[role='textbox']"
       ],
       "timing_policy": {
         "default_delay_ms": 8000,
@@ -184,71 +186,85 @@
     },
     {
       "key": "google_search_input",
-      "selector": "input[name='q']",
+      "selector": "rich-textarea [contenteditable='true']",
       "selector_type": "css",
-      "description": "Google search input field",
+      "description": "Gemini prompt input",
       "provider": "gemini_deep_research",
       "context": "search",
-      "fallback_selectors": [],
+      "fallback_selectors": [
+        "[contenteditable='true']",
+        "[role='textbox']"
+      ],
       "timing_policy": {
         "default_delay_ms": 1000,
         "wait_for_selector_timeout_ms": 5000,
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781383",
-      "updated_at": "2025-09-29 03:53:33.781409"
+      "created_at": "2026-04-03 11:46:27.224077",
+      "updated_at": "2026-04-03 11:46:27.224105"
     },
     {
       "key": "google_search_button",
-      "selector": "input[value='Google Search']",
+      "selector": "button[aria-label*='Send']",
       "selector_type": "css",
-      "description": "Google search button",
+      "description": "Gemini send button",
       "provider": "gemini_deep_research",
       "context": "search",
-      "fallback_selectors": [],
+      "fallback_selectors": [
+        "mat-icon[fonticon='send']",
+        "button:has(mat-icon[fonticon='send'])"
+      ],
       "timing_policy": {
         "default_delay_ms": 1000,
         "wait_for_selector_timeout_ms": 5000,
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781389",
-      "updated_at": "2025-09-29 03:53:33.782812"
+      "created_at": "2026-04-03 11:46:27.224083",
+      "updated_at": "2026-04-03 11:46:27.224666"
     },
     {
       "key": "perplexity_search_input",
-      "selector": "textarea[data-testid='search-input']",
+      "selector": "[contenteditable='true']",
       "selector_type": "css",
       "description": "Perplexity search input",
       "provider": "perplexity",
       "context": "search",
-      "fallback_selectors": [],
+      "fallback_selectors": [
+        "[role='textbox']",
+        "[data-lexical-editor='true']",
+        "textarea"
+      ],
       "timing_policy": {
         "default_delay_ms": 1000,
         "wait_for_selector_timeout_ms": 5000,
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781391",
-      "updated_at": "2025-09-29 03:53:33.783362"
+      "created_at": "2026-04-03 11:46:27.224085",
+      "updated_at": "2026-04-03 11:46:27.234198"
     },
     {
       "key": "perplexity_send_button",
-      "selector": "button[data-testid='send-button']",
+      "selector": "button[aria-label*='Submit']",
       "selector_type": "css",
       "description": "Perplexity send button",
       "provider": "perplexity",
       "context": "search",
-      "fallback_selectors": [],
+      "fallback_selectors": [
+        "button[aria-label*='Send']",
+        "button[data-testid='send-button']",
+        "button:has-text('Ask')"
+      ],
       "timing_policy": {
         "default_delay_ms": 1000,
         "wait_for_selector_timeout_ms": 5000,
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781394",
-      "updated_at": "2025-09-29 03:53:33.783821"
+      "created_at": "2026-04-03 11:46:27.224087",
+      "updated_at": "2026-04-03 11:46:27.234807"
     },
     {
       "key": "contenteditable_input",
@@ -264,8 +280,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781396",
-      "updated_at": "2025-09-29 03:53:33.784301"
+      "created_at": "2026-04-03 11:46:27.224090",
+      "updated_at": "2026-04-03 11:46:27.235273"
     },
     {
       "key": "submit_button",
@@ -281,8 +297,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781398",
-      "updated_at": "2025-09-29 03:53:33.784768"
+      "created_at": "2026-04-03 11:46:27.224092",
+      "updated_at": "2026-04-03 11:46:27.235798"
     },
     {
       "key": "text_input",
@@ -298,8 +314,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781400",
-      "updated_at": "2025-09-29 03:53:33.785231"
+      "created_at": "2026-04-03 11:46:27.224095",
+      "updated_at": "2026-04-03 11:46:27.236330"
     },
     {
       "key": "main_content",
@@ -315,8 +331,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781402",
-      "updated_at": "2025-09-29 03:53:33.785686"
+      "created_at": "2026-04-03 11:46:27.224097",
+      "updated_at": "2026-04-03 11:46:27.236837"
     },
     {
       "key": "article_content",
@@ -332,8 +348,8 @@
         "action_timeout_ms": 10000
       },
       "attributes": {},
-      "created_at": "2025-09-29 03:53:33.781404",
-      "updated_at": "2025-09-29 03:53:33.786140"
+      "created_at": "2026-04-03 11:46:27.224099",
+      "updated_at": "2026-04-03 11:46:27.237232"
     }
   ],
   "provider_mappings": {
@@ -380,5 +396,5 @@
       "article_content"
     ]
   },
-  "exported_at": "2025-09-29T03:53:33.786213"
+  "exported_at": "2026-04-03T11:46:27.237309"
 }

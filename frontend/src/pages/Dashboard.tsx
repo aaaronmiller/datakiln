@@ -5,11 +5,22 @@ import { QuickRunTile, RecentActivityWidget, QueueStatusWidget, SystemStatusWidg
 import { useToast } from "../hooks/use-toast"
 import websocketService from "../services/websocketService"
 
-// Default system status values from environment
-const getDefaultSystemStatus = () => ({
+// Define SystemStatus locally
+interface SystemStatusType {
+  active_runs: number
+  recent_results: number
+  system_health: string
+  uptime: string
+  cpu_usage: number
+  memory_usage: number
+  last_updated: string
+}
+
+// Default system status values (fallback, not from env)
+const getDefaultSystemStatus = (): SystemStatusType => ({
   active_runs: 0,
   recent_results: 0,
-  system_health: import.meta.env.VITE_DEFAULT_SYSTEM_HEALTH || 'healthy',
+  system_health: 'healthy' as const,
   uptime: '2d 14h 32m',
   cpu_usage: 23.5,
   memory_usage: 67.8,
@@ -37,7 +48,7 @@ interface QueueStatus {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(null)
+  const [systemStatus, setSystemStatus] = React.useState<SystemStatusType | null>(null)
   const [recentActivity, setRecentActivity] = React.useState<ActivityItem[]>([])
   const [queueStatus, setQueueStatus] = React.useState<QueueStatus | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -124,7 +135,7 @@ const Dashboard: React.FC = () => {
 
     // Listen for real-time updates
     const handleSystemStatusUpdate = (data: unknown) => {
-      setSystemStatus(data as SystemStatus)
+      setSystemStatus(data as SystemStatusType)
     }
 
     const handleActivityUpdate = (data: unknown) => {
@@ -149,6 +160,10 @@ const Dashboard: React.FC = () => {
   // Initial data fetch
   React.useEffect(() => {
     fetchDashboardData()
+
+    if ((import.meta.env as { MODE?: string }).MODE === 'test') {
+      return
+    }
 
     // Set up periodic refresh every 30 seconds (fallback for when WebSocket is not available)
     const interval = setInterval(fetchDashboardData, 30000)
@@ -248,8 +263,8 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-1">
           <QueueStatusWidget
             queueData={queueStatus || {
-              pending_jobs: parseInt(import.meta.env.VITE_DEFAULT_QUEUE_PENDING) || 3,
-              processing_jobs: parseInt(import.meta.env.VITE_DEFAULT_QUEUE_PROCESSING) || 2,
+              pending_jobs: 3,
+              processing_jobs: 2,
               completed_today: 15,
               failed_today: 1,
               average_processing_time: '45s',

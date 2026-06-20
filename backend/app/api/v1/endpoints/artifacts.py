@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any
-from ..services.artifact_service import ArtifactService, get_artifact_service
+from ....services.artifact_service import ArtifactService, get_artifact_service
 
 router = APIRouter()
 

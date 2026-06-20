@@ -1,12 +1,26 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ReactFlowProvider } from '@xyflow/react'
 import WorkflowEditor from './WorkflowEditor'
 
 // Mock hooks and services
-vi.mock('../../stores/uiStore')
-vi.mock('../../services/workflowValidationService')
+vi.mock('../../stores/uiStore', () => ({
+  useNotifications: () => ({
+    add: vi.fn(),
+  }),
+}))
+vi.mock('../../services/workflowValidationService', () => ({
+  workflowValidationService: {
+    validateWorkflow: vi.fn(() => ({ valid: true, errors: [], warnings: [] })),
+    exportWorkflow: vi.fn(() => ({ valid: true, errors: [], warnings: [], json: '{"nodes":[],"edges":[]}' })),
+    validateRoundTrip: vi.fn(() => ({ valid: true, errors: [], warnings: [] })),
+  },
+}))
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 const renderWorkflowEditor = (props = {}) => {
   return render(
@@ -21,21 +35,18 @@ describe('WorkflowEditor Component', () => {
     renderWorkflowEditor()
 
     expect(screen.getByText('Add Node:')).toBeInTheDocument()
-    expect(screen.getByText('WorkflowEditor')).toBeInTheDocument()
+    expect(screen.getByRole('application', { name: 'Workflow Editor Application' })).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: 'Node palette sidebar' })).toBeInTheDocument()
   })
 
   it('adds node when toolbar button is clicked', async () => {
     const user = userEvent.setup()
     renderWorkflowEditor()
 
-    const addButtons = screen.getAllByRole('button').filter(btn =>
-      btn.textContent?.includes('icon')
-    )
-    const firstAddBtn = addButtons[0]
+    const firstAddBtn = screen.getByRole('button', { name: /AI DOM Action/i })
 
     await user.click(firstAddBtn)
 
-    // Node should be added (implementation dependent)
     expect(firstAddBtn).toBeInTheDocument()
   })
 
@@ -73,25 +84,21 @@ describe('WorkflowEditor Component', () => {
     renderWorkflowEditor()
 
     const saveBtn = screen.getByText('Save Workflow')
-    // Initially disabled (no nodes)
-    expect(saveBtn).toHaveAttribute('disabled', 'true')
+    expect(saveBtn).toBeDisabled()
   })
 
   it('enables execute button when nodes exist', () => {
     renderWorkflowEditor()
 
     const executeBtn = screen.getByText(/Execute Workflow/)
-    // Initially disabled (no nodes)
-    expect(executeBtn).toHaveAttribute('disabled', 'true')
+    expect(executeBtn).toBeDisabled()
   })
 
   it('shows performance test button only when enabled', () => {
     // This depends on environment variable VITE_ENABLE_TEST_WORKFLOWS
     renderWorkflowEditor()
 
-    const perfTestBtn = screen.queryByText('Load Perf Test')
-    // Should be present if test workflows are enabled (environment dependent)
-    expect(perfTestBtn).toBeTruthy()
+    expect(screen.getByText('Load Performance Test (50+ nodes)')).toBeInTheDocument()
   })
 
   it('shows sample workflow button only when enabled', () => {
@@ -108,16 +115,16 @@ describe('WorkflowEditor Component', () => {
 
     const importBtn = screen.getByText('Import JSON')
 
-    // Mock file input
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
+    const click = vi.spyOn(fileInput, 'click').mockImplementation(() => {})
     vi.spyOn(document, 'createElement').mockReturnValue(fileInput)
 
     await user.click(importBtn)
 
-    // File input should be created and clicked
     expect(document.createElement).toHaveBeenCalledWith('input')
+    expect(click).toHaveBeenCalled()
   })
 
   it('exports workflow JSON', async () => {

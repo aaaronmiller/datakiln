@@ -1,0 +1,73 @@
+{
+  "template_id": "dk://templates/dom/perplexity/pro-search",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Perplexity Pro Search",
+    "description": "Execute a pro search using Perplexity AI with source citations",
+    "author": "Data Kiln Core",
+    "category": "dom",
+    "tags": ["dom", "perplexity", "search", "research"]
+  },
+  "executor": "DOM",
+  "interface": "API",
+  "required_capabilities": ["perplexity_api_access"],
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The search query"
+      },
+      "focus": {
+        "type": "string",
+        "enum": ["web", "news", "academic", "writing"],
+        "default": "web"
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "default": 60000,
+        "minimum": 5000,
+        "maximum": 300000
+      }
+    },
+    "required": ["query"]
+  },
+  "default_input_ports": [
+    {
+      "name": "query",
+      "schema_ref": "dk://types/string",
+      "description": "The search query"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "result",
+      "schema_ref": "dk://types/string",
+      "description": "Search results with citations"
+    }
+  ],
+  "dom_action_sequence": [
+    { "action": "goto", "target": "https://www.perplexity.ai" },
+    {
+      "action": "waitFor",
+      "target": "[contenteditable='true']",
+      "fallback_targets": ["[role='textbox']", "[data-lexical-editor='true']", "textarea"]
+    },
+    {
+      "action": "fill",
+      "target": "[contenteditable='true']",
+      "fallback_targets": ["[role='textbox']", "[data-lexical-editor='true']", "textarea"],
+      "value_source": "input.query"
+    },
+    {
+      "action": "click",
+      "target": "button[aria-label*='Submit']",
+      "fallback_targets": ["button[aria-label*='Send']", "button[data-testid='send-button']", "button:has-text('Ask')"]
+    },
+    {
+      "action": "capture",
+      "target": "main",
+      "fallback_targets": ["body"]
+    }
+  ]
+}

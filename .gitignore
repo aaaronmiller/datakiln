@@ -100,6 +100,8 @@ jspm_packages/
 test-results/
 playwright-report/
 playwright/.cache/
+frontend/e2e/*.png
+frontend/e2e/*report.json
 
 # Temporary files
 tmp/
@@ -110,11 +112,23 @@ temp/
 dist/
 build/
 out/
+*.tsbuildinfo
 
 # Application specific
 datakiln.db
 *.session
 sessions/
+artifacts/
+backend/artifacts/
+backend/data/outputs_test/
+backend/data/transcripts/
+backend/data/workflows/
+research_data/
+backend/research_data/
+backups/
+context_portal/
+scripts/checkpoints/
+extension_data.json
 
 # Provider API keys and sensitive data
 .env
@@ -150,6 +164,14 @@ chrome-extension/build/
 frontend/dist/
 frontend/build/
 frontend/.next/
+
+# Local agent/session debris
+.agents/
+.codex/
+.gemini/
+.codeiumignore
+.geminiignore
+.windsurfignore
 .clinerules/byterover-rules.md
 .kilocode/rules/byterover-rules.md
 .roo/rules/byterover-rules.md

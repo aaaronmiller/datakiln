@@ -1,0 +1,43 @@
+{
+  "template_id": "dk://templates/code/string-extract/youtube-ids",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Extract YouTube IDs",
+    "description": "Extract YouTube video IDs from URLs or text using regex pattern matching",
+    "author": "Data Kiln Core",
+    "category": "code",
+    "tags": ["code", "extract", "youtube", "regex"]
+  },
+  "executor": "Code",
+  "interface": "Internal",
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "source_field": {
+        "type": "string",
+        "default": "input",
+        "description": "Field name containing the text to extract from"
+      },
+      "extract_all": {
+        "type": "boolean",
+        "default": true,
+        "description": "Extract all matches or just the first"
+      }
+    },
+    "required": []
+  },
+  "default_input_ports": [
+    {
+      "name": "input",
+      "schema_ref": "dk://types/string",
+      "description": "Text containing YouTube URLs"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "ids",
+      "schema_ref": "dk://types/any",
+      "description": "Extracted YouTube video IDs"
+    }
+  ]
+}

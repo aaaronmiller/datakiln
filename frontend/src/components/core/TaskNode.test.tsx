@@ -1,10 +1,11 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 import TaskNode from './TaskNode'
 
-// Mock reactflow components
-jest.mock('reactflow', () => ({
+// Mock React Flow handles; these tests validate TaskNode rendering, not canvas behavior.
+vi.mock('@xyflow/react', () => ({
   Handle: ({ children, ...props }: any) => <div data-testid="handle" {...props}>{children}</div>,
   Position: {
     Left: 'left',
@@ -13,14 +14,14 @@ jest.mock('reactflow', () => ({
 }))
 
 // Mock UI components
-jest.mock('../ui/card', () => ({
+vi.mock('../ui/card', () => ({
   Card: ({ children, className }: any) => <div className={className} data-testid="card">{children}</div>,
   CardContent: ({ children, className }: any) => <div className={className} data-testid="card-content">{children}</div>,
   CardHeader: ({ children, className }: any) => <div className={className} data-testid="card-header">{children}</div>,
   CardTitle: ({ children, className }: any) => <div className={className} data-testid="card-title">{children}</div>,
 }))
 
-jest.mock('../ui/button', () => ({
+vi.mock('../ui/button', () => ({
   Button: ({ children, onClick, className, variant, size }: any) => (
     <button
       onClick={onClick}
@@ -32,7 +33,7 @@ jest.mock('../ui/button', () => ({
   ),
 }))
 
-jest.mock('../ui/input', () => ({
+vi.mock('../ui/input', () => ({
   Input: ({ value, onChange, placeholder, className }: any) => (
     <input
       value={value}
@@ -116,7 +117,7 @@ describe('TaskNode', () => {
   it('renders parameters as inputs', () => {
     render(<TaskNode {...defaultProps} />)
 
-    const inputs = screen.getAllByTestId('input')
+    const inputs = screen.getAllByRole('textbox')
     expect(inputs).toHaveLength(2)
 
     expect(screen.getByDisplayValue('test query')).toBeInTheDocument()

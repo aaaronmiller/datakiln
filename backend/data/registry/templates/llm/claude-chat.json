@@ -1,0 +1,60 @@
+{
+  "template_id": "dk://templates/llm/claude/chat",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Claude Chat",
+    "description": "Execute a chat completion using Anthropic Claude",
+    "author": "Data Kiln Core",
+    "category": "llm",
+    "tags": ["llm", "claude", "chat", "generation"]
+  },
+  "executor": "LLM",
+  "interface": "API",
+  "required_capabilities": ["claude_api_access"],
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "model": {
+        "type": "string",
+        "enum": ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"],
+        "default": "claude-3-sonnet"
+      },
+      "prompt_template": {
+        "type": "object",
+        "properties": {
+          "prefix": { "type": "string" },
+          "suffix": { "type": "string" }
+        }
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "default": 30000,
+        "minimum": 1000,
+        "maximum": 300000
+      },
+      "max_tokens": {
+        "type": "integer",
+        "default": 4096
+      }
+    },
+    "required": ["model"]
+  },
+  "default_input_ports": [
+    {
+      "name": "input",
+      "schema_ref": "dk://types/string",
+      "description": "The input text or prompt"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "output",
+      "schema_ref": "dk://types/string",
+      "description": "The generated response"
+    }
+  ],
+  "cost_estimation": {
+    "base_cost_usd": 0.003,
+    "per_token_cost_usd": 0.000015
+  }
+}

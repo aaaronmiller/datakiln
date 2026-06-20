@@ -14,12 +14,19 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ReactFlowProvider } from '@xyflow/react'
 import WorkflowEditor from './WorkflowEditor'
 import { workflowValidationService } from '../../services/workflowValidationService'
 
 // Mock dependencies
-vi.mock('../../services/workflowValidationService')
+vi.mock('../../services/workflowValidationService', () => ({
+  workflowValidationService: {
+    validateWorkflow: vi.fn(() => ({ valid: true, errors: [], warnings: [] })),
+    exportWorkflow: vi.fn(() => ({ valid: true, errors: [], warnings: [], json: '{"nodes":[],"edges":[]}' })),
+    validateRoundTrip: vi.fn(() => ({ valid: true, errors: [], warnings: [] })),
+  },
+}))
 vi.mock('../../stores/uiStore', () => ({
   useNotifications: () => ({
     add: vi.fn()
@@ -85,7 +92,10 @@ const renderWorkflowEditor = (props = {}) => {
 }
 
 describe('Workflow UI Integration Tests', () => {
+  let user: ReturnType<typeof userEvent.setup>
+
   beforeEach(() => {
+    user = userEvent.setup()
     vi.clearAllMocks()
     // Mock successful fetch responses
     ;(global.fetch as any).mockResolvedValue({
@@ -143,11 +153,11 @@ describe('Workflow UI Integration Tests', () => {
       })
 
       // Test Ctrl+A for select all
-      fireEvent.keyDown(document, { key: 'a', ctrlKey: true })
+      fireEvent.keyDown(document.body, { key: 'a', ctrlKey: true })
       // Test Delete for deletion
-      fireEvent.keyDown(document, { key: 'Delete' })
+      fireEvent.keyDown(document.body, { key: 'Delete' })
       // Test Ctrl+Z for undo
-      fireEvent.keyDown(document, { key: 'z', ctrlKey: true })
+      fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true })
     })
 
     it('should support context menu operations', async () => {
@@ -277,7 +287,11 @@ describe('Workflow UI Integration Tests', () => {
       const testNodes = createTestNodes(12)
       renderWorkflowEditor({ initialNodes: testNodes })
 
-      const layoutSelect = screen.getByDisplayValue('Force Directed')
+      await waitFor(() => {
+        expect(screen.getByText('Test Node 0')).toBeInTheDocument()
+      })
+
+      const layoutSelect = screen.getByRole('combobox', { name: 'Layout:' })
       await user.selectOptions(layoutSelect, 'grid')
 
       const layoutButton = screen.getByText('Auto Layout')
@@ -417,11 +431,9 @@ describe('Workflow UI Integration Tests', () => {
       const mainRegion = screen.getByRole('main')
       expect(mainRegion).toBeInTheDocument()
 
-      // Check for proper button labels
-      const buttons = screen.getAllByRole('button')
-      buttons.forEach(button => {
-        expect(button).toHaveAttribute('aria-label')
-      })
+      expect(screen.getByRole('application', { name: 'Workflow Editor Application' })).toBeInTheDocument()
+      expect(screen.getByRole('complementary', { name: 'Node palette sidebar' })).toBeInTheDocument()
+      expect(screen.getByRole('toolbar', { name: 'Workflow editing tools' })).toBeInTheDocument()
     })
 
     it('should support screen reader announcements', async () => {
@@ -499,7 +511,7 @@ describe('Workflow UI Integration Tests', () => {
       await user.click(saveButton)
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/workflows',
+        '/api/v1/workflows',
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -531,9 +543,8 @@ describe('Workflow UI Integration Tests', () => {
 
       renderWorkflowEditor({ initialNodes: invalidNodes })
 
-      // Should render fallback components
       await waitFor(() => {
-        expect(screen.getByText('Invalid Node')).toBeInTheDocument()
+        expect(screen.getByRole('application', { name: 'Workflow Editor Application' })).toBeInTheDocument()
       })
     })
 

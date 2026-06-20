@@ -1,0 +1,54 @@
+{
+  "template_id": "dk://templates/logic/user-input",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "User Input",
+    "description": "Request input from the user and wait for response",
+    "author": "Data Kiln Core",
+    "category": "logic",
+    "tags": ["logic", "user-input", "interactive"]
+  },
+  "executor": "Code",
+  "interface": "Internal",
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "The prompt message to show to the user"
+      },
+      "input_type": {
+        "type": "string",
+        "enum": ["text", "number", "boolean", "select", "file"],
+        "default": "text",
+        "description": "Type of input to collect"
+      },
+      "options": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Options for select input type"
+      },
+      "timeout_minutes": {
+        "type": "integer",
+        "default": 60,
+        "minimum": 1,
+        "maximum": 1440
+      }
+    },
+    "required": ["prompt"]
+  },
+  "default_input_ports": [
+    {
+      "name": "context",
+      "schema_ref": "dk://types/any",
+      "description": "Optional context to show with the prompt"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "response",
+      "schema_ref": "dk://types/any",
+      "description": "The user's response"
+    }
+  ]
+}

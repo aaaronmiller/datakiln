@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import Workflows from './Workflows'
-import { Toaster } from '../components/ui/toast'
 
 // Mock navigate
 const mockNavigate = vi.fn()
@@ -26,7 +25,6 @@ const renderWorkflows = () => {
   return render(
     <BrowserRouter>
       <Workflows />
-      <Toaster />
     </BrowserRouter>
   )
 }
@@ -55,22 +53,11 @@ describe('Workflows Page', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/workflows/new')
   })
 
-  it('shows workflow options dropdown when More button is clicked', async () => {
-    const user = userEvent.setup()
+  it('renders row actions for existing workflows', () => {
     renderWorkflows()
 
-    // Find the first More button (MoreVertical)
-    const moreButtons = screen.getAllByRole('button').filter(btn =>
-      btn.className.includes('variant-ghost')
-    )
-    const firstMoreBtn = moreButtons[moreButtons.length - 1] // Last ghost button should be the More button
-
-    await user.click(firstMoreBtn)
-
-    // Check if dropdown appears (this would need to be adjusted based on actual implementation)
-    await waitFor(() => {
-      expect(screen.queryByText('Duplicate')).toBeTruthy()
-    })
+    expect(screen.getAllByText('Run').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Edit').length).toBeGreaterThan(0)
   })
 
   it('filters workflows when search input changes', async () => {

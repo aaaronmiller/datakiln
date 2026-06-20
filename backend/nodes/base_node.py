@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
+import asyncio
 import uuid
 from pydantic import BaseModel, Field
 
@@ -48,10 +48,9 @@ class BaseNode(BaseModel):
     execution_time: Optional[float] = Field(None, description="Time taken to execute")
     error_message: Optional[str] = Field(None, description="Last error message")
 
-    @abstractmethod
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the node's specific logic"""
-        pass
+        raise NotImplementedError("BaseNode.execute must be implemented by subclasses")
 
     def update_status(self, status: str, error_message: Optional[str] = None):
         """Update node execution status"""

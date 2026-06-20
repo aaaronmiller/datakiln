@@ -1,0 +1,49 @@
+{
+  "template_id": "dk://templates/logic/merge",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Merge",
+    "description": "Merge multiple input streams into a single combined output",
+    "author": "Data Kiln Core",
+    "category": "logic",
+    "tags": ["logic", "merge", "combine"]
+  },
+  "executor": "Code",
+  "interface": "Internal",
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "merge_strategy": {
+        "type": "string",
+        "enum": ["concat", "zip", "json_merge", "sum", "average"],
+        "default": "concat",
+        "description": "Strategy for merging inputs"
+      },
+      "deduplicate": {
+        "type": "boolean",
+        "default": false,
+        "description": "Remove duplicate values after merge"
+      }
+    },
+    "required": ["merge_strategy"]
+  },
+  "default_input_ports": [
+    {
+      "name": "input_a",
+      "schema_ref": "dk://types/any",
+      "description": "First input stream"
+    },
+    {
+      "name": "input_b",
+      "schema_ref": "dk://types/any",
+      "description": "Second input stream"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "output",
+      "schema_ref": "dk://types/any",
+      "description": "Merged output"
+    }
+  ]
+}

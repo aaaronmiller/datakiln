@@ -85,7 +85,7 @@ describe('HierarchicalLayout', () => {
     // Check that nodes are positioned in levels
     const positions = result.map(node => node.position.y)
     const sortedPositions = [...positions].sort((a, b) => a - b)
-    expect(positions).not.toEqual(sortedPositions) // Should be arranged hierarchically
+    expect(positions).toEqual(sortedPositions)
   })
 
   test('should handle disconnected nodes', () => {

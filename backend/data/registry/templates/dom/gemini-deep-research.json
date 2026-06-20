@@ -1,0 +1,75 @@
+{
+  "template_id": "dk://templates/dom/gemini/deep-research",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Gemini Deep Research",
+    "description": "Perform deep research using Gemini with web browsing capabilities",
+    "author": "Data Kiln Core",
+    "category": "dom",
+    "tags": ["dom", "gemini", "research", "browsing"]
+  },
+  "executor": "DOM",
+  "interface": "API",
+  "required_capabilities": ["gemini_api_access", "browser_automation"],
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The research query to investigate"
+      },
+      "max_sources": {
+        "type": "integer",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "default": 120000,
+        "minimum": 10000,
+        "maximum": 600000
+      }
+    },
+    "required": ["query"]
+  },
+  "default_input_ports": [
+    {
+      "name": "query",
+      "schema_ref": "dk://types/string",
+      "description": "The research query"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "result",
+      "schema_ref": "dk://types/string",
+      "description": "Research findings"
+    }
+  ],
+  "dom_action_sequence": [
+    { "action": "goto", "target": "https://gemini.google.com/app" },
+    {
+      "action": "waitFor",
+      "target": "rich-textarea [contenteditable='true']",
+      "fallback_targets": ["[contenteditable='true']", "[role='textbox']"]
+    },
+    {
+      "action": "fill",
+      "target": "rich-textarea [contenteditable='true']",
+      "fallback_targets": ["[contenteditable='true']", "[role='textbox']"],
+      "value_source": "input.query"
+    },
+    {
+      "action": "click",
+      "target": "button[aria-label*='Send']",
+      "fallback_targets": ["mat-icon[fonticon='send']", "button:has(mat-icon[fonticon='send'])"]
+    },
+    { "action": "waitFor", "timeout": 5000 },
+    {
+      "action": "capture",
+      "target": "div[data-message-author-role='model']",
+      "fallback_targets": [".response-content", "main", "body"]
+    }
+  ]
+}

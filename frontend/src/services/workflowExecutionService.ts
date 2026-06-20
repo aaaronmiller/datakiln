@@ -24,9 +24,20 @@ interface WorkflowGraph {
 
 export class WorkflowExecutionService {
   private baseUrl: string
+  private useProxy: boolean
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
-    this.baseUrl = baseUrl
+  constructor(baseUrl?: string) {
+    if (baseUrl) {
+      this.baseUrl = baseUrl
+      this.useProxy = false
+    } else {
+      this.baseUrl = ''
+      this.useProxy = true
+    }
+  }
+
+  private url(path: string): string {
+    return `${this.baseUrl}/api/v1${path}`
   }
 
   async executeWorkflow(
@@ -106,7 +117,7 @@ export class WorkflowExecutionService {
 
   async optimizeWorkflow(workflow: WorkflowGraph): Promise<unknown> {
     try {
-      const response = await fetch(`${this.baseUrl}/workflow/optimize`, {
+      const response = await fetch(this.url('/workflows/optimize'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

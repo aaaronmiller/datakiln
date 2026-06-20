@@ -8,8 +8,8 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.responses import JSONResponse
 
-from ....services.custom_node_service import custom_node_service
-from ....models.custom_node import (
+from app.services.custom_node_service import custom_node_service
+from app.models.custom_node import (
     CustomNodeDefinition,
     CustomNodeRegistration,
     CustomNodeValidationResult,
@@ -22,7 +22,7 @@ from ....models.custom_node import (
     CustomNodeImportRequest,
     RegistryStats
 )
-from ....nodes.node_registry import node_registry
+from nodes.node_registry import node_registry
 
 router = APIRouter()
 

@@ -1,0 +1,60 @@
+{
+  "template_id": "dk://templates/patterns/simple-deep-research",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Simple Deep Research",
+    "description": "End-to-end deep research workflow: search, analyze, and synthesize findings",
+    "author": "Data Kiln Core",
+    "category": "patterns",
+    "tags": ["pattern", "research", "deep-research", "workflow"]
+  },
+  "executor": "Pattern",
+  "interface": "Internal",
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "research_question": {
+        "type": "string",
+        "description": "The research question to investigate"
+      },
+      "max_sources": {
+        "type": "integer",
+        "default": 8,
+        "minimum": 1,
+        "maximum": 50
+      },
+      "depth": {
+        "type": "string",
+        "enum": ["quick", "standard", "deep"],
+        "default": "standard",
+        "description": "Research depth"
+      }
+    },
+    "required": ["research_question"]
+  },
+  "default_input_ports": [
+    {
+      "name": "query",
+      "schema_ref": "dk://types/string",
+      "description": "The research query"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "report",
+      "schema_ref": "dk://types/string",
+      "description": "The synthesized research report"
+    }
+  ],
+  "default_nodes": [
+    {"id": "search", "template": "dk://templates/dom/perplexity/pro-search", "position": {"x": 0, "y": 0}},
+    {"id": "analyze", "template": "dk://templates/llm/claude/chat", "position": {"x": 300, "y": 0}},
+    {"id": "synthesize", "template": "dk://templates/llm/openai/chat", "position": {"x": 600, "y": 0}}
+  ],
+  "default_edges": [
+    {"from": "query", "to": "search.input"},
+    {"from": "search.result", "to": "analyze.input"},
+    {"from": "analyze.output", "to": "synthesize.input"},
+    {"from": "synthesize.output", "to": "report"}
+  ]
+}

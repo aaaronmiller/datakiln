@@ -6,18 +6,13 @@ interface SSEMessage extends Record<string, unknown> {
 class SSEService {
   private eventSource: EventSource | null = null
   private listeners: { [event: string]: ((data: Record<string, unknown>) => void)[] } = {}
-  private baseUrl: string
-
-  constructor(baseUrl: string = 'http://localhost:8000') {
-    this.baseUrl = baseUrl
-  }
 
   connect(runId: string): void {
     if (this.eventSource) {
       this.disconnect()
     }
 
-    const url = `${this.baseUrl}/api/v1/workflows/runs/${runId}/stream`
+    const url = `/api/v1/runs/${runId}/stream`
     this.eventSource = new EventSource(url)
 
     this.eventSource.onmessage = (event) => {

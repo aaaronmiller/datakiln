@@ -16,10 +16,10 @@ from ..models.custom_node import (
     CustomNodeRegistration,
     CustomNodeValidationResult
 )
-from ...nodes.node_factory import node_factory, CustomNodeDefinition as FactoryDefinition
-from ...nodes.node_registry import node_registry
-from ...nodes.node_validator import node_validator
-from ...nodes.node_loader import node_loader
+from nodes.node_factory import node_factory, CustomNodeDefinition as FactoryDefinition
+from nodes.node_registry import node_registry
+from nodes.node_validator import node_validator
+from nodes.node_loader import node_loader
 
 
 class CustomNodeService:

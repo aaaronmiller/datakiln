@@ -2,17 +2,18 @@ import React from 'react'
 import { render, fireEvent } from '@testing-library/react'
 import { screen } from '@testing-library/dom'
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 import ResultsDisplay from './ResultsDisplay'
 
 // Mock UI components
-jest.mock('../ui/card', () => ({
+vi.mock('../ui/card', () => ({
   Card: ({ children, className }: any) => <div className={className} data-testid="card">{children}</div>,
   CardContent: ({ children, className }: any) => <div className={className} data-testid="card-content">{children}</div>,
   CardHeader: ({ children, className }: any) => <div className={className} data-testid="card-header">{children}</div>,
   CardTitle: ({ children, className }: any) => <div className={className} data-testid="card-title">{children}</div>,
 }))
 
-jest.mock('../ui/button', () => ({
+vi.mock('../ui/button', () => ({
   Button: ({ children, onClick, className, variant, size }: any) => (
     <button
       onClick={onClick}

@@ -43,7 +43,7 @@ const ExecutionLogViewer: React.FC<ExecutionLogViewerProps> = ({
     if (!executionId) return
 
     try {
-      const wsUrl = `ws://localhost:8000/ws/executions/${executionId}`
+      const wsUrl = `/ws/executions/${executionId}`
       const ws = new WebSocket(wsUrl)
       websocketRef.current = ws
 

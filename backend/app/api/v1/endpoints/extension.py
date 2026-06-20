@@ -5,7 +5,15 @@ Extension API endpoints for Chrome extension integration.
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
-from backend.app.services.extension_service import extension_service
+try:
+    from backend.app.services.extension_service import extension_service
+except ImportError:
+    try:
+        from ...services.extension_service import extension_service
+    except ImportError:
+        import logging
+        logging.getLogger(__name__).warning("Could not import extension_service")
+        extension_service = None
 
 
 router = APIRouter()

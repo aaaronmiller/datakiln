@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query, Body
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from ....services.workflow_service import WorkflowService, get_workflow_service
@@ -39,10 +39,11 @@ def create_workflow(
     Creates a new research workflow with persistence.
     """
     try:
-        # Validate workflow structure
-        validation_errors = persistence_service.validate_workflow(workflow)
-        if validation_errors:
-            raise HTTPException(status_code=400, detail=f"Workflow validation failed: {validation_errors}")
+        # Auto-generate ID if not provided
+        if not workflow.id:
+            workflow.id = str(uuid.uuid4())
+
+        workflow_id = persistence_service.save_workflow(workflow)
 
         workflow_id = persistence_service.save_workflow(workflow)
         saved_workflow = persistence_service.load_workflow(workflow_id)
@@ -81,6 +82,16 @@ def get_all_workflows(
     except Exception as e:
         logger.error(f"Failed to get workflows: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get workflows: {str(e)}")
+
+@router.get("/workflows/stats", response_model=WorkflowStatsResponse)
+def get_workflow_stats(
+    workflow_service: WorkflowService = Depends(get_workflow_service)
+) -> WorkflowStatsResponse:
+    """
+    Get workflow execution statistics.
+    """
+    stats = workflow_service.get_workflow_stats()
+    return WorkflowStatsResponse(**stats)
 
 @router.get("/workflows/{workflow_id}", response_model=Workflow)
 def get_workflow_by_id(
@@ -212,15 +223,6 @@ def update_workflow_metadata(
         raise HTTPException(status_code=404, detail="Workflow not found")
     return {"message": "Metadata updated successfully"}
 
-@router.get("/workflows/stats")
-def get_workflows_stats(
-    persistence_service = Depends(get_workflow_persistence_service)
-):
-    """
-    Gets workflow storage statistics.
-    """
-    return persistence_service.get_storage_stats()
-
 @router.post("/workflows/execute", response_model=WorkflowExecutionResponse)
 async def execute_workflow(
     request: WorkflowExecutionRequest,
@@ -246,7 +248,7 @@ async def execute_workflow(
         optimization_level_map = {
             "standard": OptimizationLevel.STANDARD,
             "aggressive": OptimizationLevel.AGGRESSIVE,
-            "conservative": OptimizationLevel.CONSERVATIVE
+            "basic": OptimizationLevel.BASIC,
         }
         optimization_level = optimization_level_map.get(request.optimization_level, OptimizationLevel.STANDARD)
 
@@ -382,16 +384,6 @@ async def cancel_run(
             message="Execution could not be cancelled (not found or not running)"
         )
 
-@router.get("/workflows/stats", response_model=WorkflowStatsResponse)
-def get_workflow_stats(
-    workflow_service: WorkflowService = Depends(get_workflow_service)
-) -> WorkflowStatsResponse:
-    """
-    Get workflow execution statistics.
-    """
-    stats = workflow_service.get_workflow_stats()
-    return WorkflowStatsResponse(**stats)
-
 @router.post("/workflows/validate", response_model=WorkflowValidationResponse)
 async def validate_workflow_endpoint(
     request: WorkflowValidationRequest,
@@ -432,7 +424,7 @@ async def optimize_workflow_endpoint(
         optimization_level_map = {
             "standard": OptimizationLevel.STANDARD,
             "aggressive": OptimizationLevel.AGGRESSIVE,
-            "conservative": OptimizationLevel.CONSERVATIVE
+            "basic": OptimizationLevel.BASIC,
         }
         optimization_level = optimization_level_map.get(request.optimization_level, OptimizationLevel.STANDARD)
 
@@ -456,7 +448,7 @@ async def optimize_workflow_endpoint(
         raise HTTPException(status_code=500, detail=f"Optimization error: {str(e)}")
 
 @router.post("/youtube/transcript")
-async def process_youtube_transcript(url: str) -> Dict[str, Any]:
+async def process_youtube_transcript(url: str = Body(..., embed=False)) -> Dict[str, Any]:
     """
     Process YouTube video transcript.
     """

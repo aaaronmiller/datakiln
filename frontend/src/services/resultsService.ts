@@ -15,14 +15,21 @@ interface ArtifactIndex {
 
 class ResultsService {
   private baseUrl: string
+  private useProxy: boolean
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
-    this.baseUrl = baseUrl
+  constructor(baseUrl?: string) {
+    if (baseUrl) {
+      this.baseUrl = baseUrl
+      this.useProxy = false
+    } else {
+      this.baseUrl = ''
+      this.useProxy = true
+    }
   }
 
   async getArtifactIndex(runId: string): Promise<ArtifactIndex> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/workflows/runs/${runId}/artifacts/index`)
+      const response = await fetch(`${this.baseUrl}/api/v1/runs/${runId}/artifacts/index`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -37,7 +44,7 @@ class ResultsService {
 
   async downloadArtifact(artifactId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/workflows/artifacts/${artifactId}/download`)
+      const response = await fetch(`${this.baseUrl}/api/v1/artifacts/${artifactId}/download`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -67,7 +74,7 @@ class ResultsService {
 
   async getArtifactInfo(artifactId: string): Promise<Artifact> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/workflows/artifacts/${artifactId}`)
+      const response = await fetch(`${this.baseUrl}/api/v1/artifacts/${artifactId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

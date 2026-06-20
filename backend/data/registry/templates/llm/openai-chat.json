@@ -1,0 +1,66 @@
+{
+  "template_id": "dk://templates/llm/openai/chat",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "OpenAI Chat",
+    "description": "Execute a chat completion using OpenAI GPT",
+    "author": "Data Kiln Core",
+    "category": "llm",
+    "tags": ["llm", "openai", "chat", "generation"]
+  },
+  "executor": "LLM",
+  "interface": "API",
+  "required_capabilities": ["openai_api_access"],
+  "configuration_schema": {
+    "type": "object",
+    "properties": {
+      "model": {
+        "type": "string",
+        "enum": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
+        "default": "gpt-4-turbo"
+      },
+      "prompt_template": {
+        "type": "object",
+        "properties": {
+          "prefix": { "type": "string" },
+          "suffix": { "type": "string" }
+        }
+      },
+      "temperature": {
+        "type": "number",
+        "default": 0.7,
+        "minimum": 0,
+        "maximum": 2
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "default": 30000,
+        "minimum": 1000,
+        "maximum": 300000
+      },
+      "max_tokens": {
+        "type": "integer",
+        "default": 2048
+      }
+    },
+    "required": ["model"]
+  },
+  "default_input_ports": [
+    {
+      "name": "input",
+      "schema_ref": "dk://types/string",
+      "description": "The input text or prompt"
+    }
+  ],
+  "default_output_ports": [
+    {
+      "name": "output",
+      "schema_ref": "dk://types/string",
+      "description": "The generated response"
+    }
+  ],
+  "cost_estimation": {
+    "base_cost_usd": 0.01,
+    "per_token_cost_usd": 0.00003
+  }
+}

@@ -1,5 +1,16 @@
-import React, { memo } from 'react'
+import React, { memo, useMemo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
+import {
+  Bot,
+  Search,
+  Youtube,
+  Monitor,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from 'lucide-react'
 
 interface AiDomNodeData {
   type: string
@@ -21,128 +32,223 @@ interface AiDomNodeProps extends NodeProps {
   data: AiDomNodeData
 }
 
-const AiDomNodeComponent: React.FC<AiDomNodeProps> = ({ data, selected }) => {
-  const getProviderColor = (provider?: string) => {
-    switch (provider) {
-      case 'gemini':
-        return 'bg-blue-500 border-blue-600'
-      case 'perplexity':
-        return 'bg-orange-500 border-orange-600'
-      case 'youtube_transcript':
-        return 'bg-red-500 border-red-600'
-      default:
-        return 'bg-gray-500 border-gray-600'
-    }
-  }
+/* ---- Provider Config ---- */
 
-  const getProviderIcon = (provider?: string) => {
-    switch (provider) {
-      case 'gemini':
-        return '🤖'
-      case 'perplexity':
-        return '🔍'
-      case 'youtube_transcript':
-        return '📺'
-      default:
-        return '🖥️'
-    }
-  }
+const PROVIDER_CONFIG = {
+  gemini: {
+    icon: Bot,
+    label: 'Gemini',
+    gradient: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+    bgLight: 'rgba(99, 102, 241, 0.1)',
+    borderLight: 'rgba(99, 102, 241, 0.2)',
+  },
+  perplexity: {
+    icon: Search,
+    label: 'Perplexity',
+    gradient: 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)',
+    bgLight: 'rgba(249, 115, 22, 0.1)',
+    borderLight: 'rgba(249, 115, 22, 0.2)',
+  },
+  youtube_transcript: {
+    icon: Youtube,
+    label: 'YouTube',
+    gradient: 'linear-gradient(135deg, #dc2626 0%, #f43f5e 100%)',
+    bgLight: 'rgba(239, 68, 68, 0.1)',
+    borderLight: 'rgba(239, 68, 68, 0.2)',
+  },
+} as const
+
+const STATUS_CONFIG = {
+  pending: { icon: Clock, color: '#fbbf24', label: 'Pending' },
+  running: { icon: Loader2, color: '#34d399', label: 'Running' },
+  completed: { icon: CheckCircle2, color: '#34d399', label: 'Done' },
+  error: { icon: XCircle, color: '#f87171', label: 'Error' },
+} as const
+
+const AiDomNodeComponent: React.FC<AiDomNodeProps> = ({ data, selected }) => {
+  const provider = data.provider || 'gemini'
+  const config = PROVIDER_CONFIG[provider]
+  const ProviderIcon = config.icon
+
+  const statusConfig = data.status ? STATUS_CONFIG[data.status] : null
+  const StatusIcon = statusConfig?.icon
+
+  const actionSummary = useMemo(() => {
+    if (!data.actions?.length) return null
+    const labels = data.actions.slice(0, 2).map((a) => a.action)
+    const suffix = data.actions.length > 2 ? ` +${data.actions.length - 2}` : ''
+    return labels.join(' → ') + suffix
+  }, [data.actions])
 
   return (
     <div
-      className={`
-        relative rounded-lg border-2 p-3 min-w-[200px] min-h-[120px]
-        ${getProviderColor(data.provider)}
-        ${selected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
-        text-white shadow-lg
-      `}
+      className="group relative w-[220px] rounded-[14px] overflow-hidden shadow-lg transition-all duration-300 hover:-translate-y-[2px] hover:shadow-xl"
       style={{
-        background: `linear-gradient(135deg, ${data.provider === 'gemini' ? '#3b82f6' : data.provider === 'perplexity' ? '#f97316' : data.provider === 'youtube_transcript' ? '#ef4444' : '#6b7280'} 0%, rgba(0,0,0,0.1) 100%)`
+        background: 'var(--dk-surface)',
+        border: `1.5px solid ${selected ? 'rgba(129, 140, 248, 0.5)' : 'var(--dk-surface-border)'}`,
+        boxShadow: selected
+          ? '0 8px 24px rgba(0,0,0,0.35), 0 0 24px rgba(99, 102, 241, 0.2)'
+          : '0 4px 16px rgba(0,0,0,0.25)',
       }}
     >
-      {/* Header */}
-      <div className="flex items-center space-x-2 mb-2">
-        <span className="text-lg">{getProviderIcon(data.provider)}</span>
-        <div className="flex-1">
-          <div className="font-semibold text-sm truncate">{data.name}</div>
-          <div className="text-xs opacity-80 capitalize">{data.provider || 'AI DOM'}</div>
-        </div>
-      </div>
+      {/* Gradient Header Bar */}
+      <div
+        className="h-[3px] w-full"
+        style={{ background: config.gradient }}
+      />
 
-      {/* Actions Summary */}
-      {data.actions && data.actions.length > 0 && (
-        <div className="text-xs space-y-1 mb-2">
-          <div className="font-medium">Actions: {data.actions.length}</div>
-          {data.actions.slice(0, 2).map((action, index) => (
-            <div key={index} className="truncate opacity-90">
-              {action.action}: {action.selector}
+      {/* Main Content */}
+      <div className="px-4 py-3">
+        {/* Header Row */}
+        <div className="flex items-start justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            {/* Provider Icon Badge */}
+            <div
+              className="flex items-center justify-center rounded-lg flex-shrink-0"
+              style={{
+                width: 32,
+                height: 32,
+                background: config.bgLight,
+                border: `1px solid ${config.borderLight}`,
+              }}
+            >
+              <ProviderIcon className="w-4 h-4" style={{ color: config.gradient.includes('#4f46e5') ? '#818cf8' : config.gradient.includes('#ea580c') ? '#fb923c' : '#f87171' }} />
             </div>
-          ))}
-          {data.actions.length > 2 && (
-            <div className="opacity-75">+{data.actions.length - 2} more</div>
-          )}
-        </div>
-      )}
 
-      {/* Output */}
-      {data.output && typeof data.output === 'string' && (
-        <div className="text-xs">
-          <span className="font-medium">Output:</span> {data.output as string}
-        </div>
-      )}
-
-      {/* Input Handle */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 bg-white border-2 border-current"
-      />
-
-      {/* Output Handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 bg-white border-2 border-current"
-      />
-
-      {/* Status Indicator */}
-      {data.status && (
-        <div className="absolute -top-1 -right-1 flex flex-col items-end space-y-1">
-          <div className="w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
-            {data.status === 'running' ? (
-              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-            ) : (
+            {/* Title & Subtitle */}
+            <div className="min-w-0">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  data.status === 'completed' ? 'bg-green-400' :
-                  data.status === 'error' ? 'bg-red-400' :
-                  'bg-gray-400'
-                }`}
-              />
-            )}
+                className="text-[13px] font-semibold truncate"
+                style={{ color: 'var(--dk-text-primary)' }}
+              >
+                {data.name || 'Unnamed Node'}
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span
+                  className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: config.bgLight,
+                    color: config.gradient.includes('#4f46e5') ? '#818cf8' : config.gradient.includes('#ea580c') ? '#fb923c' : '#f87171',
+                  }}
+                >
+                  {config.label}
+                </span>
+                <span style={{ color: 'var(--dk-text-muted)', fontSize: 10 }}>
+                  AI DOM
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Progress Bar for Running Nodes */}
-          {data.status === 'running' && (
-            <div className="w-16 h-1 bg-white bg-opacity-30 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-yellow-400 rounded-full animate-pulse"
+          {/* Status Indicator */}
+          {statusConfig && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {data.status === 'running' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: statusConfig.color }} />
+              ) : StatusIcon ? (
+                <StatusIcon className="w-3.5 h-3.5" style={{ color: statusConfig.color }} />
+              ) : null}
+              {data.status === 'running' && data.progress !== undefined && (
+                <span className="text-[10px] font-medium" style={{ color: statusConfig.color }}>
+                  {Math.round(data.progress)}%
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Actions Summary */}
+        {actionSummary && (
+          <div
+            className="flex items-center gap-1 text-[11px] mb-2 px-2 py-1.5 rounded-md"
+            style={{
+              background: 'var(--dk-bg-secondary)',
+              color: 'var(--dk-text-secondary)',
+            }}
+          >
+            <Monitor className="w-3 h-3 flex-shrink-0 opacity-60" />
+            <span className="truncate">{actionSummary}</span>
+            <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-40" />
+          </div>
+        )}
+
+        {/* Output Badge */}
+        {data.output && typeof data.output === 'string' && (
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(52, 211, 153, 0.1)',
+                color: '#34d399',
+                border: '1px solid rgba(52, 211, 153, 0.2)',
+              }}
+            >
+              Output: {data.output}
+            </span>
+            {data.actions && data.actions.length > 0 && (
+              <span
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                 style={{
-                  width: data.progress !== undefined ? `${Math.min(data.progress, 100)}%` : '30%',
-                  animation: data.progress !== undefined ? 'none' : 'pulse 1.5s ease-in-out infinite'
+                  background: 'rgba(96, 165, 250, 0.1)',
+                  color: '#60a5fa',
+                  border: '1px solid rgba(96, 165, 250, 0.2)',
+                }}
+              >
+                {data.actions.length} action{data.actions.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Progress Bar for Running Nodes */}
+        {data.status === 'running' && (
+          <div className="mt-2.5 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500 ease-out relative"
+              style={{
+                width: `${data.progress !== undefined ? Math.min(data.progress, 100) : 30}%`,
+                background: 'linear-gradient(90deg, #34d399, #10b981)',
+              }}
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                  animation: 'dk-shimmer 1.5s ease-in-out infinite',
                 }}
               />
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
-          {/* Progress Percentage */}
-          {data.status === 'running' && data.progress !== undefined && data.progress !== null && (
-            <div className="text-xs text-white font-medium bg-black bg-opacity-50 px-1 py-0.5 rounded">
-              {Math.round(data.progress)}%
-            </div>
-          )}
-        </div>
-      )}
+      {/* Input Handle — Left */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-[10px] !h-[10px] !border-[2.5px] !border-[rgba(15,17,23,0.8)]"
+        style={{
+          background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+          boxShadow: '0 0 8px rgba(59, 130, 246, 0.4)',
+          top: '50%',
+          transform: 'translateY(-50%)',
+        }}
+        aria-label="Input connection"
+      />
+
+      {/* Output Handle — Right */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-[10px] !h-[10px] !border-[2.5px] !border-[rgba(15,17,23,0.8)]"
+        style={{
+          background: 'linear-gradient(135deg, #34d399, #10b981)',
+          boxShadow: '0 0 8px rgba(52, 211, 153, 0.4)',
+          top: '50%',
+          transform: 'translateY(-50%)',
+        }}
+        aria-label="Output connection"
+      />
     </div>
   )
 }

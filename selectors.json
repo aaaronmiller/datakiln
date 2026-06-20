@@ -8,9 +8,14 @@
       "provider": "gemini_deep_research",
       "context": "search",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821447",
-      "updated_at": "2025-09-21 21:33:04.821475"
+      "created_at": "2026-06-19 23:21:22.373693",
+      "updated_at": "2026-06-19 23:21:22.373740"
     },
     {
       "key": "google_search_button",
@@ -20,9 +25,14 @@
       "provider": "gemini_deep_research",
       "context": "search",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821452",
-      "updated_at": "2025-09-21 21:33:04.821785"
+      "created_at": "2026-06-19 23:21:22.373701",
+      "updated_at": "2026-06-19 23:21:22.374325"
     },
     {
       "key": "perplexity_search_input",
@@ -32,9 +42,14 @@
       "provider": "perplexity",
       "context": "search",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821454",
-      "updated_at": "2025-09-21 21:33:04.822025"
+      "created_at": "2026-06-19 23:21:22.373704",
+      "updated_at": "2026-06-19 23:21:22.375009"
     },
     {
       "key": "perplexity_send_button",
@@ -44,9 +59,14 @@
       "provider": "perplexity",
       "context": "search",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821455",
-      "updated_at": "2025-09-21 21:33:04.822251"
+      "created_at": "2026-06-19 23:21:22.373711",
+      "updated_at": "2026-06-19 23:21:22.375667"
     },
     {
       "key": "contenteditable_input",
@@ -56,9 +76,14 @@
       "provider": null,
       "context": "prompt_input",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821457",
-      "updated_at": "2025-09-21 21:33:04.822470"
+      "created_at": "2026-06-19 23:21:22.373714",
+      "updated_at": "2026-06-19 23:21:22.376238"
     },
     {
       "key": "submit_button",
@@ -68,9 +93,14 @@
       "provider": null,
       "context": "forms",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821459",
-      "updated_at": "2025-09-21 21:33:04.822724"
+      "created_at": "2026-06-19 23:21:22.373718",
+      "updated_at": "2026-06-19 23:21:22.376940"
     },
     {
       "key": "text_input",
@@ -80,9 +110,14 @@
       "provider": null,
       "context": "forms",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821460",
-      "updated_at": "2025-09-21 21:33:04.822933"
+      "created_at": "2026-06-19 23:21:22.373721",
+      "updated_at": "2026-06-19 23:21:22.377512"
     },
     {
       "key": "main_content",
@@ -92,9 +127,14 @@
       "provider": null,
       "context": "content",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821461",
-      "updated_at": "2025-09-21 21:33:04.823145"
+      "created_at": "2026-06-19 23:21:22.373724",
+      "updated_at": "2026-06-19 23:21:22.378071"
     },
     {
       "key": "article_content",
@@ -104,9 +144,14 @@
       "provider": null,
       "context": "content",
       "fallback_selectors": [],
+      "timing_policy": {
+        "default_delay_ms": 1000,
+        "wait_for_selector_timeout_ms": 5000,
+        "action_timeout_ms": 10000
+      },
       "attributes": {},
-      "created_at": "2025-09-21 21:33:04.821463",
-      "updated_at": "2025-09-21 21:33:04.823362"
+      "created_at": "2026-06-19 23:21:22.373727",
+      "updated_at": "2026-06-19 23:21:22.378671"
     }
   ],
   "provider_mappings": {
@@ -138,5 +183,5 @@
       "article_content"
     ]
   },
-  "exported_at": "2025-09-21T21:33:04.823406"
+  "exported_at": "2026-06-19T23:21:22.378762"
 }

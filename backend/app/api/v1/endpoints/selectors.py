@@ -7,7 +7,16 @@ Provides endpoints for validating CSS selectors against live DOM.
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
-from backend.dom_selectors import default_registry
+try:
+    from ....dom_selectors import default_registry
+except ImportError:
+    try:
+        from backend.dom_selectors import default_registry
+    except ImportError:
+        # Fallback: create a minimal registry
+        class MinimalRegistry:
+            selectors = {}
+        default_registry = MinimalRegistry()
 
 
 router = APIRouter()

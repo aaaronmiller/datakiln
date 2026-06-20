@@ -630,13 +630,13 @@ async def list_available_workflows():
                 "estimatedTime": "1-2 minutes"
             }
         ]
-        
+
         return {
             "workflows": workflows,
             "total": len(workflows),
             "categories": list(set(w["category"] for w in workflows))
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list workflows: {str(e)}")
 
@@ -648,17 +648,17 @@ async def execute_workflow_from_extension(request: Dict[str, Any], background_ta
         input_data = request.get("input_data", {})
         activation_source = request.get("activation_source", "extension")
         output_destination = request.get("output_destination", "obsidian")
-        
+
         if not workflow_id:
             raise HTTPException(status_code=400, detail="workflow_id is required")
-        
+
         task_id = str(uuid.uuid4())
-        
+
         # Route to appropriate workflow handler
         if workflow_id == "youtube-analysis":
             if input_data.get("type") != "url":
                 raise HTTPException(status_code=400, detail="YouTube analysis requires URL input")
-            
+
             background_tasks.add_task(
                 execute_youtube_analysis_workflow,
                 task_id=task_id,
@@ -666,12 +666,12 @@ async def execute_workflow_from_extension(request: Dict[str, Any], background_ta
                 title=input_data.get("title", ""),
                 output_destination=output_destination
             )
-            
+
         elif workflow_id == "deep-research":
             query = input_data.get("content") if input_data.get("type") == "text" else input_data.get("url", "")
             if not query:
                 raise HTTPException(status_code=400, detail="Deep research requires text or URL input")
-            
+
             background_tasks.add_task(
                 execute_deep_research_workflow,
                 task_id=task_id,
@@ -679,11 +679,11 @@ async def execute_workflow_from_extension(request: Dict[str, Any], background_ta
                 mode="balanced",
                 output_destination=output_destination
             )
-            
+
         elif workflow_id == "website-summary":
             if input_data.get("type") != "url":
                 raise HTTPException(status_code=400, detail="Website summary requires URL input")
-            
+
             background_tasks.add_task(
                 execute_website_summary_workflow,
                 task_id=task_id,
@@ -691,18 +691,18 @@ async def execute_workflow_from_extension(request: Dict[str, Any], background_ta
                 title=input_data.get("title", ""),
                 output_destination=output_destination
             )
-            
+
         elif workflow_id == "text-analysis":
             if input_data.get("type") != "text":
                 raise HTTPException(status_code=400, detail="Text analysis requires text input")
-            
+
             background_tasks.add_task(
                 execute_text_analysis_workflow,
                 task_id=task_id,
                 content=input_data.get("content"),
                 output_destination=output_destination
             )
-            
+
         elif workflow_id == "chat-capture-analysis":
             background_tasks.add_task(
                 execute_chat_capture_workflow,
@@ -710,10 +710,10 @@ async def execute_workflow_from_extension(request: Dict[str, Any], background_ta
                 input_data=input_data,
                 output_destination=output_destination
             )
-            
+
         else:
             raise HTTPException(status_code=400, detail=f"Unknown workflow: {workflow_id}")
-        
+
         return {
             "task_id": task_id,
             "status": "started",
@@ -722,11 +722,150 @@ async def execute_workflow_from_extension(request: Dict[str, Any], background_ta
             "output_destination": output_destination,
             "message": f"Workflow {workflow_id} started successfully"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to execute workflow: {str(e)}")
+
+@app.post("/api/v1/workflows/execute-json")
+async def execute_workflow_json(request: Dict[str, Any]):
+    """Execute a workflow from raw JSON using the DAG executor.
+
+    Accepts a workflow definition with nodes and edges, executes through DAGExecutor,
+    and returns the full execution results.
+
+    Request body:
+    {
+        "name": "My Workflow",
+        "nodes": [
+            {"id": "node1", "name": "DataSource", "type": "dataSource", "inputs": {...}, ...extra},
+            {"id": "node2", "name": "Transform", "type": "transform", "inputs": {...}, ...extra}
+        ],
+        "edges": [
+            {"id": "e1", "from": "node1", "to": "node2"}
+        ],
+        "execution_options": {"stop_on_failure": true}  // optional
+    }
+    """
+    try:
+        from dag_executor import DAGExecutor
+        from app.models.workflow import Workflow, Node, Edge
+
+        # Validate required fields
+        if "nodes" not in request:
+            raise HTTPException(status_code=400, detail="Workflow must contain 'nodes' array")
+        if "edges" not in request:
+            raise HTTPException(status_code=400, detail="Workflow must contain 'edges' array")
+
+        # Build Pydantic Workflow from raw JSON
+        workflow_id = request.get("id", f"wf_{uuid.uuid4().hex[:8]}")
+        workflow_name = request.get("name", "Unnamed Workflow")
+
+        # Convert node dicts to Pydantic Node objects
+        nodes = []
+        for node_data in request["nodes"]:
+            node = Node(
+                id=node_data["id"],
+                name=node_data.get("name", node_data["id"]),
+                type=node_data["type"],
+                description=node_data.get("description"),
+                inputs=node_data.get("inputs", {}),
+                outputs=node_data.get("outputs", {}),
+                next=node_data.get("next"),
+                retries=node_data.get("retries", 3),
+                timeout=node_data.get("timeout", 300),
+                retry_delay=node_data.get("retry_delay", 1),
+                tags=node_data.get("tags", []),
+                status=node_data.get("status", "pending"),
+                **{k: v for k, v in node_data.items() if k not in Node.model_fields}
+            )
+            nodes.append(node)
+
+        # Convert edge dicts to Pydantic Edge objects
+        edges = []
+        for edge_data in request["edges"]:
+            edge = Edge(
+                id=edge_data.get("id", f"edge_{uuid.uuid4().hex[:6]}"),
+                **{"from": edge_data.get("from", edge_data.get("source"))},
+                to=edge_data.get("to", edge_data.get("target")),
+                meta=edge_data.get("meta", {})
+            )
+            edges.append(edge)
+
+        workflow = Workflow(
+            id=workflow_id,
+            name=workflow_name,
+            description=request.get("description"),
+            nodes=nodes,
+            edges=edges
+        )
+
+        # Set execution_data on workflow for DAGExecutor to read
+        execution_options = request.get("execution_options", {})
+        workflow.execution_data = {"execution_options": execution_options}
+
+        # Execute through DAGExecutor
+        executor = DAGExecutor()
+        context = request.get("context", {})
+        result = await executor.execute_workflow(workflow, context)
+
+        return {
+            "success": result.get("success", False),
+            "execution_id": result.get("execution_id", "unknown"),
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
+            "execution_time": result.get("execution_time", 0),
+            "execution_order": result.get("execution_order", []),
+            "results": result.get("results", {}),
+            "error": result.get("error"),
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail=f"DAG execution failed: {str(e)}\n{traceback.format_exc()}")
+
+@app.get("/api/v1/nodes/types")
+async def get_node_types():
+    """Get all available node types with their configuration schemas.
+
+    Returns the canonical node type registry that the frontend config dialog uses.
+    """
+    from dag_executor import DAGExecutor
+    executor = DAGExecutor()
+
+    # Build canonical type info from executor's registered node classes
+    node_type_info = {}
+    for node_type_key, node_class in executor.node_classes.items():
+        try:
+            # Get schema from the node class if available
+            instance = node_class(id="temp", name="temp", type=node_type_key)
+            node_type_info[node_type_key] = {
+                "type": node_type_key,
+                "name": getattr(instance, 'name', node_type_key),
+                "description": getattr(instance, 'description', ''),
+                "params_schema": getattr(instance, 'params_schema', {}),
+                "inputs": getattr(instance, 'inputs', {}),
+                "outputs": getattr(instance, 'outputs', {}),
+            }
+        except Exception:
+            node_type_info[node_type_key] = {
+                "type": node_type_key,
+                "name": node_type_key,
+                "description": f"Node type: {node_type_key}",
+                "params_schema": {},
+            }
+
+    return {
+        "node_types": node_type_info,
+        "count": len(node_type_info),
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.get("/api/v1/workflows/status/{task_id}")
 async def get_workflow_execution_status(task_id: str):
@@ -742,7 +881,7 @@ async def get_workflow_execution_status(task_id: str):
             "estimated_completion": "2 minutes",
             "timestamp": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get workflow status: {str(e)}")
 
@@ -1011,12 +1150,12 @@ async def extract_youtube_transcript(request: Dict[str, Any], background_tasks: 
         url = request.get("url")
         languages = request.get("languages", [])
         format_type = request.get("format", "text")
-        
+
         if not url:
             raise HTTPException(status_code=400, detail="URL is required")
-        
+
         task_id = str(uuid.uuid4())
-        
+
         # Start extraction in background
         background_tasks.add_task(
             run_youtube_extraction_background,
@@ -1025,7 +1164,7 @@ async def extract_youtube_transcript(request: Dict[str, Any], background_tasks: 
             languages=languages,
             format_type=format_type
         )
-        
+
         return {
             "task_id": task_id,
             "status": "started",
@@ -1033,7 +1172,7 @@ async def extract_youtube_transcript(request: Dict[str, Any], background_tasks: 
             "url": url,
             "format": format_type
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -1047,12 +1186,12 @@ async def run_deep_research(request: Dict[str, Any], background_tasks: Backgroun
         mode = request.get("mode", "balanced")
         headless = request.get("headless", True)
         timeout = request.get("timeout", 30000)
-        
+
         if not topic:
             raise HTTPException(status_code=400, detail="Topic is required")
-        
+
         task_id = str(uuid.uuid4())
-        
+
         # Start research in background
         background_tasks.add_task(
             run_deep_research_script_background,
@@ -1062,7 +1201,7 @@ async def run_deep_research(request: Dict[str, Any], background_tasks: Backgroun
             headless=headless,
             timeout=timeout
         )
-        
+
         return {
             "task_id": task_id,
             "status": "started",
@@ -1071,7 +1210,7 @@ async def run_deep_research(request: Dict[str, Any], background_tasks: Backgroun
             "mode": mode,
             "estimated_time": "2-10 minutes depending on mode"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -1096,11 +1235,11 @@ async def run_youtube_extraction_background(task_id: str, url: str, languages: L
     try:
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "youtube_transcript.py"
-        
+
         cmd = ["python3", str(script_path), url, "--format", format_type]
         if languages:
             cmd.extend(["--languages"] + languages)
-        
+
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -1108,14 +1247,14 @@ async def run_youtube_extraction_background(task_id: str, url: str, languages: L
             cwd=str(project_root),
             timeout=120
         )
-        
+
         if result.returncode == 0:
             # Parse result
             if format_type == "json":
                 transcript_data = json.loads(result.stdout)
             else:
                 transcript_data = {"transcript": result.stdout, "format": "text"}
-            
+
             # Broadcast success
             await broadcast_dashboard_update("script_completed", {
                 "task_id": task_id,
@@ -1128,12 +1267,12 @@ async def run_youtube_extraction_background(task_id: str, url: str, languages: L
             # Broadcast failure
             await broadcast_dashboard_update("script_completed", {
                 "task_id": task_id,
-                "script_type": "youtube_extraction", 
+                "script_type": "youtube_extraction",
                 "status": "failed",
                 "url": url,
                 "error": result.stderr
             })
-            
+
     except Exception as e:
         await broadcast_dashboard_update("script_completed", {
             "task_id": task_id,
@@ -1148,17 +1287,17 @@ async def run_deep_research_script_background(task_id: str, topic: str, mode: st
     try:
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "deep_research.py"
-        
+
         cmd = [
             "python3", str(script_path),
             topic,
             "--mode", mode,
             "--timeout", str(timeout)
         ]
-        
+
         if headless:
             cmd.append("--headless")
-        
+
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -1166,11 +1305,11 @@ async def run_deep_research_script_background(task_id: str, topic: str, mode: st
             cwd=str(project_root),
             timeout=600  # 10 minute timeout
         )
-        
+
         if result.returncode == 0:
             # Parse research results
             research_data = json.loads(result.stdout)
-            
+
             # Broadcast success
             await broadcast_dashboard_update("script_completed", {
                 "task_id": task_id,
@@ -1185,12 +1324,12 @@ async def run_deep_research_script_background(task_id: str, topic: str, mode: st
             await broadcast_dashboard_update("script_completed", {
                 "task_id": task_id,
                 "script_type": "deep_research",
-                "status": "failed", 
+                "status": "failed",
                 "topic": topic,
                 "mode": mode,
                 "error": result.stderr
             })
-            
+
     except subprocess.TimeoutExpired:
         await broadcast_dashboard_update("script_completed", {
             "task_id": task_id,
@@ -1217,7 +1356,7 @@ async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, 
         # Step 1: Extract transcript
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "youtube_transcript.py"
-        
+
         result = subprocess.run(
             ["python3", str(script_path), url, "--format", "json"],
             capture_output=True,
@@ -1225,15 +1364,15 @@ async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, 
             cwd=str(project_root),
             timeout=120
         )
-        
+
         if result.returncode != 0:
             raise Exception(f"Transcript extraction failed: {result.stderr}")
-        
+
         transcript_data = json.loads(result.stdout)
-        
+
         if not transcript_data.get('success'):
             raise Exception(f"Transcript extraction failed: {transcript_data.get('error')}")
-        
+
         # Step 2: Analyze with AI (placeholder - would integrate with provider)
         analysis_result = {
             "summary": "Video analysis completed",
@@ -1241,7 +1380,7 @@ async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, 
             "transcript_length": len(transcript_data.get('transcript', [])),
             "video_duration": transcript_data.get('total_duration', 0)
         }
-        
+
         # Step 3: Export to destination
         export_result = await export_to_destination(
             {
@@ -1252,7 +1391,7 @@ async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, 
             },
             output_destination
         )
-        
+
         # Broadcast completion
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
@@ -1261,7 +1400,7 @@ async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, 
             "url": url,
             "export_result": export_result
         })
-        
+
     except Exception as e:
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
@@ -1277,7 +1416,7 @@ async def execute_deep_research_workflow(task_id: str, query: str, mode: str, ou
         # Use the deep research script
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "deep_research.py"
-        
+
         result = subprocess.run(
             ["python3", str(script_path), query, "--mode", mode],
             capture_output=True,
@@ -1285,10 +1424,10 @@ async def execute_deep_research_workflow(task_id: str, query: str, mode: str, ou
             cwd=str(project_root),
             timeout=600
         )
-        
+
         if result.returncode == 0:
             research_data = json.loads(result.stdout)
-            
+
             # Export to destination
             export_result = await export_to_destination(
                 {
@@ -1299,7 +1438,7 @@ async def execute_deep_research_workflow(task_id: str, query: str, mode: str, ou
                 },
                 output_destination
             )
-            
+
             await broadcast_dashboard_update("extension_workflow_completed", {
                 "task_id": task_id,
                 "workflow_id": "deep-research",
@@ -1309,7 +1448,7 @@ async def execute_deep_research_workflow(task_id: str, query: str, mode: str, ou
             })
         else:
             raise Exception(f"Research failed: {result.stderr}")
-            
+
     except Exception as e:
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
@@ -1325,18 +1464,18 @@ async def execute_website_summary_workflow(task_id: str, url: str, title: str, o
         # Use web scraping to get content
         import aiohttp
         from bs4 import BeautifulSoup
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status != 200:
                     raise Exception(f"Failed to fetch website: HTTP {response.status}")
-                
+
                 html_content = await response.text()
                 soup = BeautifulSoup(html_content, 'html.parser')
-                
+
                 # Extract main content
                 content = soup.get_text()[:5000]  # Limit content length
-                
+
                 # Generate summary (placeholder - would use AI provider)
                 summary_result = {
                     "title": title or soup.title.string if soup.title else "Website Summary",
@@ -1345,10 +1484,10 @@ async def execute_website_summary_workflow(task_id: str, url: str, title: str, o
                     "word_count": len(content.split()),
                     "summary": "Website content summarized successfully"
                 }
-                
+
                 # Export to destination
                 export_result = await export_to_destination(summary_result, output_destination)
-                
+
                 await broadcast_dashboard_update("extension_workflow_completed", {
                     "task_id": task_id,
                     "workflow_id": "website-summary",
@@ -1356,7 +1495,7 @@ async def execute_website_summary_workflow(task_id: str, url: str, title: str, o
                     "url": url,
                     "export_result": export_result
                 })
-                
+
     except Exception as e:
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
@@ -1377,7 +1516,7 @@ async def execute_text_analysis_workflow(task_id: str, content: str, output_dest
             "analysis": "Text analysis completed successfully",
             "key_themes": ["Theme 1", "Theme 2", "Theme 3"]
         }
-        
+
         # Export to destination
         export_result = await export_to_destination(
             {
@@ -1386,14 +1525,14 @@ async def execute_text_analysis_workflow(task_id: str, content: str, output_dest
             },
             output_destination
         )
-        
+
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
             "workflow_id": "text-analysis",
             "status": "completed",
             "export_result": export_result
         })
-        
+
     except Exception as e:
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
@@ -1411,7 +1550,7 @@ async def execute_chat_capture_workflow(task_id: str, input_data: Dict[str, Any]
             "analysis": "Chat capture processed successfully",
             "timestamp": datetime.now().isoformat()
         }
-        
+
         # Export to destination
         export_result = await export_to_destination(
             {
@@ -1420,14 +1559,14 @@ async def execute_chat_capture_workflow(task_id: str, input_data: Dict[str, Any]
             },
             output_destination
         )
-        
+
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
             "workflow_id": "chat-capture-analysis",
             "status": "completed",
             "export_result": export_result
         })
-        
+
     except Exception as e:
         await broadcast_dashboard_update("extension_workflow_completed", {
             "task_id": task_id,
@@ -1442,16 +1581,16 @@ async def export_to_destination(data: Dict[str, Any], destination: str) -> Dict[
         if destination == "obsidian":
             # Export to Obsidian vault (placeholder implementation)
             filename = f"{data['title'].replace(' ', '_')}_{int(time.time())}.md"
-            
+
             # Format as markdown
             markdown_content = f"# {data['title']}\n\n"
             markdown_content += f"Generated: {datetime.now().isoformat()}\n\n"
-            
+
             if 'source_url' in data:
                 markdown_content += f"Source: {data['source_url']}\n\n"
-            
+
             markdown_content += f"## Content\n\n{json.dumps(data['content'], indent=2)}\n"
-            
+
             # In a real implementation, this would write to the Obsidian vault
             # For now, just return success
             return {
@@ -1469,7 +1608,7 @@ async def export_to_destination(data: Dict[str, Any], destination: str) -> Dict[
                 "status": "exported",
                 "data": data
             }
-            
+
     except Exception as e:
         return {
             "destination": destination,
@@ -1524,7 +1663,7 @@ async def execution_websocket(websocket: WebSocket, execution_id: str):
 async def monitoring_websocket(websocket: WebSocket):
     """WebSocket endpoint for system monitoring real-time updates."""
     await monitoring_service.connect_websocket(websocket)
-    
+
     try:
         while True:
             # Keep connection alive
@@ -1573,7 +1712,7 @@ async def startup_event():
     await monitoring_service.start_monitoring()
     logger.info("DataKiln backend started with monitoring")
 
-@app.on_event("shutdown") 
+@app.on_event("shutdown")
 async def shutdown_event():
     """Stop monitoring service when the app shuts down"""
     await monitoring_service.stop_monitoring()
