@@ -87,6 +87,12 @@ except Exception:
 logger = logging.getLogger(__name__)
 
 
+class DomAutomationBlocked(RuntimeError):
+    def __init__(self, blocker: Dict[str, Any]):
+        self.blocker = blocker
+        super().__init__(blocker.get("message", "DOM automation blocked"))
+
+
 class DataFlowConnection:
     def __init__(
         self,
@@ -512,8 +518,16 @@ async def execute_dom_sequence(
         }
 
     page = context.get("page")
+    managed = None
+    metadata = {
+        "dry_run": False,
+        "headless": bool(context.get("headless", node.config.get("headless", True))),
+        "auth_state": _dom_auth_state(context, node.config),
+    }
     if page is None:
-        return {"result": "", "actions": actions, "error": "No Playwright page supplied"}
+        managed = await _create_managed_dom_page(context, node.config)
+        page = managed["page"]
+        metadata.update(managed["metadata"])
 
     captured = ""
     try:
@@ -522,8 +536,10 @@ async def execute_dom_sequence(
             target = action.get("target")
             optional = bool(action.get("optional", False))
             try:
+                await _apply_dom_action_delay(page, action, context, node.config)
                 if name == "goto":
                     await page.goto(target, wait_until=action.get("wait_until", "domcontentloaded"))
+                    await _raise_if_dom_blocked(page, context, node.config)
                 elif name == "waitFor":
                     if target:
                         await _try_dom_targets(page, action, "waitFor")
@@ -542,15 +558,209 @@ async def execute_dom_sequence(
                     captured = await page.evaluate("navigator.clipboard.readText()")
                 else:
                     raise ValueError(f"Unsupported DOM action: {name}")
+                await _raise_if_dom_blocked(page, context, node.config)
                 if action.get("delay_after_ms"):
                     await page.wait_for_timeout(action["delay_after_ms"])
+            except DomAutomationBlocked:
+                raise
             except Exception:
                 if optional:
                     continue
                 raise
-        return {"result": captured, "actions": actions, "metadata": {"dry_run": False}}
+        return {"result": captured, "actions": actions, "metadata": metadata}
+    except DomAutomationBlocked as e:
+        return {
+            "result": captured,
+            "actions": actions,
+            "error": e.blocker["message"],
+            "blocked": True,
+            "blocker": e.blocker,
+            "metadata": metadata,
+        }
     except Exception as e:
-        return {"result": captured, "actions": actions, "error": str(e)}
+        return {"result": captured, "actions": actions, "error": str(e), "metadata": metadata}
+    finally:
+        if managed:
+            await _close_managed_dom_page(managed)
+
+
+def _dom_auth_state(context: Dict[str, Any], config: Dict[str, Any]) -> str:
+    if context.get("user_data_dir") or config.get("user_data_dir"):
+        return "persistent_profile"
+    if context.get("storage_state_path") or config.get("storage_state_path"):
+        return "storage_state"
+    if context.get("page"):
+        return "supplied_page"
+    return "none"
+
+
+async def _create_managed_dom_page(context: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        from playwright.async_api import async_playwright
+    except Exception as exc:
+        raise RuntimeError(f"Playwright is required for live DOM execution: {exc}") from exc
+
+    playwright = await async_playwright().start()
+    headless = bool(context.get("headless", config.get("headless", True)))
+    user_data_dir = context.get("user_data_dir") or config.get("user_data_dir")
+    storage_state_path = context.get("storage_state_path") or config.get("storage_state_path")
+    timeout_ms = int(context.get("browser_timeout_ms", config.get("browser_timeout_ms", 30000)))
+
+    if user_data_dir:
+        browser_context = await playwright.chromium.launch_persistent_context(
+            user_data_dir,
+            headless=headless,
+            viewport={"width": 1440, "height": 1000},
+            user_agent=_dom_user_agent(context, config),
+        )
+        browser_context.set_default_timeout(timeout_ms)
+        page = browser_context.pages[0] if browser_context.pages else await browser_context.new_page()
+        return {
+            "playwright": playwright,
+            "browser_context": browser_context,
+            "page": page,
+            "metadata": {"managed_browser": True, "auth_state": "persistent_profile"},
+        }
+
+    browser = await playwright.chromium.launch(headless=headless)
+    new_context_kwargs = {
+        "viewport": {"width": 1440, "height": 1000},
+        "user_agent": _dom_user_agent(context, config),
+    }
+    if storage_state_path:
+        state_path = Path(storage_state_path).expanduser()
+        if not state_path.exists():
+            await browser.close()
+            await playwright.stop()
+            raise RuntimeError(f"storage_state_path does not exist: {state_path}")
+        new_context_kwargs["storage_state"] = str(state_path)
+
+    browser_context = await browser.new_context(**new_context_kwargs)
+    browser_context.set_default_timeout(timeout_ms)
+    page = await browser_context.new_page()
+    return {
+        "playwright": playwright,
+        "browser": browser,
+        "browser_context": browser_context,
+        "page": page,
+        "metadata": {
+            "managed_browser": True,
+            "auth_state": "storage_state" if storage_state_path else "none",
+        },
+    }
+
+
+async def _close_managed_dom_page(managed: Dict[str, Any]) -> None:
+    try:
+        browser_context = managed.get("browser_context")
+        if browser_context:
+            await browser_context.close()
+    finally:
+        browser = managed.get("browser")
+        if browser:
+            await browser.close()
+        playwright = managed.get("playwright")
+        if playwright:
+            await playwright.stop()
+
+
+def _dom_user_agent(context: Dict[str, Any], config: Dict[str, Any]) -> str:
+    return context.get("user_agent") or config.get("user_agent") or (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    )
+
+
+async def _apply_dom_action_delay(
+    page: Any,
+    action: Dict[str, Any],
+    context: Dict[str, Any],
+    config: Dict[str, Any],
+) -> None:
+    delay_ms = action.get(
+        "delay_before_ms",
+        context.get("dom_action_delay_ms", config.get("dom_action_delay_ms", 250)),
+    )
+    if delay_ms:
+        await page.wait_for_timeout(int(delay_ms))
+
+
+async def _raise_if_dom_blocked(page: Any, context: Dict[str, Any], config: Dict[str, Any]) -> None:
+    blocker = await _detect_dom_blocker(page, context, config)
+    if blocker:
+        raise DomAutomationBlocked(blocker)
+
+
+async def _detect_dom_blocker(
+    page: Any,
+    context: Dict[str, Any],
+    config: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    if context.get("ignore_dom_blockers", config.get("ignore_dom_blockers", False)):
+        return None
+
+    title = ""
+    url = ""
+    body_text = ""
+    try:
+        title = await page.title()
+    except Exception:
+        pass
+    try:
+        url = page.url
+    except Exception:
+        pass
+    try:
+        body_text = (await page.locator("body").inner_text(timeout=2000))[:3000]
+    except Exception:
+        pass
+
+    haystack = f"{title}\n{url}\n{body_text}".lower()
+    checks = [
+        ("cloudflare_challenge", ["just a moment", "checking your browser", "cloudflare", "cf-challenge"]),
+        ("captcha", ["captcha", "recaptcha", "hcaptcha", "verify you are human", "are you human"]),
+        ("access_denied", ["access denied", "request blocked", "unusual traffic"]),
+        ("auth_required", ["sign in to continue", "log in to continue", "login to continue", "authentication required"]),
+    ]
+    for kind, markers in checks:
+        marker = next((m for m in markers if m in haystack), None)
+        if marker:
+            return {
+                "kind": kind,
+                "marker": marker,
+                "url": url,
+                "title": title,
+                "message": f"DOM automation blocked by {kind}; human auth/session or API fallback required",
+            }
+
+    selector_checks = {
+        "captcha": [
+            "iframe[src*='recaptcha']",
+            "iframe[src*='hcaptcha']",
+            "[data-sitekey]",
+            ".g-recaptcha",
+            ".h-captcha",
+        ],
+        "cloudflare_challenge": [
+            "#cf-challenge-running",
+            ".cf-browser-verification",
+            "[name='cf-turnstile-response']",
+        ],
+    }
+    for kind, selectors in selector_checks.items():
+        for selector in selectors:
+            try:
+                if await page.locator(selector).count() > 0:
+                    return {
+                        "kind": kind,
+                        "selector": selector,
+                        "url": url,
+                        "title": title,
+                        "message": f"DOM automation blocked by {kind}; human auth/session or API fallback required",
+                    }
+            except Exception:
+                continue
+    return None
 
 
 def _dom_targets(action: Dict[str, Any]) -> List[str]:

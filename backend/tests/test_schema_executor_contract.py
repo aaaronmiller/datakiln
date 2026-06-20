@@ -5,13 +5,56 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.models.workflow import Edge, Node, Workflow
+from app.models.workflow_schema import ExecutableNode
 from app.services.artifact_service import ArtifactService
 from app.services.workflow_service import WorkflowService
-from dag_executor import WorkflowPlanner, convert_and_execute, legacy_workflow_to_composition
+from dag_executor import WorkflowPlanner, convert_and_execute, execute_dom_sequence, legacy_workflow_to_composition
 
 
 def run(coro):
     return asyncio.run(coro)
+
+
+class FakeLocator:
+    def __init__(self, text="", count=0):
+        self._text = text
+        self._count = count
+        self.first = self
+
+    async def inner_text(self, timeout=0):
+        return self._text
+
+    async def count(self):
+        return self._count
+
+
+class FakePage:
+    def __init__(self, title="", body="", url="https://example.test"):
+        self._title = title
+        self._body = body
+        self.url = url
+        self.actions = []
+
+    async def goto(self, target, wait_until="domcontentloaded"):
+        self.actions.append(("goto", target, wait_until))
+        self.url = target
+
+    async def title(self):
+        return self._title
+
+    def locator(self, selector):
+        if selector == "body":
+            return FakeLocator(self._body, 1)
+        return FakeLocator("", 0)
+
+    async def wait_for_timeout(self, timeout):
+        self.actions.append(("wait", timeout))
+
+    async def fill(self, target, value, timeout=0):
+        self.actions.append(("fill", target, value))
+
+    async def click(self, target, timeout=0):
+        self.actions.append(("click", target))
 
 
 def test_gui_datasource_transform_export_workflow_normalizes_and_executes(tmp_path):
@@ -136,6 +179,40 @@ def test_perplexity_dom_template_normalizes_and_dry_runs():
     assert "current workflow automation selector strategy" in outputs["result"]
     assert outputs["actions"][1]["target"] == "[contenteditable='true']"
     assert "[data-lexical-editor='true']" in outputs["actions"][1]["fallback_targets"]
+
+
+def test_dom_sequence_reports_cloudflare_challenge_without_retry_loop():
+    node = ExecutableNode(
+        id="blocked",
+        type="dom.test",
+        config={"dom_action_sequence": [{"action": "goto", "target": "https://blocked.example"}]},
+    )
+    page = FakePage(title="Just a moment...", body="Checking your browser before accessing the site")
+
+    result = run(execute_dom_sequence(node, {}, {"page": page, "dom_action_delay_ms": 0}))
+
+    assert result["blocked"] is True
+    assert result["blocker"]["kind"] == "cloudflare_challenge"
+    assert "API fallback required" in result["error"]
+
+
+def test_dom_sequence_tracks_supplied_authenticated_page_metadata():
+    node = ExecutableNode(
+        id="auth-page",
+        type="dom.test",
+        config={
+            "dom_action_sequence": [
+                {"action": "fill", "target": "[contenteditable='true']", "value": "hello"},
+            ]
+        },
+    )
+    page = FakePage(title="Ready", body="Application ready")
+
+    result = run(execute_dom_sequence(node, {}, {"page": page, "dom_action_delay_ms": 0}))
+
+    assert result["error"] is None if "error" in result else True
+    assert result["metadata"]["auth_state"] == "supplied_page"
+    assert ("fill", "[contenteditable='true']", "hello") in page.actions
 
 
 def test_code_template_extracts_youtube_ids_without_arbitrary_exec():
