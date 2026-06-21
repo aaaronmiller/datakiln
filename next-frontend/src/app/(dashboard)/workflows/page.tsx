@@ -12,7 +12,7 @@ export default function WorkflowsPage() {
       <div className="grid gap-4">
         <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Your Workflows</h3>
-          <p className="text-muted-foreground">No workflows created yet. Click "Create Workflow" to get started.</p>
+          <p className="text-muted-foreground">No workflows created yet. Click &quot;Create Workflow&quot; to get started.</p>
         </div>
       </div>
     </div>

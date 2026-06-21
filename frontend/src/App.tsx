@@ -16,7 +16,7 @@ import CommandPalette from './pages/CommandPalette'
 
 function App() {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router>
       <MainLayout>
         <Routes>
           {/* Redirect root to dashboard */}

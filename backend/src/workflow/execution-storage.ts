@@ -176,5 +176,4 @@ export class FileWorkflowExecutionStorage implements WorkflowExecutionStorage {
       throw error;
     }
   }
-}</content>
-</edit_file>
+}

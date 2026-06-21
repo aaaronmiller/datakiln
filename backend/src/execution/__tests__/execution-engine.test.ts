@@ -9,7 +9,7 @@ describe('Workflow Execution Engine', () => {
 
   beforeEach(() => {
     dagExecutor = new DAGExecutor();
-    workflowRunner = new WorkflowRunner(dagExecutor);
+    workflowRunner = new WorkflowRunner();
   });
 
   describe('DAGExecutor', () => {
