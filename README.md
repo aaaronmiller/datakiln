@@ -1,5 +1,12 @@
 # 🚀 DataKiln AI Research Automation Platform
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Playwright">
+  <img src="https://img.shields.io/badge/Obsidian-7C3AED?style=for-the-badge&logo=obsidian&logoColor=white" alt="Obsidian">
+  <img src="https://img.shields.io/badge/Local%20First-22c55e?style=for-the-badge" alt="Local First">
+</p>
+
 ## **Production-Ready AI Research Automation System**
 
 DataKiln is a comprehensive, production-ready platform that automates AI research workflows through an intuitive node-based interface, Chrome extension integration, and powerful script automation.
