@@ -94,9 +94,10 @@ class DynamicNodeFactory(BaseNodeFactory):
         """Create node from definition"""
         try:
             if definition.implementation:
-                # Load from Python code
-                node_class = self._load_node_class_from_code(definition.implementation)
-                return node_class(**kwargs)
+                raise NodeValidationError(
+                    "Inline Python node implementations are disabled for security. "
+                    "Register a trusted node class or use the generic CustomNode definition."
+                )
             else:
                 # Create generic custom node
                 return CustomNode(definition=definition, **kwargs)
@@ -106,25 +107,10 @@ class DynamicNodeFactory(BaseNodeFactory):
 
     def _load_node_class_from_code(self, code: str) -> Type[BaseNode]:
         """Load node class from Python code string"""
-        try:
-            # Create a temporary module
-            import types
-            module = types.ModuleType("custom_node_module")
-
-            # Execute the code in the module
-            exec(code, module.__dict__)
-
-            # Find the node class (should inherit from BaseNode)
-            for name, obj in module.__dict__.items():
-                if (inspect.isclass(obj) and
-                    issubclass(obj, BaseNode) and
-                    obj != BaseNode):
-                    return obj
-
-            raise NodeValidationError("No BaseNode subclass found in implementation code")
-
-        except Exception as e:
-            raise NodeValidationError(f"Invalid node implementation code: {str(e)}")
+        raise NodeValidationError(
+            "Inline Python node implementations are disabled for security. "
+            "Register trusted classes with register_node_class instead."
+        )
 
     def register_node_class(self, node_type: str, node_class: Type[BaseNode],
                           definition: Optional[CustomNodeDefinition] = None):

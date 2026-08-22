@@ -2,8 +2,9 @@ from typing import Dict, Any, Optional, Union, List
 from pydantic import Field
 from .base_node import BaseNode
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 import uuid
+from app.utils.safe_eval import safe_boolean_eval
 
 
 class WaitNode(BaseNode):
@@ -83,7 +84,7 @@ class WaitNode(BaseNode):
             eval_context = self._build_evaluation_context(context)
 
             for condition in self.auto_approve_conditions:
-                result = eval(condition, {"__builtins__": {}}, eval_context)
+                result = safe_boolean_eval(condition, eval_context)
                 if result:
                     return True
 
@@ -184,7 +185,7 @@ class WaitNode(BaseNode):
             # Evaluate condition
             try:
                 eval_context = self._build_evaluation_context(context)
-                result = eval(self.wait_condition, {"__builtins__": {}}, eval_context)
+                result = safe_boolean_eval(self.wait_condition, eval_context)
 
                 if result:
                     end_time = datetime.now()
@@ -203,14 +204,14 @@ class WaitNode(BaseNode):
     def _build_evaluation_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Build evaluation context for conditions"""
         return {
-            "node": self,
             "context": context,
             "inputs": self.inputs,
             "workflow_data": context.get("execution_data", {}),
             "pending_approvals": context.get("execution_data", {}).get("pending_approvals", {}),
             "external_signals": context.get("execution_data", {}).get("external_signals", {}),
-            "datetime": datetime,
-            "timedelta": timedelta
+            "true": True,
+            "false": False,
+            "null": None,
         }
 
     async def _send_wait_notification(self, context: Dict[str, Any]):

@@ -3,6 +3,7 @@ from pydantic import Field
 from .base_node import BaseNode
 import re
 import json
+from app.utils.safe_eval import safe_boolean_eval
 
 
 class FilterNode(BaseNode):
@@ -227,30 +228,6 @@ class FilterNode(BaseNode):
 
     def _evaluate_condition(self, condition: str, context: Any) -> bool:
         """Safely evaluate a condition expression"""
-        # Create safe globals for eval
-        safe_globals = {
-            "__builtins__": {
-                "len": len,
-                "str": str,
-                "int": int,
-                "float": float,
-                "bool": bool,
-                "isinstance": isinstance,
-                "type": type,
-                "abs": abs,
-                "min": min,
-                "max": max,
-                "sum": sum,
-                "all": all,
-                "any": any,
-                "enumerate": enumerate,
-                "zip": zip,
-                "range": range,
-                "sorted": sorted,
-                "reversed": reversed,
-            }
-        }
-
         # Create locals with data context
         locals_dict = {}
         if isinstance(context, dict):
@@ -259,9 +236,10 @@ class FilterNode(BaseNode):
             locals_dict["data"] = context
             locals_dict["value"] = context
             locals_dict["item"] = context
+        locals_dict.update({"true": True, "false": False, "null": None})
 
         try:
-            result = eval(condition, safe_globals, locals_dict)
+            result = safe_boolean_eval(condition, locals_dict)
             return bool(result)
         except Exception as e:
             raise ValueError(f"Condition evaluation failed: {str(e)}")

@@ -125,10 +125,11 @@ async def run_deep_research_background(task_id: str, script_path: str, project_r
         # Run the deep research script
         cmd = [
             "python3", script_path,
-            topic,
             "--mode", mode,
             "--concurrency", str(concurrency),
-            "--retries", str(retries)
+            "--retries", str(retries),
+            "--",
+            topic,
         ]
 
         result = subprocess.run(

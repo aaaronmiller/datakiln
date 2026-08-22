@@ -59,6 +59,8 @@ from app.models.workflow_schema import (
     WorkflowSchemaRegistry,
     default_registry,
 )
+from app.utils.safe_eval import safe_boolean_eval
+from app.utils.security import safe_child_path, safe_resolve_path, validate_public_url
 try:
     from nodes.aggregate_node import AggregateNode
     from nodes.condition_node import ConditionNode
@@ -479,6 +481,10 @@ async def execute_web_fetch(
     url = inputs.get("url") or node.config.get("url", "")
     if not url:
         return {"data": "", "content_type": "", "status_code": 0, "error": "No URL provided"}
+    try:
+        url = validate_public_url(str(url))
+    except ValueError as e:
+        return {"data": "", "content_type": "", "status_code": 0, "error": str(e)}
 
     method = node.config.get("method", "GET").upper()
     headers = inputs.get("headers", {}) or node.config.get("headers", {})
@@ -538,6 +544,7 @@ async def execute_dom_sequence(
             try:
                 await _apply_dom_action_delay(page, action, context, node.config)
                 if name == "goto":
+                    target = validate_public_url(str(target))
                     await page.goto(target, wait_until=action.get("wait_until", "domcontentloaded"))
                     await _raise_if_dom_blocked(page, context, node.config)
                 elif name == "waitFor":
@@ -607,6 +614,7 @@ async def _create_managed_dom_page(context: Dict[str, Any], config: Dict[str, An
     timeout_ms = int(context.get("browser_timeout_ms", config.get("browser_timeout_ms", 30000)))
 
     if user_data_dir:
+        user_data_dir = str(safe_resolve_path(user_data_dir))
         browser_context = await playwright.chromium.launch_persistent_context(
             user_data_dir,
             headless=headless,
@@ -628,7 +636,7 @@ async def _create_managed_dom_page(context: Dict[str, Any], config: Dict[str, An
         "user_agent": _dom_user_agent(context, config),
     }
     if storage_state_path:
-        state_path = Path(storage_state_path).expanduser()
+        state_path = safe_resolve_path(storage_state_path)
         if not state_path.exists():
             await browser.close()
             await playwright.stop()
@@ -943,12 +951,12 @@ def _evaluate_dkel(expr: str, data: Any) -> bool:
     # Build a safe scope
     scope = {"input": data, "true": True, "false": False, "null": None}
 
-    # Walk a simplified AST via Python's eval with restricted globals
-    # We use a safe eval — only allow access to `scope` dict.
-    # Transform the expression from JS-style to Python-style.
+    # Transform the expression from JS-style to Python-style, then evaluate a
+    # restricted AST subset. Python eval is not a sandbox, even with empty
+    # builtins, because object traversal can escape the intended scope.
     py_expr = _dkel_to_python(expr)
     try:
-        result = eval(py_expr, {"__builtins__": {}}, scope)
+        result = safe_boolean_eval(py_expr, scope)
         return bool(result)
     except Exception as e:
         raise ValueError(f"DKEL eval error: {e}")
@@ -1084,15 +1092,11 @@ def _execute_export(
     fmt = node.config.get("format", "json")
     directory = node.config.get("directory", "data/outputs")
 
-    # Resolve relative directories under project_root while allowing explicit
-    # absolute export directories for tests, user-configured vaults, and jobs.
     project_root = Path(context.get("project_root", os.getcwd()))
-    out_dir = Path(directory)
-    if not out_dir.is_absolute():
-        out_dir = project_root / out_dir
+    out_dir = safe_resolve_path(directory, project_root)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    out_path = out_dir / filename
+    out_path = safe_child_path(out_dir, filename, project_root)
 
     try:
         if fmt == "json":

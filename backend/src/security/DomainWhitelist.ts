@@ -88,13 +88,12 @@ export class DomainWhitelist {
    * Check if hostname is localhost
    */
   private isLocalhost(hostname: string): boolean {
-    return hostname === 'localhost' ||
-           hostname === '127.0.0.1' ||
-           hostname === '::1' ||
-           hostname.startsWith('127.') ||
-           hostname.startsWith('10.') ||
-           hostname.startsWith('172.') ||
-           hostname.startsWith('192.168.');
+    const normalized = hostname.toLowerCase();
+    return normalized === 'localhost' ||
+           normalized === '127.0.0.1' ||
+           normalized === '[::1]' ||
+           normalized === '::1' ||
+           /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized);
   }
 
   /**

@@ -367,10 +367,10 @@ class DomActionNode(BaseNode):
             elif self.output == "clipboard":
                 # Copy to clipboard
                 content = await page.inner_text("#response") or await page.inner_text("body")
-                # Use page.evaluate to copy to clipboard
-                await page.evaluate(f"""
-                    navigator.clipboard.writeText({repr(content)});
-                """)
+                await page.evaluate(
+                    "content => navigator.clipboard.writeText(content)",
+                    content,
+                )
                 return {
                     "type": "clipboard",
                     "content": content[:500] + "..." if len(content) > 500 else content,

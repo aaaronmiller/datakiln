@@ -25,6 +25,7 @@ import json
 import os
 import uuid
 from pathlib import Path
+from ....utils.security import safe_resolve_path, validate_youtube_url
 
 logger = logging.getLogger(__name__)
 
@@ -453,6 +454,7 @@ async def process_youtube_transcript(url: str = Body(..., embed=False)) -> Dict[
     Process YouTube video transcript.
     """
     try:
+        url = validate_youtube_url(url)
         # Get the project root directory
         project_root = Path(__file__).parent.parent.parent.parent.parent
         script_path = project_root / "scripts" / "youtube_transcript.py"
@@ -488,13 +490,15 @@ async def process_youtube_transcript(url: str = Body(..., embed=False)) -> Dict[
             raise HTTPException(status_code=500, detail="Failed to generate transcript file")
 
         # Read the transcript data
-        with open(transcript_file, 'r', encoding='utf-8') as f:
+        transcript_path = safe_resolve_path(transcript_file, project_root)
+        with open(transcript_path, 'r', encoding='utf-8') as f:
             transcript_data = json.load(f)
 
         # Read analysis data if available
         analysis_data = None
         if analysis_file and os.path.exists(analysis_file):
-            with open(analysis_file, 'r', encoding='utf-8') as f:
+            analysis_path = safe_resolve_path(analysis_file, project_root)
+            with open(analysis_path, 'r', encoding='utf-8') as f:
                 analysis_data = json.load(f)
 
         return {
@@ -527,6 +531,7 @@ async def process_youtube_transcript_workflow(url: str, background_tasks: Backgr
     try:
         from ....services.obsidian_service import get_obsidian_service
 
+        url = validate_youtube_url(url)
         task_id = str(uuid.uuid4())
 
         # Start background processing
@@ -557,6 +562,7 @@ async def process_youtube_workflow_background(task_id: str, url: str):
     try:
         from ....services.obsidian_service import get_obsidian_service
         from ....providers.gemini_provider import GeminiProvider
+        url = validate_youtube_url(url)
 
         # Step 1: Extract transcript
         project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -584,7 +590,8 @@ async def process_youtube_workflow_background(task_id: str, url: str):
         if not transcript_file:
             raise Exception("Failed to find transcript file")
 
-        with open(transcript_file, 'r', encoding='utf-8') as f:
+        transcript_path = safe_resolve_path(transcript_file, project_root)
+        with open(transcript_path, 'r', encoding='utf-8') as f:
             transcript_data = json.load(f)
 
         # Step 2: Process with Gemini

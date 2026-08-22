@@ -3,6 +3,7 @@ from pydantic import Field
 from .base_node import BaseNode
 import asyncio
 from datetime import datetime
+from app.utils.safe_eval import safe_boolean_eval
 
 
 class DelayNode(BaseNode):
@@ -66,16 +67,21 @@ class DelayNode(BaseNode):
     def _should_skip_delay(self, context: Dict[str, Any]) -> bool:
         """Evaluate skip condition"""
         try:
+            if not self.skip_on_condition:
+                return False
+
             # Build evaluation context
             eval_context = {
-                "node": self,
                 "context": context,
                 "inputs": self.inputs,
-                "workflow_data": context.get("execution_data", {})
+                "workflow_data": context.get("execution_data", {}),
+                "true": True,
+                "false": False,
+                "null": None,
             }
 
-            # Evaluate condition (safe eval with limited builtins)
-            result = eval(self.skip_on_condition, {"__builtins__": {}}, eval_context)
+            # Evaluate a restricted expression subset. Python eval is not a sandbox.
+            result = safe_boolean_eval(self.skip_on_condition, eval_context)
             return bool(result)
 
         except Exception:
