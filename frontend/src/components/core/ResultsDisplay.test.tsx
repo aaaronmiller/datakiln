@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, fireEvent } from '@testing-library/react'
 import { screen } from '@testing-library/dom'
-import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 import ResultsDisplay from './ResultsDisplay'
 
@@ -50,12 +49,12 @@ describe('ResultsDisplay', () => {
   const defaultProps = {
     results: mockResults,
     isLoading: false,
-    onExport: jest.fn(),
-    onClear: jest.fn(),
+    onExport: vi.fn(),
+    onClear: vi.fn(),
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders loading state when isLoading is true', () => {

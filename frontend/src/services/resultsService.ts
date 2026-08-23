@@ -13,23 +13,89 @@ interface ArtifactIndex {
   total: number
 }
 
+interface RunResult {
+  execution_id: string
+  workflow_id: string
+  status: 'running' | 'completed' | 'failed' | 'cancelled'
+  started_at: string
+  completed_at?: string
+  duration?: number
+  results: Record<string, unknown>
+  error?: string
+}
+
+interface PaginatedResults {
+  results: RunResult[]
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+  }
+}
+
 class ResultsService {
   private baseUrl: string
-  private useProxy: boolean
 
-  constructor(baseUrl?: string) {
-    if (baseUrl) {
-      this.baseUrl = baseUrl
-      this.useProxy = false
-    } else {
-      this.baseUrl = ''
-      this.useProxy = true
+  constructor(baseUrl: string = 'http://localhost:8000') {
+    this.baseUrl = baseUrl
+  }
+
+  async getResults(limit: number = 20, offset: number = 0, status?: string): Promise<PaginatedResults> {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString()
+      })
+      if (status && status !== 'all') {
+        params.append('status', status)
+      }
+
+      const response = await fetch(`${this.baseUrl}/api/v1/results?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to get results:', error)
+      throw error
+    }
+  }
+
+  async getResult(executionId: string): Promise<RunResult> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/results/${executionId}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to get result:', error)
+      throw error
+    }
+  }
+
+  async cancelRun(runId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/workflows/runs/${runId}/cancel`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Failed to cancel run:', error)
+      throw error
     }
   }
 
   async getArtifactIndex(runId: string): Promise<ArtifactIndex> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/runs/${runId}/artifacts/index`)
+      const response = await fetch(`${this.baseUrl}/api/v1/workflows/runs/${runId}/artifacts/index`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -44,7 +110,7 @@ class ResultsService {
 
   async downloadArtifact(artifactId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/artifacts/${artifactId}/download`)
+      const response = await fetch(`${this.baseUrl}/api/v1/workflows/artifacts/${artifactId}/download`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -74,7 +140,7 @@ class ResultsService {
 
   async getArtifactInfo(artifactId: string): Promise<Artifact> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/artifacts/${artifactId}`)
+      const response = await fetch(`${this.baseUrl}/api/v1/workflows/artifacts/${artifactId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -86,9 +152,39 @@ class ResultsService {
       throw error
     }
   }
+
+  async deleteResult(executionId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/results/${executionId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Failed to delete result:', error)
+      throw error
+    }
+  }
+
+  async getTopWorkflows(limit: number = 5): Promise<Array<{ workflow_id: string, count: number, last_run: string }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/results/stats/top?limit=${limit}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to get top workflows:', error)
+      return []
+    }
+  }
 }
 
 const resultsService = new ResultsService()
 
 export default resultsService
-export type { Artifact, ArtifactIndex }
+export type { Artifact, ArtifactIndex, RunResult, PaginatedResults }

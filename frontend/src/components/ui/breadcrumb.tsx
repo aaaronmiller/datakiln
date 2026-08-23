@@ -13,7 +13,7 @@ const routeLabels: Record<string, string> = {
   results: "Results",
   "selectors-lab": "Selectors Lab",
   templates: "Templates",
-  "transcript-analysis": "Transcript Analysis",
+
   "extension-capture": "Extension Capture",
   settings: "Settings",
 }

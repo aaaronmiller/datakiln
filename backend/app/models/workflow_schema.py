@@ -820,6 +820,23 @@ BUILTIN_NODE_DEFS: Dict[str, NodeDef] = {
             "required": ["format"],
         },
     ),
+    # ── Ported from copy frontend breadth (unification 2026-08-22) ──
+    "transform.aggregate": NodeDef(
+        type="transform.aggregate",
+        category=NodeCategory.AGGREGATE,
+        label="Aggregate",
+        description="Group and reduce data (count/sum/avg/min/max/distinct)",
+        executor="logic.merge",
+        input_ports=[Port(name="input", label="Data", data_type=DataType.ANY, direction=PortDirection.INPUT, required=True)],
+        output_ports=[Port(name="output", label="Output", data_type=DataType.ANY, direction=PortDirection.OUTPUT)],
+        config_schema={"type": "object", "properties": {"functions": {"type": "array", "items": {"type": "string", "enum": ["count", "sum", "avg", "min", "max", "distinct"]}}, "group_by": {"type": "array", "items": {"type": "string"}}, "output_key": {"type": "string", "default": "aggregated"}}},
+        tags=["aggregate", "reduce"],
+    ),
+    "transform.join": NodeDef(type="transform.join", category=NodeCategory.TRANSFORM, label="Join", description="Join two datasets on a key", executor="logic.merge", input_ports=[Port(name="left", label="Left", data_type=DataType.ANY, direction=PortDirection.INPUT, required=True), Port(name="right", label="Right", data_type=DataType.ANY, direction=PortDirection.INPUT, required=True)], output_ports=[Port(name="joined", label="Joined", data_type=DataType.ANY, direction=PortDirection.OUTPUT)], config_schema={"type": "object", "properties": {"on": {"type": "string"}, "how": {"type": "string", "enum": ["inner", "left", "right", "outer"], "default": "inner"}}}, tags=["join", "merge"]),
+    "transform.union": NodeDef(type="transform.union", category=NodeCategory.TRANSFORM, label="Union", description="Concatenate datasets", executor="logic.merge", input_ports=[Port(name="input", label="Data", data_type=DataType.ANY, direction=PortDirection.INPUT, required=True)], output_ports=[Port(name="output", label="Output", data_type=DataType.ANY, direction=PortDirection.OUTPUT)], dynamic_inputs=True, config_schema={"type": "object", "properties": {}}, tags=["union", "concat"]),
+    "transform.consolidate": NodeDef(type="transform.consolidate", category=NodeCategory.TRANSFORM, label="Consolidate", description="Merge multiple branches into a unified dataset", executor="logic.merge", input_ports=[Port(name="input", label="Data", data_type=DataType.ANY, direction=PortDirection.INPUT, required=True)], output_ports=[Port(name="output", label="Output", data_type=DataType.ANY, direction=PortDirection.OUTPUT)], dynamic_inputs=True, config_schema={"type": "object", "properties": {}}, tags=["consolidate", "merge"]),
+    "control.delay": NodeDef(type="control.delay", category=NodeCategory.LOGIC, label="Delay", description="Pause execution for a duration", executor="control.delay", input_ports=[Port(name="input", label="Data", data_type=DataType.ANY, direction=PortDirection.INPUT, required=False)], output_ports=[Port(name="output", label="Data", data_type=DataType.ANY, direction=PortDirection.OUTPUT)], config_schema={"type": "object", "properties": {"delay_ms": {"type": "integer", "default": 1000}, "delay_seconds": {"type": "number"}}}, tags=["delay", "wait"]),
+    "control.wait": NodeDef(type="control.wait", category=NodeCategory.LOGIC, label="Wait", description="Wait for a condition or fixed time", executor="control.delay", input_ports=[Port(name="input", label="Data", data_type=DataType.ANY, direction=PortDirection.INPUT, required=False)], output_ports=[Port(name="output", label="Data", data_type=DataType.ANY, direction=PortDirection.OUTPUT)], config_schema={"type": "object", "properties": {"wait_ms": {"type": "integer", "default": 1000}, "condition": {"type": "string"}}}, tags=["wait", "delay"]),
     "subgraph.invoke": NodeDef(
         type="subgraph.invoke",
         category=NodeCategory.SUBGRAPH,

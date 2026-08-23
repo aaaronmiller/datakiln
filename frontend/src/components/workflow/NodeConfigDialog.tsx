@@ -1,19 +1,28 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Node } from '@xyflow/react'
-import { Dialog, DialogContent } from '../ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
-import { Plus, Trash2, GripVertical, Eye } from 'lucide-react'
-import { Badge } from '../ui/badge'
-import { WORKFLOW_NODE_TYPES, WorkflowNodeType } from '../../types/workflow'
+import { Select } from '../ui/select'
+import { Slider } from '../ui/slider'
+import { Plus, Trash2, Settings } from 'lucide-react'
+
+interface InputPair {
+  key: string
+  value: string
+}
 
 interface Action {
   selector: string
   actionType: string
   value: string
   delay?: number
+  timingOverride?: {
+    default_delay_ms?: number
+    wait_for_selector_timeout_ms?: number
+    action_timeout_ms?: number
+  }
 }
 
 interface SelectorOption {
@@ -21,15 +30,11 @@ interface SelectorOption {
   selector: string
   description?: string
   provider?: string
-}
-
-interface SchemaField {
-  type: string
-  required?: boolean
-  options?: string[]
-  default?: unknown
-  dependsOn?: Record<string, string[]>
-  placeholder?: string
+  timing_policy?: {
+    default_delay_ms: number
+    wait_for_selector_timeout_ms: number
+    action_timeout_ms: number
+  }
 }
 
 interface NodeConfigDialogProps {
@@ -39,284 +44,106 @@ interface NodeConfigDialogProps {
   onSave: (nodeId: string, data: Record<string, unknown>) => void
 }
 
-/**
- * Generic config dialog that renders fields from the node type's configSchema.
- * No more hardcoded per-type branches — schema drives the UI.
- */
 const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
   node,
   open,
   onOpenChange,
   onSave
 }) => {
-  const [activeTab, setActiveTab] = useState('configuration')
   const [nodeName, setNodeName] = useState('')
-  const [formData, setFormData] = useState<Record<string, unknown>>({})
+  const [provider, setProvider] = useState('')
   const [actions, setActions] = useState<Action[]>([])
+  const [output, setOutput] = useState('')
+
+  // Consolidate node specific fields
+  const [model, setModel] = useState('')
+  const [prependText, setPrependText] = useState('')
+  const [appendText, setAppendText] = useState('')
+  const [attachments, setAttachments] = useState<string[]>([])
+
+  // New: Generic Inputs & Specific Configs
+  const [inputs, setInputs] = useState<InputPair[]>([])
+  const [templateId, setTemplateId] = useState('')
+  const [providerType, setProviderType] = useState('')
+  const [researchDepth, setResearchDepth] = useState('balanced')
+
   const [availableSelectors, setAvailableSelectors] = useState<SelectorOption[]>([])
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
-  // Find the matching node type definition
-  const nodeTypeDef: WorkflowNodeType | undefined = useMemo(() => {
-    return WORKFLOW_NODE_TYPES.find(t => t.type === node?.type)
-  }, [node?.type])
-
-  // Reset form when node changes
   useEffect(() => {
     if (node?.data) {
-      setNodeName(String(node.data.name || nodeTypeDef?.label || ''))
-      // Seed defaults from type definition
-      const defaults: Record<string, unknown> = { ...(nodeTypeDef?.defaultData || {}) }
-      // Overlay existing data
-      const existingData = node.data as Record<string, unknown>
-      Object.keys(defaults).forEach(key => {
-        if (existingData[key] !== undefined && existingData[key] !== null) {
-          defaults[key] = existingData[key]
-        }
-      })
-      setFormData(defaults)
+      setNodeName(String(node.data.name || ''))
+      setProvider(String(node.data.provider || ''))
+      setActions(Array.isArray(node.data.actions) ? node.data.actions : [])
+      setOutput(String(node.data.output || ''))
 
-      // Actions are special — they're an array
-      if (node.type === 'dom_action' || node.type === 'ai_dom') {
-        setActions(Array.isArray(existingData.actions) ? existingData.actions : [])
-      } else {
-        setActions([])
-      }
+      // Consolidate node fields
+      setModel(String(node.data.model || ''))
+      setPrependText(String(node.data.prepend_text || ''))
+      setAppendText(String(node.data.append_text || ''))
+      setAttachments(Array.isArray(node.data.attachments) ? node.data.attachments : [])
+
+      // Load inputs (Record -> Array)
+      const dataInputs = (node.data.inputs || {}) as Record<string, string>
+      const inputsArray = Object.entries(dataInputs).map(([key, value]) => ({ key, value: String(value) }))
+      setInputs(inputsArray)
+
+      // Load specific fields
+      setTemplateId(String(node.data.template_id || ''))
+      setProviderType(String(node.data.provider_type || ''))
+      setResearchDepth(String(node.data.research_depth || 'balanced'))
     }
-  }, [node, nodeTypeDef])
+  }, [node])
 
-  // Load selectors for DOM action nodes
   useEffect(() => {
     const loadSelectors = async () => {
       try {
         const response = await fetch('/api/v1/selectors/registry')
         if (response.ok) {
           const data = await response.json()
-          setAvailableSelectors(data.selectors || [])
+          setAvailableSelectors(data.selectors)
         }
-      } catch {
-        // Silently fail
+      } catch (error) {
+        console.error('Failed to load selectors:', error)
       }
     }
-    if (open && (node?.type === 'dom_action' || node?.type === 'ai_dom')) {
+    if (open) {
       loadSelectors()
     }
-  }, [open, node?.type])
+  }, [open])
 
   if (!node) return null
 
-  // Check if a field should be shown based on dependsOn
-  const shouldShowField = (field: SchemaField, fieldName: string): boolean => {
-    if (!field.dependsOn) return true
-    for (const [depKey, depValues] of Object.entries(field.dependsOn)) {
-      const currentVal = formData[depKey]
-      if (!depValues.includes(String(currentVal))) return false
-    }
-    return true
-  }
-
-  // Render a single form field based on schema type
-  const renderField = (fieldName: string, field: SchemaField) => {
-    if (!shouldShowField(field, fieldName)) return null
-
-    const value = formData[fieldName] ?? field.default ?? ''
-    const errorKey = `field_${fieldName}`
-    const isError = validationErrors[errorKey]
-
-    const commonLabel = (
-      <Label className="text-sm font-medium flex items-center gap-1">
-        {fieldName.replace(/_/g, ' ')}
-        {field.required && <span className="text-red-500">*</span>}
-      </Label>
-    )
-
-    switch (field.type) {
-      case 'select':
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <select
-              value={String(value)}
-              onChange={(e) => setFormData(prev => ({ ...prev, [fieldName]: e.target.value }))}
-              className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isError ? 'border-red-500' : 'border-input'}`}
-            >
-              <option value="">Select...</option>
-              {(field.options || []).map(opt => (
-                <option key={opt} value={opt}>{opt.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
-              ))}
-            </select>
-            {isError && <p className="text-xs text-red-500">{validationErrors[errorKey]}</p>}
-          </div>
-        )
-
-      case 'multi-select':
-        return (
-          <div key={fieldName} className="space-y-2">
-            {commonLabel}
-            <div className="flex flex-wrap gap-2">
-              {(field.options || []).map(opt => {
-                const selected = (value as string[])?.includes(opt)
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      const current = (value as string[]) || []
-                      const next = selected ? current.filter(v => v !== opt) : [...current, opt]
-                      setFormData(prev => ({ ...prev, [fieldName]: next }))
-                    }}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      selected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {opt.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )
-
-      case 'boolean':
-        return (
-          <div key={fieldName} className="space-y-1">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={Boolean(value)}
-                onChange={(e) => setFormData(prev => ({ ...prev, [fieldName]: e.target.checked }))}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm font-medium">{fieldName.replace(/_/g, ' ')}</span>
-            </label>
-          </div>
-        )
-
-      case 'number':
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <Input
-              type="number"
-              value={String(value)}
-              onChange={(e) => setFormData(prev => ({ ...prev, [fieldName]: parseFloat(e.target.value) || 0 }))}
-              className={isError ? 'border-red-500' : ''}
-              placeholder={field.placeholder}
-            />
-            {isError && <p className="text-xs text-red-500">{validationErrors[errorKey]}</p>}
-          </div>
-        )
-
-      case 'text':
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <textarea
-              value={String(value)}
-              onChange={(e) => setFormData(prev => ({ ...prev, [fieldName]: e.target.value }))}
-              className={`flex min-h-[80px] w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y ${isError ? 'border-red-500' : 'border-input'}`}
-              placeholder={field.placeholder}
-            />
-          </div>
-        )
-
-      case 'json':
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <textarea
-              value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
-              onChange={(e) => {
-                try {
-                  const parsed = JSON.parse(e.target.value)
-                  setFormData(prev => ({ ...prev, [fieldName]: parsed }))
-                } catch {
-                  setFormData(prev => ({ ...prev, [fieldName]: e.target.value }))
-                }
-              }}
-              className={`flex min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y font-mono text-xs ${isError ? 'border-red-500' : 'border-input'}`}
-              placeholder='{"key": "value"}'
-            />
-          </div>
-        )
-
-      case 'array':
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <Input
-              value={Array.isArray(value) ? value.join(', ') : String(value)}
-              onChange={(e) => setFormData(prev => ({ ...prev, [fieldName]: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
-              className={isError ? 'border-red-500' : ''}
-              placeholder="Comma-separated values"
-            />
-            <p className="text-xs text-gray-500">Enter comma-separated values</p>
-          </div>
-        )
-
-      case 'object':
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <textarea
-              value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
-              onChange={(e) => {
-                try {
-                  const parsed = JSON.parse(e.target.value)
-                  setFormData(prev => ({ ...prev, [fieldName]: parsed }))
-                } catch {
-                  setFormData(prev => ({ ...prev, [fieldName]: e.target.value }))
-                }
-              }}
-              className={`flex min-h-[80px] w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y font-mono text-xs ${isError ? 'border-red-500' : 'border-input'}`}
-            />
-          </div>
-        )
-
-      default: // string
-        return (
-          <div key={fieldName} className="space-y-1">
-            {commonLabel}
-            <Input
-              value={String(value)}
-              onChange={(e) => setFormData(prev => ({ ...prev, [fieldName]: e.target.value }))}
-              className={isError ? 'border-red-500' : ''}
-              placeholder={field.placeholder}
-            />
-            {isError && <p className="text-xs text-red-500">{validationErrors[errorKey]}</p>}
-          </div>
-        )
-    }
-  }
-
   const handleSave = () => {
-    // Validate required fields
-    const errors: Record<string, string> = {}
-    if (!nodeName.trim()) errors.nodeName = 'Node name is required'
-
-    if (nodeTypeDef?.configSchema) {
-      Object.entries(nodeTypeDef.configSchema).forEach(([key, field]) => {
-        if ((field as SchemaField).required && !formData[key]) {
-          errors[`field_${key}`] = `${key} is required`
-        }
-      })
-    }
-
-    if (node.type === 'dom_action' && actions.length === 0) {
-      errors.actions = 'At least one action is required'
-    }
-
-    setValidationErrors(errors)
-    if (Object.keys(errors).length > 0) return
-
-    // Build final data object
     const data: Record<string, unknown> = {
       name: nodeName,
-      ...formData,
     }
 
-    if (node.type === 'dom_action') {
+    if (node?.type === 'consolidate') {
+      data.model = model
+      data.prepend_text = prependText
+      data.append_text = appendText
+      data.attachments = attachments
+    } else if (node?.type === 'prompt') {
+      data.template_id = templateId
+    } else if (node?.type === 'provider') {
+      data.provider_type = providerType
+      data.research_depth = researchDepth
+      // Provider node might use provider field for basic selection or provider_type for advanced
+      data.provider = provider
+    } else {
+      // ai_dom node default
+      data.provider = provider
       data.actions = actions
+      data.output = output
+    }
+
+    // Save Inputs
+    if (inputs.length > 0) {
+      const inputsRecord: Record<string, unknown> = {}
+      inputs.forEach(pair => {
+        if (pair.key) inputsRecord[pair.key] = pair.value
+      })
+      data.inputs = inputsRecord
     }
 
     onSave(node.id, data)
@@ -328,192 +155,357 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
   }
 
   const updateAction = (index: number, field: keyof Action, value: string | number) => {
-    const updated = [...actions]
-    updated[index] = { ...updated[index], [field]: value }
-    setActions(updated)
+    const updatedActions = [...actions]
+    updatedActions[index] = { ...updatedActions[index], [field]: value }
+    setActions(updatedActions)
   }
 
   const removeAction = (index: number) => {
     setActions(actions.filter((_, i) => i !== index))
   }
 
+  // Inputs Handlers
+  const addInput = () => {
+    setInputs([...inputs, { key: '', value: '' }])
+  }
+
+  const updateInput = (index: number, field: keyof InputPair, value: string) => {
+    const updated = [...inputs]
+    updated[index] = { ...updated[index], [field]: value }
+    setInputs(updated)
+  }
+
+  const removeInput = (index: number) => {
+    setInputs(inputs.filter((_, i) => i !== index))
+  }
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] p-0">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b">
-            <div>
-              <h2 className="text-lg font-semibold">
-                Configure {nodeTypeDef?.icon} {nodeName || nodeTypeDef?.label || node.type}
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {nodeTypeDef?.description || `Type: ${node.type}`}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleSave}>Save</Button>
-            </div>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Configure Node</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Node Name */}
+          <div className="space-y-2">
+            <Label htmlFor="nodeName" className="text-sm font-medium">
+              Node Name <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="nodeName"
+              value={nodeName}
+              onChange={(e) => setNodeName(e.target.value)}
+              placeholder="Enter node name"
+            />
           </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 mx-5 mt-3">
-              <TabsTrigger value="configuration">Configuration</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            </TabsList>
+          {node?.type === 'consolidate' ? (
+            <>
+              {/* Model Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="model" className="text-sm font-medium">
+                  AI Model <span className="text-red-500">*</span>
+                </Label>
+                <Select value={model} onChange={(e) => setModel(e.target.value)}>
+                  <option value="">Select Model</option>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  <option value="claude-3">Claude 3</option>
+                  <option value="gemini-pro">Gemini Pro</option>
+                </Select>
+              </div>
 
-            <div className="flex-1 overflow-hidden">
-              {/* Configuration Tab */}
-              <TabsContent value="configuration" className="h-full p-5 overflow-y-auto">
-                <div className="space-y-5">
-                  {/* Node Name (always shown) */}
-                  <div className="space-y-1">
-                    <Label htmlFor="nodeName" className="text-sm font-medium">
-                      Node Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="nodeName"
-                      value={nodeName}
-                      onChange={(e) => setNodeName(e.target.value)}
-                      placeholder="Enter node name"
-                      className={validationErrors.nodeName ? 'border-red-500' : ''}
-                    />
-                    {validationErrors.nodeName && (
-                      <p className="text-xs text-red-500">{validationErrors.nodeName}</p>
-                    )}
-                  </div>
+              {/* Prepend Text */}
+              <div className="space-y-2">
+                <Label htmlFor="prependText" className="text-sm font-medium">
+                  Prepend Text
+                </Label>
+                <Input
+                  id="prependText"
+                  value={prependText}
+                  onChange={(e) => setPrependText(e.target.value)}
+                  placeholder="Text to prepend to input"
+                />
+              </div>
 
-                  {/* Schema-driven fields */}
-                  {nodeTypeDef?.configSchema && (
-                    <div className="space-y-4">
-                      {Object.entries(nodeTypeDef.configSchema).map(([key, field]) =>
-                        renderField(key, field as SchemaField)
-                      )}
-                    </div>
-                  )}
+              {/* Append Text */}
+              <div className="space-y-2">
+                <Label htmlFor="appendText" className="text-sm font-medium">
+                  Append Text
+                </Label>
+                <Input
+                  id="appendText"
+                  value={appendText}
+                  onChange={(e) => setAppendText(e.target.value)}
+                  placeholder="Text to append to input"
+                />
+              </div>
 
-                  {/* DOM Action Sequence (special case for dom_action type) */}
-                  {node.type === 'dom_action' && (
-                    <div className="space-y-3 mt-4 pt-4 border-t">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Action Sequence</Label>
-                        <Button onClick={addAction} size="sm" variant="outline">
-                          <Plus className="h-3 w-3 mr-1" /> Add Action
-                        </Button>
-                      </div>
-
-                      {validationErrors.actions && (
-                        <p className="text-xs text-red-500">{validationErrors.actions}</p>
-                      )}
-
-                      <div className="space-y-2">
-                        {actions.map((action, index) => (
-                          <div key={index} className="border rounded-lg p-3 bg-muted/50">
-                            <div className="flex items-center gap-2 mb-2">
-                              <GripVertical className="h-3 w-3 text-gray-400 cursor-move" />
-                              <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
-                              <div className="flex-1" />
-                              <Button variant="ghost" size="sm" onClick={() => removeAction(index)} className="h-6 w-6 p-0 text-red-500">
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <select
-                                value={action.selector}
-                                onChange={(e) => updateAction(index, 'selector', e.target.value)}
-                                className="flex h-8 rounded-md border bg-background px-2 py-1 text-xs"
-                              >
-                                <option value="">Selector...</option>
-                                {availableSelectors.map(sel => (
-                                  <option key={sel.key} value={sel.key}>{sel.key}</option>
-                                ))}
-                              </select>
-                              <select
-                                value={action.actionType}
-                                onChange={(e) => updateAction(index, 'actionType', e.target.value)}
-                                className="flex h-8 rounded-md border bg-background px-2 py-1 text-xs"
-                              >
-                                <option value="click">Click</option>
-                                <option value="type">Type</option>
-                                <option value="wait">Wait</option>
-                                <option value="scroll">Scroll</option>
-                                <option value="copy">Copy</option>
-                                <option value="extract">Extract</option>
-                              </select>
-                              <Input
-                                value={action.value}
-                                onChange={(e) => updateAction(index, 'value', e.target.value)}
-                                placeholder="Value"
-                                className="h-8 text-xs col-span-2"
-                              />
-                            </div>
-                          </div>
-                        ))}
-                        {actions.length === 0 && (
-                          <p className="text-center text-xs text-muted-foreground py-4">
-                            No actions defined. Click "Add Action" to get started.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Output Destination (shown for all types) */}
-                  <div className="space-y-2 pt-4 border-t">
-                    <Label className="text-sm font-medium">Output Destination</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['next', 'file', 'screen', 'clipboard'].map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, output: option }))}
-                          className={`px-3 py-2 rounded-md text-xs font-medium transition-colors ${
-                            formData.output === option
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted hover:bg-muted/80'
-                          }`}
-                        >
-                          {option.charAt(0).toUpperCase() + option.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Timeline Tab */}
-              <TabsContent value="timeline" className="h-full p-5 overflow-y-auto">
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Execution Timeline</h3>
-                  {node.type === 'dom_action' && actions.length > 0 ? (
+              {/* File Attachments */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">File Attachments</Label>
+                <div className="border rounded-lg p-4 space-y-3">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || [])
+                      const filePaths = files.map(file => file.name) // In real implementation, upload files and get URLs
+                      setAttachments([...attachments, ...filePaths])
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {attachments.length > 0 && (
                     <div className="space-y-2">
-                      {actions.map((action, index) => (
-                        <div key={index} className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs shrink-0">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 border rounded-lg p-2 bg-muted/50">
-                            <span className="text-xs font-medium">{action.actionType}</span>
-                            {action.selector && <span className="text-xs text-muted-foreground ml-2">→ {action.selector}</span>}
-                            {action.value && <span className="text-xs text-muted-foreground ml-2">"{action.value}"</span>}
-                          </div>
-                          {action.delay ? <span className="text-xs text-muted-foreground">{action.delay}ms</span> : null}
+                      <Label className="text-xs text-gray-600">Attached Files:</Label>
+                      {attachments.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <span className="text-sm">{file}</span>
+                          <Button
+                            onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Execution timeline will appear when the workflow runs.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Provider Dropdown */}
+              {node?.type === 'provider' && (
+                <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Settings className="w-4 h-4 text-blue-500" />
+                    <h3 className="font-medium text-sm">Provider Configuration</h3>
+                  </div>
+
+                  {/* Provider Type */}
+                  <div className="space-y-2">
+                    <Label htmlFor="providerType" className="text-sm font-medium">Provider Type</Label>
+                    <Select value={providerType} onChange={(e) => setProviderType(e.target.value)}>
+                      <option value="">Select Type</option>
+                      <option value="gemini_deep_research">Gemini Deep Research</option>
+                      <option value="gemini_canvas">Gemini Canvas</option>
+                      <option value="gemini_flash">Gemini Flash</option>
+                      <option value="generic">Generic/API</option>
+                      <option value="extension">Browser Extension</option>
+                    </Select>
+                  </div>
+
+                  {providerType === 'gemini_deep_research' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="researchDepth" className="text-sm font-medium">Research Depth</Label>
+                      <Select value={researchDepth} onChange={(e) => setResearchDepth(e.target.value)}>
+                        <option value="fast">Fast</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="comprehensive">Comprehensive</option>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Fallback Legacy Provider Selection */}
+                  {(!providerType || providerType === 'generic') && (
+                    <div className="space-y-2">
+                      <Label htmlFor="provider" className="text-sm font-medium">Legacy Provider</Label>
+                      <Select value={provider} onChange={(e) => setProvider(e.target.value)}>
+                        <option value="">Select Provider</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="perp">Perp</option>
+                        <option value="ytt">YTT</option>
+                      </Select>
                     </div>
                   )}
                 </div>
-              </TabsContent>
+              )}
+
+              {node?.type === 'prompt' && (
+                <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Settings className="w-4 h-4 text-purple-500" />
+                    <h3 className="font-medium text-sm">Prompt Configuration</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="templateId" className="text-sm font-medium">Template ID</Label>
+                    <Input
+                      id="templateId"
+                      value={templateId}
+                      onChange={(e) => setTemplateId(e.target.value)}
+                      placeholder="e.g. gemini_3x6_split"
+                    />
+                    <p className="text-xs text-gray-500">ID of the prompt template in prompt_templates.json</p>
+                  </div>
+                </div>
+              )}
+
+            </>
+          )}
+
+          {/* Generic Inputs Configuration (Available for all nodes) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Node Inputs</Label>
+              <Button onClick={addInput} size="sm" variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Input
+              </Button>
             </div>
-          </Tabs>
+            <div className="border rounded-lg p-4 space-y-3">
+              {inputs.map((input, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <Input
+                    placeholder="Key"
+                    value={input.key}
+                    onChange={(e) => updateInput(index, 'key', e.target.value)}
+                    className="w-1/3"
+                  />
+                  <Input
+                    placeholder="Value (e.g. {{input.data}})"
+                    value={input.value}
+                    onChange={(e) => updateInput(index, 'value', e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={() => removeInput(index)} size="sm" variant="ghost" className="text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {inputs.length === 0 && (
+                <div className="text-center text-gray-400 text-sm py-2">
+                  No inputs defined.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Sequence List (Only for ai_dom or legacy types) */}
+          {(node?.type === 'ai_dom' || node?.type === 'dom_action') && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Action Sequence</Label>
+                <Button onClick={addAction} size="sm" variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Action
+                </Button>
+              </div>
+              <div className="border rounded-lg p-4 space-y-3">
+                {actions.map((action, index) => (
+                  <div key={index} className="border rounded p-3 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div>
+                        <Label className="text-xs text-gray-600">Selector</Label>
+                        <Select
+                          value={action.selector}
+                          onChange={(e) => updateAction(index, 'selector', e.target.value)}
+                          className="mt-1"
+                        >
+                          <option value="">Select Selector</option>
+                          {availableSelectors
+                            .filter(sel => !sel.provider || sel.provider === provider)
+                            .map(sel => (
+                              <option key={sel.key} value={sel.key}>
+                                {sel.key} - {sel.description || sel.selector}
+                              </option>
+                            ))
+                          }
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Action Type</Label>
+                        <Select
+                          value={action.actionType}
+                          onChange={(e) => updateAction(index, 'actionType', e.target.value)}
+                          className="mt-1"
+                        >
+                          <option value="click">Click</option>
+                          <option value="type">Type</option>
+                          <option value="wait">Wait</option>
+                          <option value="scroll">Scroll</option>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Value</Label>
+                        <Input
+                          value={action.value}
+                          onChange={(e) => updateAction(index, 'value', e.target.value)}
+                          placeholder="Value"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-600">Delay: {action.delay || 0}ms</Label>
+                        <Slider
+                          value={action.delay || 0}
+                          onChange={(value) => updateAction(index, 'delay', value)}
+                          min={0}
+                          max={5000}
+                          step={100}
+                          className="mt-1"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>0ms</span>
+                          <span>5000ms</span>
+                        </div>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          onClick={() => removeAction(index)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {actions.length === 0 && (
+                  <div className="text-center text-gray-500 py-4">
+                    No actions defined. Click "Add Action" to get started.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Output Options */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Output</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {['file', 'screen', 'clipboard', 'next'].map((option) => (
+                <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="output"
+                    value={option}
+                    checked={output === option}
+                    onChange={(e) => setOutput(e.target.value)}
+                    className="rounded"
+                  />
+                  <span className="text-sm capitalize">{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!nodeName.trim()}>
+            Save Changes
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

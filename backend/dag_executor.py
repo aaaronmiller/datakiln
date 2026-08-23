@@ -1730,6 +1730,18 @@ def _normalize_node_type(node_type: str, config: Dict[str, Any]) -> str:
         return "logic.condition"
     if node_type == "export":
         return "export.file"
+    if node_type in {"aggregate"}:
+        return "transform.aggregate"
+    if node_type in {"join"}:
+        return "transform.join"
+    if node_type in {"union"}:
+        return "transform.union"
+    if node_type in {"consolidate"}:
+        return "transform.consolidate"
+    if node_type in {"delay"}:
+        return "control.delay"
+    if node_type in {"wait"}:
+        return "control.wait"
     if node_type in {"dk://templates/code/string-extract/youtube-ids", "code.string_extract.youtube_ids"}:
         return "code.youtube_id_extract"
     if node_type in {"dk://templates/dom/gemini/deep-research", "dom.gemini.deep-research"}:

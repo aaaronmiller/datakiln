@@ -79,15 +79,6 @@ const CommandPalette: React.FC = () => {
       handler: () => navigate('/templates')
     },
     {
-      id: 'nav-transcript',
-      title: 'Go to Transcript Analysis',
-      description: 'Navigate to transcript analysis',
-      icon: '🎵',
-      shortcut: 'gT',
-      category: 'navigation',
-      handler: () => navigate('/transcript-analysis')
-    },
-    {
       id: 'nav-extension',
       title: 'Go to Extension Capture',
       description: 'Navigate to extension capture',
@@ -285,9 +276,8 @@ const CommandPalette: React.FC = () => {
                 <button
                   key={action.id}
                   onClick={() => handleActionSelect(action)}
-                  className={`w-full text-left px-4 py-3 hover:theme-bg-surface-secondary border-b border-gray-100 last:border-b-0 flex items-start space-x-3 ${
-                    index === selectedIndex ? 'theme-bg-surface-secondary' : ''
-                  }`}
+                  className={`w-full text-left px-4 py-3 hover:theme-bg-surface-secondary border-b border-gray-100 last:border-b-0 flex items-start space-x-3 ${index === selectedIndex ? 'theme-bg-surface-secondary' : ''
+                    }`}
                   role="option"
                   aria-selected={index === selectedIndex}
                 >

@@ -38,16 +38,14 @@ interface SelectorRegistryItem {
 }
 
 const Selectors: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("inspection")
-  const [testUrl, setTestUrl] = useState("")
-  const [isLoadingPage, setIsLoadingPage] = useState(false)
-  const [pageContent, setPageContent] = useState("")
+  const [activeTab, setActiveTab] = useState("registry")
+  const [testHtml, setTestHtml] = useState("")
   const [selector, setSelector] = useState("")
   const [selectorType, setSelectorType] = useState<'css' | 'xpath'>('css')
   const [validationResult, setValidationResult] = useState<SelectorValidationResult | null>(null)
   const [isValidating, setIsValidating] = useState(false)
   const [registry, setRegistry] = useState<SelectorRegistryItem[]>([])
-  const [selectedProvider, setSelectedProvider] = useState("gemini")
+  const [selectedProvider, setSelectedProvider] = useState("all")
 
   // Load selector registry from backend
   useEffect(() => {
@@ -56,31 +54,14 @@ const Selectors: React.FC = () => {
         const response = await fetch('/api/v1/selectors/registry')
         if (response.ok) {
           const data = await response.json()
-          setRegistry(data.selectors)
+          setRegistry(data.selectors || [])
         }
       } catch (error) {
         console.error('Failed to load selector registry:', error)
-        // Keep empty registry on error
       }
     }
     loadRegistry()
   }, [])
-
-  const loadWebPage = async () => {
-    if (!testUrl.trim()) return
-
-    setIsLoadingPage(true)
-    try {
-      // Mock page loading - in real app this would fetch the page
-      setTimeout(() => {
-        setPageContent(`<html><body><div class="mock-page"><h1>Test Page</h1><div class="content">Mock page content for selector testing</div></div></body></html>`)
-        setIsLoadingPage(false)
-      }, 1000)
-    } catch (error) {
-      console.error('Failed to load page:', error)
-      setIsLoadingPage(false)
-    }
-  }
 
   const validateSelector = async () => {
     if (!selector.trim()) return
@@ -95,8 +76,7 @@ const Selectors: React.FC = () => {
         body: JSON.stringify({
           selector,
           selector_type: selectorType,
-          url: testUrl || undefined,
-          html_content: pageContent || undefined
+          html_content: testHtml || undefined
         })
       })
 
@@ -133,7 +113,12 @@ const Selectors: React.FC = () => {
     return 'border-yellow-200 bg-yellow-50'
   }
 
-  const filteredRegistry = registry.filter(item => item.provider === selectedProvider)
+  const filteredRegistry = selectedProvider === 'all'
+    ? registry
+    : registry.filter(item => item.provider === selectedProvider)
+
+  // Extract unique providers
+  const providers = Array.from(new Set(registry.map(item => item.provider).filter(Boolean)))
 
   return (
     <div className="space-y-6">
@@ -141,107 +126,143 @@ const Selectors: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Selectors Lab</h1>
-          <p className="text-gray-600 mt-1">Test and manage DOM selectors for web automation</p>
+          <p className="text-gray-600 mt-1">Manage and validate DOM selectors for your Virtual APIs</p>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" size="sm">
             <BookOpen className="h-4 w-4 mr-2" />
             Documentation
           </Button>
-          <Button variant="outline" size="sm">
-            <Zap className="h-4 w-4 mr-2" />
-            Optimize All
-          </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="inspection">DOM Inspection</TabsTrigger>
-          <TabsTrigger value="testing">Selector Testing</TabsTrigger>
-          <TabsTrigger value="library">Selector Library</TabsTrigger>
+          <TabsTrigger value="registry">Selector Registry</TabsTrigger>
+          <TabsTrigger value="validator">Validator</TabsTrigger>
           <TabsTrigger value="optimization">Optimization</TabsTrigger>
         </TabsList>
 
-        {/* DOM Inspection Tab */}
-        <TabsContent value="inspection" className="space-y-6">
+        {/* Selector Registry Tab */}
+        <TabsContent value="registry" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Globe className="h-5 w-5 mr-2" />
-                Web Page Inspection
+                Registry
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex space-x-4">
-                <Input
-                  placeholder="Enter URL to inspect (e.g., https://gemini.google.com)"
-                  value={testUrl}
-                  onChange={(e) => setTestUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Button onClick={loadWebPage} disabled={isLoadingPage || !testUrl.trim()}>
-                  {isLoadingPage ? 'Loading...' : 'Load Page'}
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <Select value={selectedProvider} onChange={(e) => setSelectedProvider(e.target.value)}>
+                  <option value="all">All Providers</option>
+                  {providers.map(p => <option key={p} value={p}>{p}</option>)}
+                </Select>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Manual Selector
                 </Button>
               </div>
 
-              {pageContent && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-medium mb-2">Page Content Preview</h4>
-                  <div className="bg-white border rounded p-3 text-sm font-mono max-h-64 overflow-y-auto">
-                    <pre>{pageContent}</pre>
-                  </div>
-                </div>
-              )}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Tip:</strong> Use the DataKiln Chrome Extension to automatically capture and save selectors to this registry while browsing.
+                </p>
+              </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <Eye className="h-5 w-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-blue-900">Chrome Extension Integration</h4>
-                    <p className="text-sm text-blue-700 mt-1">
-                      When connected, the Chrome extension will automatically load pages and provide real-time DOM inspection.
-                      Click elements in the browser to generate selectors automatically.
-                    </p>
+              <div className="space-y-3">
+                {filteredRegistry.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No selectors found. Capture some using the Chrome Extension!
                   </div>
-                </div>
+                ) : (
+                  filteredRegistry.map((item) => (
+                    <Card key={item.key} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-medium">{item.key}</h4>
+                              <Badge variant="outline">{item.selector_type.toUpperCase()}</Badge>
+                              {item.provider && <Badge variant="secondary">{item.provider}</Badge>}
+                            </div>
+                            <code className="text-sm bg-gray-100 px-2 py-1 rounded block mb-2 font-mono">
+                              {item.selector}
+                            </code>
+                            <p className="text-sm text-gray-600">{item.description}</p>
+                            {item.fallback_selectors.length > 0 && (
+                              <div className="mt-2">
+                                <span className="text-xs text-gray-500">Fallbacks:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {item.fallback_selectors.map((fallback, index) => (
+                                    <code key={index} className="text-xs bg-gray-50 px-1 py-0.5 rounded">
+                                      {fallback}
+                                    </code>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )))}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Selector Testing Tab */}
-        <TabsContent value="testing" className="space-y-6">
+        {/* Validator Tab */}
+        <TabsContent value="validator" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <TestTube className="h-5 w-5 mr-2" />
-                  Selector Testing
+                  Offline Validation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Selector Type
+                    HTML Snippet
                   </label>
-                  <Select value={selectorType} onChange={(e) => setSelectorType(e.target.value as 'css' | 'xpath')}>
-                    <option value="css">CSS Selector</option>
-                    <option value="xpath">XPath</option>
-                  </Select>
+                  <textarea
+                    value={testHtml}
+                    onChange={(e) => setTestHtml(e.target.value)}
+                    placeholder="Paste raw HTML here to test your selector logic..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-xs"
+                    rows={6}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Selector
                   </label>
-                  <textarea
+                  <Input
                     value={selector}
                     onChange={(e) => setSelector(e.target.value)}
-                    placeholder={selectorType === 'css' ? '.class-name, #element-id' : '/html/body/div[1]'}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    rows={3}
+                    placeholder=".class-name or #id"
                   />
+                  <div className="mt-2 text-right">
+                    <select
+                      value={selectorType}
+                      onChange={(e) => setSelectorType(e.target.value as 'css' | 'xpath')}
+                      className="text-sm border rounded p-1"
+                    >
+                      <option value="css">CSS</option>
+                      <option value="xpath">XPath</option>
+                    </select>
+                  </div>
                 </div>
 
                 <Button
@@ -250,7 +271,7 @@ const Selectors: React.FC = () => {
                   className="w-full"
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  {isValidating ? 'Testing...' : 'Test Selector'}
+                  {isValidating ? 'Validating...' : 'Check Match'}
                 </Button>
               </CardContent>
             </Card>
@@ -260,14 +281,14 @@ const Selectors: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     {getValidationIcon(validationResult)}
-                    <span className="ml-2">Test Results</span>
+                    <span className="ml-2">Result</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div>
                       <span className="font-medium">Selector:</span>
-                      <code className="ml-2 px-2 py-1 bg-gray-100 rounded text-sm">
+                      <code className="ml-2 px-2 py-1 bg-white/50 rounded text-sm">
                         {validationResult.selector}
                       </code>
                     </div>
@@ -275,27 +296,18 @@ const Selectors: React.FC = () => {
                     <div>
                       <span className="font-medium">Status:</span>
                       <Badge variant={validationResult.valid ? "default" : "destructive"} className="ml-2">
-                        {validationResult.valid ? 'Valid' : 'Invalid'}
+                        {validationResult.valid ? 'Valid Matches' : 'No Match / Invalid'}
                       </Badge>
                     </div>
 
                     {validationResult.issues.length > 0 && (
                       <div>
                         <span className="font-medium">Issues:</span>
-                        <ul className="ml-4 mt-1 list-disc">
+                        <ul className="ml-4 mt-1 list-disc text-sm">
                           {validationResult.issues.map((issue, index) => (
-                            <li key={index} className="text-sm">{issue}</li>
+                            <li key={index}>{issue}</li>
                           ))}
                         </ul>
-                      </div>
-                    )}
-
-                    {validationResult.match_info && Object.keys(validationResult.match_info).length > 0 && (
-                      <div>
-                        <span className="font-medium">Matches:</span>
-                        <pre className="ml-4 mt-1 text-sm bg-gray-100 p-2 rounded">
-                          {JSON.stringify(validationResult.match_info, null, 2)}
-                        </pre>
                       </div>
                     )}
                   </div>
@@ -305,111 +317,18 @@ const Selectors: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* Selector Library Tab */}
-        <TabsContent value="library" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BookOpen className="h-5 w-5 mr-2" />
-                Selector Library
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-4">
-                <Select value={selectedProvider} onChange={(e) => setSelectedProvider(e.target.value)}>
-                  <option value="gemini">Gemini</option>
-                  <option value="perplexity">Perplexity</option>
-                  <option value="openai">OpenAI</option>
-                </Select>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Selector
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {filteredRegistry.map((item) => (
-                  <Card key={item.key} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-medium">{item.key}</h4>
-                            <Badge variant="outline">{item.selector_type.toUpperCase()}</Badge>
-                          </div>
-                          <code className="text-sm bg-gray-100 px-2 py-1 rounded block mb-2">
-                            {item.selector}
-                          </code>
-                          <p className="text-sm text-gray-600">{item.description}</p>
-                          {item.fallback_selectors.length > 0 && (
-                            <div className="mt-2">
-                              <span className="text-xs text-gray-500">Fallbacks:</span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {item.fallback_selectors.map((fallback, index) => (
-                                  <code key={index} className="text-xs bg-gray-50 px-1 py-0.5 rounded">
-                                    {fallback}
-                                  </code>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Optimization Tab */}
         <TabsContent value="optimization" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Zap className="h-5 w-5 mr-2" />
-                Selector Optimization
+                Optimization Insights
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">95%</div>
-                  <div className="text-sm text-green-700">Success Rate</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">1.2s</div>
-                  <div className="text-sm text-blue-700">Avg Response Time</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">47</div>
-                  <div className="text-sm text-purple-700">Active Selectors</div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="font-medium">Optimization Suggestions</h4>
-                <div className="space-y-2">
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <p className="text-sm text-yellow-800">
-                      <strong>Performance:</strong> Consider using ID selectors instead of complex CSS paths for better speed.
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                    <p className="text-sm text-blue-800">
-                      <strong>Reliability:</strong> Add fallback selectors for 3 selectors that have single points of failure.
-                    </p>
-                  </div>
-                </div>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                Select selectors in the Registry to analyze their resilience and performance history.
               </div>
             </CardContent>
           </Card>

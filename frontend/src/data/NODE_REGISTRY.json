@@ -1,0 +1,291 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "type": "provider",
+      "version": 1,
+      "inputs": [],
+      "outputs": ["response", "metadata"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["provider_type"],
+        "properties": {
+          "provider_type": {
+            "type": "string",
+            "enum": ["gemini_deep_research", "gemini_canvas", "perplexity"]
+          },
+          "mode": { "type": "string" },
+          "model": { "type": "string" },
+          "api_key": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "max_tokens": { "type": "integer", "minimum": 1, "default": 4000 },
+          "temperature": { "type": "number", "minimum": 0.0, "maximum": 2.0, "default": 0.7 },
+          "top_p": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.9 },
+          "top_k": { "type": "integer", "minimum": 1, "default": 40 },
+          "use_cache": { "type": "boolean", "default": true },
+          "streaming": { "type": "boolean", "default": false },
+          "research_depth": { "type": "string", "enum": ["fast", "balanced", "comprehensive"] },
+          "follow_up_questions": { "type": "integer", "minimum": 0, "default": 3 },
+          "canvas_mode": { "type": "string", "enum": ["create", "edit", "analyze"] },
+          "canvas_context": { "type": "object" }
+        }
+      }
+    },
+    {
+      "type": "dom_action",
+      "version": 1,
+      "inputs": [],
+      "outputs": ["result", "assertion"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["selector_key", "action"],
+        "properties": {
+          "selector_key": { "type": "string" },
+          "action": {
+            "type": "string",
+            "enum": ["click", "fill", "waitForVisible", "extract", "copy"]
+          },
+          "value": { "type": "string" },
+          "assert_type": {
+            "type": "string",
+            "enum": ["visible", "hidden", "text", "value"]
+          },
+          "assert_value": { "type": "string" },
+          "timeout": { "type": "integer", "minimum": 0, "default": 10000 },
+          "wait_for_load_state": {
+            "type": "string",
+            "enum": ["load", "domcontentloaded", "networkidle"]
+          },
+          "wait_for_selector_timeout": { "type": "integer", "minimum": 0, "default": 5000 }
+        }
+      }
+    },
+    {
+      "type": "transform",
+      "version": 1,
+      "inputs": ["data"],
+      "outputs": ["transformed"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["transform_type"],
+        "properties": {
+          "transform_type": {
+            "type": "string",
+            "enum": ["markdown", "extract_citations", "merge", "filter", "json_transform", "text_clean"]
+          },
+          "input_key": { "type": "string" },
+          "output_key": { "type": "string", "default": "transformed" },
+          "merge_keys": { "type": "array", "items": { "type": "string" } },
+          "filter_condition": { "type": "string" },
+          "json_path": { "type": "string" },
+          "regex_pattern": { "type": "string" },
+          "replacement": { "type": "string" },
+          "markdown_format": {
+            "type": "string",
+            "enum": ["plain", "github", "html"],
+            "default": "plain"
+          },
+          "clean_operations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["lowercase", "uppercase", "trim", "normalize_whitespace", "remove_urls", "remove_emails"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "filter",
+      "version": 1,
+      "inputs": ["data"],
+      "outputs": ["filtered"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["filter_type"],
+        "properties": {
+          "filter_type": {
+            "type": "string",
+            "enum": ["condition", "regex", "jsonpath", "range", "type", "exists", "custom"]
+          },
+          "input_key": { "type": "string" },
+          "output_key": { "type": "string", "default": "filtered" },
+          "invert_filter": { "type": "boolean", "default": false },
+          "condition": { "type": "string" },
+          "regex_pattern": { "type": "string" },
+          "regex_field": { "type": "string" },
+          "jsonpath_query": { "type": "string" },
+          "range_field": { "type": "string" },
+          "min_value": { "type": "number" },
+          "max_value": { "type": "number" },
+          "allowed_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["string", "number", "boolean", "object", "array", "null"]
+            }
+          },
+          "exists_field": { "type": "string" },
+          "exists_check": {
+            "type": "string",
+            "enum": ["exists", "not_exists", "truthy", "falsy"],
+            "default": "exists"
+          },
+          "custom_function": { "type": "string" }
+        }
+      }
+    },
+    {
+      "type": "condition",
+      "version": 1,
+      "inputs": ["data"],
+      "outputs": [],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["expr"],
+        "properties": {
+          "expr": { "type": "string" },
+          "true_next": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "false_next": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "input_key": { "type": "string" },
+          "condition_type": {
+            "type": "string",
+            "enum": ["simple", "python", "jsonpath", "regex"],
+            "default": "simple"
+          },
+          "timeout_condition": { "type": "string" },
+          "variables": { "type": "object", "additionalProperties": true }
+        }
+      }
+    },
+    {
+      "type": "export",
+      "version": 1,
+      "inputs": ["data"],
+      "outputs": ["export_result"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["format", "path_key"],
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": ["md_yaml", "json", "markdown", "yaml", "csv", "txt"],
+            "default": "json"
+          },
+          "path_key": { "type": "string" },
+          "input_key": { "type": "string" },
+          "include_metadata": { "type": "boolean", "default": true },
+          "pretty_print": { "type": "boolean", "default": true },
+          "include_timestamp": { "type": "boolean", "default": true },
+          "csv_delimiter": { "type": "string", "default": "," },
+          "csv_headers": { "type": "array", "items": { "type": "string" } },
+          "md_title": { "type": "string" },
+          "md_sections": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    {
+      "type": "aggregate",
+      "version": 1,
+      "inputs": ["data"],
+      "outputs": ["aggregated"],
+      "paramsSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "input_key": { "type": "string" },
+          "output_key": { "type": "string", "default": "aggregated" },
+          "functions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["count", "sum", "avg", "min", "max", "distinct"]
+            }
+          },
+          "group_by": { "type": "array", "items": { "type": "string" } },
+          "field_mappings": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    {
+      "type": "join",
+      "version": 1,
+      "inputs": ["left_data", "right_data"],
+      "outputs": ["joined"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["left_input_key", "right_input_key", "left_join_key", "right_join_key"],
+        "properties": {
+          "join_type": {
+            "type": "string",
+            "enum": ["inner", "left", "right", "full", "cross"],
+            "default": "inner"
+          },
+          "left_input_key": { "type": "string" },
+          "right_input_key": { "type": "string" },
+          "left_join_key": { "type": "string" },
+          "right_join_key": { "type": "string" },
+          "output_key": { "type": "string", "default": "joined" },
+          "select_fields": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    {
+      "type": "union",
+      "version": 1,
+      "inputs": ["data_sources"],
+      "outputs": ["unioned"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["input_keys"],
+        "properties": {
+          "input_keys": { "type": "array", "items": { "type": "string" } },
+          "output_key": { "type": "string", "default": "unioned" },
+          "union_mode": {
+            "type": "string",
+            "enum": ["distinct", "all", "intersect", "except"],
+            "default": "distinct"
+          },
+          "align_fields": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    {
+      "type": "prompt",
+      "version": 1,
+      "inputs": [],
+      "outputs": ["response", "parsed"],
+      "paramsSchema": {
+        "type": "object",
+        "required": ["template_id"],
+        "properties": {
+          "template_id": { "type": "string" },
+          "vars": { "type": "object", "additionalProperties": true },
+          "system_message": { "type": "string" },
+          "max_tokens": { "type": "integer", "minimum": 1, "default": 1000 },
+          "temperature": { "type": "number", "minimum": 0.0, "maximum": 2.0, "default": 0.7 },
+          "model": { "type": "string" },
+          "output_format": {
+            "type": "string",
+            "enum": ["text", "json", "markdown", "structured"],
+            "default": "text"
+          },
+          "parse_json": { "type": "boolean", "default": false }
+        }
+      }
+    }
+  ]
+}
