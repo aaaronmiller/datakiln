@@ -742,6 +742,35 @@ BUILTIN_NODE_DEFS: Dict[str, NodeDef] = {
         },
         tags=["dom", "gemini", "deep-research"],
     ),
+    "dom.sequence": NodeDef(
+        type="dom.sequence",
+        category=NodeCategory.DOM_ACTION,
+        label="DOM Sequence",
+        description="Execute a predefined sequence of DOM actions (goto, click, fill, extract) without an LLM agent",
+        executor="dom.sequence",
+        input_ports=[
+            Port(name="input", label="Input", data_type=DataType.ANY, direction=PortDirection.INPUT, required=False),
+            Port(name="url", label="URL", data_type=DataType.STRING, direction=PortDirection.INPUT, required=False),
+            Port(name="query", label="Query", data_type=DataType.STRING, direction=PortDirection.INPUT, required=False),
+        ],
+        output_ports=[
+            Port(name="result", label="Result", data_type=DataType.STRING, direction=PortDirection.OUTPUT),
+            Port(name="actions", label="Actions", data_type=DataType.ANY, direction=PortDirection.OUTPUT),
+        ],
+        config_schema={
+            "type": "object",
+            "properties": {
+                "dom_action_sequence": {"type": "array", "items": {"type": "object"}},
+                "action": {"type": "string", "enum": ["click", "fill", "goto", "extract", "waitForVisible", "copy"]},
+                "selector_key": {"type": "string"},
+                "selector": {"type": "string"},
+                "value": {"type": "string"},
+                "url": {"type": "string"},
+                "timeout_ms": {"type": "integer", "default": 30000}
+            }
+        },
+        tags=["dom", "scripting", "automation"],
+    ),
     "dom.perplexity.pro_search": NodeDef(
         type="dom.perplexity.pro_search",
         category=NodeCategory.DOM_ACTION,

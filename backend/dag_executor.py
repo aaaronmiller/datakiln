@@ -1744,6 +1744,8 @@ def _normalize_node_type(node_type: str, config: Dict[str, Any]) -> str:
         return "control.wait"
     if node_type in {"dk://templates/code/string-extract/youtube-ids", "code.string_extract.youtube_ids"}:
         return "code.youtube_id_extract"
+    if node_type in {"dom_action", "domAction", "DomAction"}:
+        return "dom.sequence"
     if node_type in {"dk://templates/dom/gemini/deep-research", "dom.gemini.deep-research"}:
         return "dom.gemini.deep_research"
     if node_type in {"dk://templates/dom/perplexity/pro-search", "dom.perplexity.pro-search"}:
@@ -1806,6 +1808,23 @@ def _normalize_node_config(node_type: str, config: Dict[str, Any]) -> Dict[str, 
                 DEFAULT_DOM_SEQUENCES["dom.perplexity.pro_search"],
             ),
         }
+    if node_type == "dom.sequence":
+        seq = config.get("dom_action_sequence", config.get("sequence"))
+        if seq:
+            return {"dom_action_sequence": seq, "timeout_ms": config.get("timeout_ms", config.get("timeout", 30000))}
+        action = config.get("action", "click")
+        selector = config.get("selector_key", config.get("selector", config.get("target", "")))
+        target_url = config.get("url", config.get("target_url", config.get("value", "")) if action == "goto" else "")
+        seq = []
+        if target_url and action == "goto":
+            seq.append({"action": "goto", "target": target_url})
+        else:
+            # if user set url separately with another action, include goto first if url present and not already in seq
+            maybe_url = config.get("url") or config.get("target_url")
+            if maybe_url:
+                seq.append({"action": "goto", "target": maybe_url})
+            seq.append({"action": action, "target": selector, "value": config.get("value", ""), "fallback_targets": config.get("fallback_targets", [])})
+        return {"dom_action_sequence": seq, "timeout_ms": config.get("timeout_ms", config.get("timeout", 30000))}
     if node_type == "llm.chat":
         provider_type = str(config.get("provider_type", config.get("provider", "gemini")))
         provider_map = {
@@ -1854,6 +1873,8 @@ def _literal_inputs_for_type(node_type: str, config: Dict[str, Any]) -> Dict[str
 
 
 def _default_source_port(node_type: str) -> str:
+    if node_type == "dom.sequence":
+        return "result"
     if node_type == "llm.chat":
         return "response"
     if node_type == "data_source.web":
