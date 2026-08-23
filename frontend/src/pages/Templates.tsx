@@ -12,16 +12,20 @@ const Templates: React.FC = () => {
   const [templateCategory, setTemplateCategory] = useState('General')
   const { nodes, edges } = useWorkflowStore()
 
-  const templateService = new WorkflowTemplateService()
+  const templateServiceRef = React.useRef<WorkflowTemplateService | null>(null)
+  if (!templateServiceRef.current) {
+    templateServiceRef.current = new WorkflowTemplateService()
+  }
+  const templateService = templateServiceRef.current
 
-  useEffect(() => {
-    loadTemplates()
-  }, [])
-
-  const loadTemplates = async () => {
+  const loadTemplates = React.useCallback(async () => {
     const loadedTemplates = await templateService.getTemplates()
     setTemplates(loadedTemplates)
-  }
+  }, [templateService])
+
+  useEffect(() => {
+    void loadTemplates()
+  }, [loadTemplates])
 
   const handleCreateTemplate = async () => {
     if (!templateName.trim() || !templateDescription.trim()) {
@@ -35,7 +39,7 @@ const Templates: React.FC = () => {
     }
 
     try {
-      const newTemplate = (templateService as any).createTemplateFromWorkflow(
+      const newTemplate = templateService.createTemplateFromWorkflow(
         { nodes, edges },
         templateName,
         templateDescription,

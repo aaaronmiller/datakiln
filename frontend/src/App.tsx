@@ -7,9 +7,9 @@ import Workflows from './pages/Workflows'
 import WorkflowEditor from './components/workflow/WorkflowEditor'
 import Runs from './pages/Runs'
 import Results from './pages/Results'
+import ResultDetails from './pages/ResultDetails'
 import Selectors from './pages/Selectors'
 import Templates from './pages/Templates'
-import Transcript from './pages/Transcript'
 import Extension from './pages/Extension'
 import Settings from './pages/Settings'
 import CommandPalette from './pages/CommandPalette'
@@ -72,6 +72,14 @@ function App() {
             }
           />
           <Route
+            path="/results/:id"
+            element={
+              <ProtectedRoute>
+                <ResultDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/selectors-lab"
             element={
               <ProtectedRoute>
@@ -87,14 +95,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/transcript-analysis"
-            element={
-              <ProtectedRoute>
-                <Transcript />
-              </ProtectedRoute>
-            }
-          />
+          {/* Transcript Analysis removed - Use generic workflow */}
           <Route
             path="/extension-capture"
             element={

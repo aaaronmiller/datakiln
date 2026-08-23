@@ -324,7 +324,7 @@ const CustomNode: React.FC<BaseNodeProps & { data: CustomNodeData }> = ({ data, 
   </Card>
 )
 
-const queryNodeTypes: NodeTypes = {
+const queryNodeTypes: any = {
   dataSource: DataSourceNode,
   filter: FilterNode,
   transform: TransformNode,

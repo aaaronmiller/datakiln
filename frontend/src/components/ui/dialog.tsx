@@ -68,9 +68,9 @@ export const DialogDescription: React.FC<{ children: React.ReactNode }> = ({ chi
   )
 }
 
-export const DialogFooter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const DialogFooter: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => {
   return (
-    <div className="flex items-center justify-end space-x-2 p-6 border-t">
+    <div className={`flex items-center justify-end space-x-2 p-6 border-t ${className}`}>
       {children}
     </div>
   )

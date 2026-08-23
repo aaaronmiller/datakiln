@@ -1,4 +1,4 @@
-import workflowSchema from '../../../old-specs/contracts/WORKFLOW_SCHEMA_V1.json'
+import workflowSchema from '../data/WORKFLOW_SCHEMA.json'
 
 interface JsonSchema {
   required?: string[];
@@ -99,51 +99,51 @@ export class SchemaValidator {
     }
 
     // Validate metadata
- if (workflow.metadata !== undefined) {
-   if (typeof workflow.metadata !== 'object' || workflow.metadata === null) {
-     errors.push('metadata must be an object')
-   } else {
-     // Validate metadata properties
-     const metadataSchema = this.schema.properties?.metadata
-     if (metadataSchema) {
-       this.validateObject(workflow.metadata as Record<string, unknown>, metadataSchema, 'metadata', errors, warnings)
-     }
-   }
- }
+    if (workflow.metadata !== undefined) {
+      if (typeof workflow.metadata !== 'object' || workflow.metadata === null) {
+        errors.push('metadata must be an object')
+      } else {
+        // Validate metadata properties
+        const metadataSchema = this.schema.properties?.metadata
+        if (metadataSchema) {
+          this.validateObject(workflow.metadata as Record<string, unknown>, metadataSchema, 'metadata', errors, warnings)
+        }
+      }
+    }
 
     // Validate nodes
     if (!Array.isArray(workflow.nodes)) {
       errors.push('nodes must be an array')
     } else {
-       const nodeSchema = this.schema.properties?.nodes?.items
-       if (nodeSchema) {
-         workflow.nodes.forEach((node: Record<string, unknown>, index: number) => {
-           this.validateNode(node, nodeSchema, `nodes[${index}]`, errors, warnings)
-         })
-       }
-     }
+      const nodeSchema = this.schema.properties?.nodes?.items
+      if (nodeSchema) {
+        workflow.nodes.forEach((node: Record<string, unknown>, index: number) => {
+          this.validateNode(node, nodeSchema, `nodes[${index}]`, errors, warnings)
+        })
+      }
+    }
 
     // Validate edges
     if (!Array.isArray(workflow.edges)) {
       errors.push('edges must be an array')
     } else {
-       const edgeSchema = this.schema.properties?.edges?.items
-       if (edgeSchema) {
-         workflow.edges.forEach((edge: Record<string, unknown>, index: number) => {
-           this.validateEdge(edge, edgeSchema, `edges[${index}]`, errors, warnings)
-         })
-       }
-     }
+      const edgeSchema = this.schema.properties?.edges?.items
+      if (edgeSchema) {
+        workflow.edges.forEach((edge: Record<string, unknown>, index: number) => {
+          this.validateEdge(edge, edgeSchema, `edges[${index}]`, errors, warnings)
+        })
+      }
+    }
 
     // Check for additional properties
-     if (!this.schema.additionalProperties) {
-       const allowedProps = new Set(Object.keys(this.schema.properties ?? {}))
-       for (const prop in workflow) {
-         if (!allowedProps.has(prop)) {
-           errors.push(`Unexpected property: ${prop}`)
-         }
-       }
-     }
+    if (!this.schema.additionalProperties) {
+      const allowedProps = new Set(Object.keys(this.schema.properties ?? {}))
+      for (const prop in workflow) {
+        if (!allowedProps.has(prop)) {
+          errors.push(`Unexpected property: ${prop}`)
+        }
+      }
+    }
 
     return {
       valid: errors.length === 0,
@@ -373,7 +373,7 @@ export class SchemaValidator {
       }
       if (schema.maximum !== undefined && value > schema.maximum) {
         errors.push(`${path}: must be <= ${schema.maximum}`)
-    }
+      }
     }
 
     // String validation

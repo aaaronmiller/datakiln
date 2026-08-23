@@ -26,6 +26,8 @@ export interface SecurityConfig {
   enableDomainValidation?: boolean;
   enableAuditLogging?: boolean;
   enablePathValidation?: boolean;
+  enableApiKeyAuth?: boolean;
+  apiKeys?: string[];
 }
 
 /**
@@ -67,6 +69,8 @@ export class SecurityMiddleware {
       enableDomainValidation: false,
       enableAuditLogging: true,
       enablePathValidation: false,
+      enableApiKeyAuth: false,
+      apiKeys: [],
       ...config,
     };
 
@@ -128,6 +132,39 @@ export class SecurityMiddleware {
           }
 
           await this.rateLimiter.recordRequest(clientId);
+        });
+      }
+
+      // API key authentication hook
+      if (this.config.enableApiKeyAuth) {
+        fastify.addHook('onRequest', async (request, reply) => {
+          if (request.url === '/health') {
+            return;
+          }
+
+          const headerKey = request.headers['x-api-key'];
+          const bearer = request.headers.authorization?.startsWith('Bearer ')
+            ? request.headers.authorization.slice('Bearer '.length)
+            : undefined;
+          const suppliedKey = Array.isArray(headerKey) ? headerKey[0] : headerKey || bearer;
+
+          if (!suppliedKey || !this.config.apiKeys.includes(suppliedKey)) {
+            this.auditLogger.logSecurityViolation(
+              'api',
+              'authentication_failed',
+              {
+                ipAddress: request.ip,
+                userAgent: request.headers['user-agent'],
+              },
+              AuditLogger.getCorrelationId(request)
+            );
+
+            reply.code(401).send({
+              error: 'Unauthorized',
+              message: 'Valid API key required.',
+            });
+            return;
+          }
         });
       }
 

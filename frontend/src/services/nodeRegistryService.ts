@@ -1,4 +1,4 @@
-import nodeRegistryData from '../../../old-specs/contracts/NODE_REGISTRY_V1.json'
+import nodeRegistryData from '../data/NODE_REGISTRY.json'
 
 export interface CustomNodeDefinition {
   type: string

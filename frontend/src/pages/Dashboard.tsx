@@ -1,12 +1,16 @@
 import * as React from "react"
 import axios from "axios"
 import { useNavigate } from "react-router-dom"
+import { motion } from "framer-motion"
 import { QuickRunTile, RecentActivityWidget, QueueStatusWidget, SystemStatusWidget } from "../components/dashboard"
 import { useToast } from "../hooks/use-toast"
 import websocketService from "../services/websocketService"
+import resultsService from "../services/resultsService"
+import nodeRegistryService from "../services/nodeRegistryService"
+import WorkflowRunDialog from "../components/workflow/WorkflowRunDialog"
+import { Plus, BarChart2 } from "lucide-react"
 
-// Define SystemStatus locally
-interface SystemStatusType {
+interface SystemStatus {
   active_runs: number
   recent_results: number
   system_health: string
@@ -15,17 +19,6 @@ interface SystemStatusType {
   memory_usage: number
   last_updated: string
 }
-
-// Default system status values (fallback, not from env)
-const getDefaultSystemStatus = (): SystemStatusType => ({
-  active_runs: 0,
-  recent_results: 0,
-  system_health: 'healthy' as const,
-  uptime: '2d 14h 32m',
-  cpu_usage: 23.5,
-  memory_usage: 67.8,
-  last_updated: new Date().toISOString()
-})
 
 interface ActivityItem {
   id: string
@@ -46,31 +39,80 @@ interface QueueStatus {
   last_updated: string
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1 }
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [systemStatus, setSystemStatus] = React.useState<SystemStatusType | null>(null)
+  const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(null)
   const [recentActivity, setRecentActivity] = React.useState<ActivityItem[]>([])
   const [queueStatus, setQueueStatus] = React.useState<QueueStatus | null>(null)
+  const [topWorkflows, setTopWorkflows] = React.useState<Array<{ id: string, count: number, name?: string, description?: string }>>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const { toast } = useToast()
 
-  // Fetch dashboard data
+  const [runDialog, setRunDialog] = React.useState<{ isOpen: boolean, id: string, name?: string }>({
+    isOpen: false,
+    id: ''
+  })
+
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "Good morning"
+    if (hour < 18) return "Good afternoon"
+    return "Good evening"
+  }
+
   const fetchDashboardData = React.useCallback(async () => {
     try {
-      const [systemRes, activityRes, queueRes] = await Promise.all([
+      // Parallel Fetch
+      const [systemRes, activityRes, queueRes, topWfRes] = await Promise.all([
         axios.get('/api/v1/dashboard/system-status'),
         axios.get('/api/v1/dashboard/recent-activity'),
-        axios.get('/api/v1/dashboard/queue-status')
+        axios.get('/api/v1/dashboard/queue-status'),
+        resultsService.getTopWorkflows(4)
       ])
 
       setSystemStatus(systemRes.data)
       setRecentActivity(activityRes.data.activities)
       setQueueStatus(queueRes.data)
+
+      await nodeRegistryService.loadCustomNodes()
+      const customNodes = nodeRegistryService.getAllCustomNodes()
+
+      const enrichedWorkflows = topWfRes.map(wf => {
+        const customNode = customNodes.find(n => n.definition.type === wf.workflow_id)
+        return {
+          id: wf.workflow_id,
+          count: wf.count,
+          name: customNode?.definition.name || wf.workflow_id,
+          description: customNode?.definition.description
+        }
+      })
+
+      // Default System Workflows if list is empty
+      if (!enrichedWorkflows.find(w => w.id === 'deep-research')) {
+        enrichedWorkflows.unshift({ id: 'deep-research', count: 0, name: 'Deep Research', description: 'Comprehensive AI-powered research' })
+      }
+
+      setTopWorkflows(enrichedWorkflows.slice(0, 4))
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
       toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
+        title: "Connection Error",
+        description: "Could not sync with DataKiln engine.",
         variant: "destructive"
       })
     } finally {
@@ -78,226 +120,219 @@ const Dashboard: React.FC = () => {
     }
   }, [toast])
 
-  // Handle quick run actions
-  const handleQuickRun = async (type: string, data?: Record<string, unknown>) => {
-    try {
-      let endpoint = ''
-      let successMessage = ''
-      let requestData = data || {}
+  const handleTileClick = async (id: string) => {
+    const wf = topWorkflows.find(w => w.id === id)
+    setRunDialog({
+      isOpen: true,
+      id: id,
+      name: wf?.name
+    })
+  }
 
-      switch (type) {
-        case 'deep-research':
-          endpoint = '/api/v1/dashboard/quick-run/deep-research'
-          successMessage = 'Deep research task started successfully'
-          // For deep research, send the structured query data
-          if (data) {
-            requestData = {
-              topic: data.structuredQuery || data.originalQuery,
-              mode: data.mode || 'balanced',
-              concurrency: 3,
-              retries: 2,
-              selector_profile: 'balanced'
-            }
-          }
-          break
-        case 'transcript-analysis':
-          endpoint = '/api/v1/dashboard/quick-run/transcript-analysis'
-          successMessage = 'Transcript analysis task started successfully'
-          break
-        default:
-          throw new Error('Unknown task type')
+  const handleExecuteWorkflow = async (inputs: Record<string, unknown>) => {
+    const type = runDialog.id
+    try {
+      let endpoint = `/api/v1/workflows/execute`
+      let requestData: any = {
+        workflow_id: type,
+        inputs: inputs
+      }
+
+      if (type === 'deep-research') {
+        endpoint = '/api/v1/dashboard/quick-run/deep-research'
+        requestData = {
+          topic: inputs.query || inputs.input || 'Research Topic',
+          mode: inputs.depth || 'balanced',
+          concurrency: 3,
+          retries: 2,
+          selector_profile: 'balanced'
+        }
       }
 
       await axios.post(endpoint, requestData)
       toast({
-        title: "Success",
-        description: successMessage,
+        title: "Workflow Initiated",
+        description: `Sequence ${type} has started.`,
       })
-
-      // Refresh data after a short delay
       setTimeout(fetchDashboardData, 2000)
     } catch (error) {
       console.error(`Failed to start ${type}:`, error)
       toast({
-        title: "Error",
-        description: `Failed to start ${type.replace('-', ' ')}`,
+        title: "Execution Failed",
+        description: `Could not start workflow. Check logs.`,
         variant: "destructive"
       })
+      throw error
     }
   }
 
-  // WebSocket connection and real-time updates
+  const handleDeleteActivity = async (id: string) => {
+    try {
+      await resultsService.deleteResult(id)
+      fetchDashboardData()
+      toast({ title: "Record Deleted", description: "Activity log removed." })
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete record.", variant: "destructive" })
+    }
+  }
+
+  const handleViewActivity = (id: string) => {
+    navigate(`/results/${id}`)
+  }
+
+  const handleCancelActivity = async (id: string) => {
+    try {
+      await resultsService.cancelRun(id)
+      toast({ title: "Run Cancelled", description: "Cancellation request sent." })
+      fetchDashboardData()
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to cancel run.", variant: "destructive" })
+    }
+  }
+
   React.useEffect(() => {
-    // Connect to WebSocket
-    websocketService.connect().catch((error) => {
-      console.error('Failed to connect to WebSocket:', error)
-    })
+    websocketService.connect().catch(console.error)
+    const handleSystem = (data: unknown) => setSystemStatus(data as SystemStatus)
+    const handleActivity = (data: unknown) => setRecentActivity(prev => [data as ActivityItem, ...prev.slice(0, 9)])
+    const handleQueue = (data: unknown) => setQueueStatus(data as QueueStatus)
 
-    // Listen for real-time updates
-    const handleSystemStatusUpdate = (data: unknown) => {
-      setSystemStatus(data as SystemStatusType)
-    }
-
-    const handleActivityUpdate = (data: unknown) => {
-      setRecentActivity(prev => [data as ActivityItem, ...prev.slice(0, 9)]) // Keep only 10 most recent
-    }
-
-    const handleQueueStatusUpdate = (data: unknown) => {
-      setQueueStatus(data as QueueStatus)
-    }
-
-    websocketService.on('system_status_update', handleSystemStatusUpdate)
-    websocketService.on('activity_update', handleActivityUpdate)
-    websocketService.on('queue_status_update', handleQueueStatusUpdate)
+    websocketService.on('system_status_update', handleSystem)
+    websocketService.on('activity_update', handleActivity)
+    websocketService.on('queue_status_update', handleQueue)
 
     return () => {
-      websocketService.off('system_status_update', handleSystemStatusUpdate)
-      websocketService.off('activity_update', handleActivityUpdate)
-      websocketService.off('queue_status_update', handleQueueStatusUpdate)
+      websocketService.off('system_status_update', handleSystem)
+      websocketService.off('activity_update', handleActivity)
+      websocketService.off('queue_status_update', handleQueue)
     }
   }, [])
 
-  // Initial data fetch
   React.useEffect(() => {
     fetchDashboardData()
-
-    if ((import.meta.env as { MODE?: string }).MODE === 'test') {
-      return
-    }
-
-    // Set up periodic refresh every 30 seconds (fallback for when WebSocket is not available)
     const interval = setInterval(fetchDashboardData, 30000)
-
     return () => clearInterval(interval)
   }, [fetchDashboardData])
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <motion.div
+      className="space-y-8 p-6 max-w-7xl mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Hero Section */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-end md:items-center pb-6 border-b border-border/50">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening with your workflows.</p>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">
+            {getGreeting()}, Explorer.
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            The Kiln is ready. define a new Virtual API or run an existing sequence.
+          </p>
         </div>
-        <button
-          onClick={fetchDashboardData}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          disabled={isLoading}
-        >
-          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-
-      {/* Quick Actions Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <QuickRunTile
-            type="deep-research"
-            onRun={handleQuickRun}
-          />
-          <QuickRunTile
-            type="transcript-analysis"
-            onRun={handleQuickRun}
-          />
-
-          {/* Additional Quick Actions */}
-          <div
-            className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/workflows/new')}
-          >
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Create Workflow</h3>
-                <p className="text-sm text-gray-600">Build a new automation</p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/results')}
-          >
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">View Results</h3>
-                <p className="text-sm text-gray-600">Browse recent outputs</p>
-              </div>
-            </div>
+        <div className="mt-4 md:mt-0">
+          <div className="flex items-center space-x-2 text-sm font-mono text-muted-foreground bg-surface-secondary px-3 py-1 rounded-full border border-border">
+            <span className={`w-2 h-2 rounded-full ${systemStatus?.system_health === 'healthy' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></span>
+            <span>Engine: {systemStatus?.system_health?.toUpperCase() || 'OFFLINE'}</span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* System Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* System Status */}
+      {/* Quick Launchpad */}
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <span className="w-1 h-6 bg-accent rounded-full"></span>
+            Launchpad
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {topWorkflows.map((wf) => (
+            <QuickRunTile
+              key={wf.id}
+              type={wf.id}
+              title={wf.name}
+              description={wf.description}
+              onRun={() => handleTileClick(wf.id)}
+            />
+          ))}
+
+          {/* Action Tiles */}
+          <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} className="h-full">
+            <div
+              className="bg-surface rounded-xl border border-border/60 p-5 hover:border-primary/50 hover:shadow-glow transition-all cursor-pointer h-full flex flex-col justify-center items-center gap-3 group"
+              onClick={() => navigate('/workflows/new')}
+            >
+              <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
+                <Plus className="h-6 w-6 text-primary" />
+              </div>
+              <span className="font-semibold text-foreground">New Workflow</span>
+            </div>
+          </motion.div>
+
+          <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} className="h-full">
+            <div
+              className="bg-surface rounded-xl border border-border/60 p-5 hover:border-primary/50 hover:shadow-glow transition-all cursor-pointer h-full flex flex-col justify-center items-center gap-3 group"
+              onClick={() => navigate('/results')}
+            >
+              <div className="p-3 bg-accent/10 rounded-full group-hover:bg-accent/20 transition-colors">
+                <BarChart2 className="h-6 w-6 text-accent" />
+              </div>
+              <span className="font-semibold text-foreground">View Results</span>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Data Grid */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
           <SystemStatusWidget
-            systemData={systemStatus || getDefaultSystemStatus()}
-            isLoading={isLoading}
-          />
-        </div>
-
-        {/* Recent Activity */}
-        <div className="lg:col-span-1">
-          <RecentActivityWidget
-            activities={recentActivity}
-            isLoading={isLoading}
-          />
-        </div>
-
-        {/* Queue Status */}
-        <div className="lg:col-span-1">
-          <QueueStatusWidget
-            queueData={queueStatus || {
-              pending_jobs: 3,
-              processing_jobs: 2,
-              completed_today: 15,
-              failed_today: 1,
-              average_processing_time: '45s',
-              queue_depth: 5,
+            systemData={systemStatus || {
+              active_runs: 0,
+              recent_results: 0,
+              system_health: 'healthy',
+              uptime: '0s',
+              cpu_usage: 0,
+              memory_usage: 0,
               last_updated: new Date().toISOString()
             }}
             isLoading={isLoading}
           />
         </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Performance Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">98.5%</div>
-            <div className="text-sm text-gray-600">Success Rate</div>
-            <div className="text-xs text-gray-500 mt-1">Last 30 days</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">2.3m</div>
-            <div className="text-sm text-gray-600">Avg Response Time</div>
-            <div className="text-xs text-gray-500 mt-1">Across all workflows</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">1,247</div>
-            <div className="text-sm text-gray-600">Total Executions</div>
-            <div className="text-xs text-gray-500 mt-1">This month</div>
-          </div>
+        <div className="lg:col-span-1">
+          <QueueStatusWidget
+            queueData={queueStatus || {
+              pending_jobs: 0,
+              processing_jobs: 0,
+              completed_today: 0,
+              failed_today: 0,
+              average_processing_time: '0s',
+              queue_depth: 0,
+              last_updated: new Date().toISOString()
+            }}
+            isLoading={isLoading}
+          />
         </div>
-      </div>
-    </div>
+        <div className="lg:col-span-1">
+          <RecentActivityWidget
+            activities={recentActivity}
+            isLoading={isLoading}
+            onDelete={handleDeleteActivity}
+            onView={handleViewActivity}
+            onCancel={handleCancelActivity}
+          />
+        </div>
+      </motion.div>
+
+      <WorkflowRunDialog
+        isOpen={runDialog.isOpen}
+        onClose={() => setRunDialog(prev => ({ ...prev, isOpen: false }))}
+        onRun={handleExecuteWorkflow}
+        workflowId={runDialog.id}
+        workflowName={runDialog.name}
+      />
+    </motion.div>
   )
 }
 

@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://datakiln/specs/workflow.schema.json",
+  "title": "DataKiln Workflow",
+  "type": "object",
+  "required": ["id", "name", "nodes", "edges"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string", "description": "Human-readable node name" },
+          "type": { "type": "string", "description": "Node type identifier" },
+          "description": { "type": "string" },
+          "inputs": { "type": "object", "additionalProperties": true },
+          "outputs": { "type": "object", "additionalProperties": true },
+          "next": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+          "retries": { "type": "integer", "minimum": 0, "default": 3 },
+          "timeout": { "type": "integer", "minimum": 0, "default": 300 },
+          "retry_delay": { "type": "integer", "minimum": 0, "default": 1 },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["pending", "running", "completed", "failed"] },
+          "execution_time": { "type": "number" },
+          "error_message": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to"],
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "meta": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

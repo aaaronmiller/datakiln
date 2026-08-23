@@ -1,6 +1,6 @@
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
-import workflowSchemaData from '../../../old-specs/contracts/WORKFLOW_SCHEMA_V1.json'
+import workflowSchemaData from '../data/WORKFLOW_SCHEMA.json'
 
 export interface WorkflowSchema {
   $schema: string

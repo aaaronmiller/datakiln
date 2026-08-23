@@ -3,6 +3,7 @@ from pydantic import Field
 from .base_node import BaseNode
 import json
 import re
+from app.utils.safe_eval import safe_boolean_eval
 
 
 class TransformNode(BaseNode):
@@ -306,8 +307,8 @@ class TransformNode(BaseNode):
             filtered = []
             for item in data:
                 try:
-                    # Simple evaluation of filter condition
-                    if eval(self.filter_condition, {"item": item, "len": len}):
+                    # Evaluate a restricted expression subset. Python eval is not a sandbox.
+                    if safe_boolean_eval(self.filter_condition, {"item": item, "true": True, "false": False, "null": None}):
                         filtered.append(item)
                 except:
                     # If evaluation fails, include item
@@ -319,7 +320,7 @@ class TransformNode(BaseNode):
             filtered = {}
             for key, value in data.items():
                 try:
-                    if eval(self.filter_condition, {"key": key, "value": value, "len": len}):
+                    if safe_boolean_eval(self.filter_condition, {"key": key, "value": value, "true": True, "false": False, "null": None}):
                         filtered[key] = value
                 except:
                     filtered[key] = value

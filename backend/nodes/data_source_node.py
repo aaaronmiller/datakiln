@@ -3,6 +3,7 @@ from pydantic import Field
 from .base_node import BaseNode
 import aiohttp
 import json
+from app.utils.security import safe_resolve_path, validate_public_url, validate_readonly_sql
 
 
 class DataSourceNode(BaseNode):
@@ -125,8 +126,10 @@ class DataSourceNode(BaseNode):
         if not self.url:
             raise ValueError("URL is required for url source type")
 
+        validated_url = validate_public_url(self.url)
+
         async with aiohttp.ClientSession() as session:
-            async with session.get(self.url, headers=self.headers) as response:
+            async with session.get(validated_url, headers=self.headers) as response:
                 if response.status != 200:
                     raise ValueError(f"HTTP {response.status}: {await response.text()}")
 
@@ -151,9 +154,10 @@ class DataSourceNode(BaseNode):
 
             if self.database_url.startswith('sqlite:///'):
                 # SQLite database
-                db_path = self.database_url.replace('sqlite:///', '')
+                db_path = safe_resolve_path(self.database_url.replace('sqlite:///', ''))
+                query = validate_readonly_sql(self.query)
                 async with aiosqlite.connect(db_path) as db:
-                    async with db.execute(self.query) as cursor:
+                    async with db.execute(query) as cursor:
                         rows = await cursor.fetchall()
                         columns = [desc[0] for desc in cursor.description] if cursor.description else []
                         return [dict(zip(columns, row)) for row in rows]
@@ -172,7 +176,8 @@ class DataSourceNode(BaseNode):
             raise ValueError("file_path is required for file source type")
 
         try:
-            with open(self.file_path, 'r') as f:
+            file_path = safe_resolve_path(self.file_path)
+            with open(file_path, 'r') as f:
                 content = f.read()
 
             # Try to parse as JSON
@@ -196,9 +201,11 @@ class DataSourceNode(BaseNode):
                 except json.JSONDecodeError:
                     request_data = self.body
 
+            validated_endpoint = validate_public_url(self.api_endpoint)
+
             async with session.request(
                 self.method,
-                self.api_endpoint,
+                validated_endpoint,
                 headers=self.headers,
                 json=request_data if isinstance(request_data, dict) else None,
                 data=request_data if isinstance(request_data, str) else None

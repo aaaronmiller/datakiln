@@ -1,4 +1,4 @@
-import { resolve, normalize, join, relative } from 'path';
+import { resolve, normalize, join, relative, sep } from 'path';
 import { statSync } from 'fs';
 
 export interface PathValidationConfig {
@@ -138,8 +138,9 @@ export class PathValidator {
     // Check if path is within base directory
     const relativePath = relative(this.baseDirectory, fullPath);
 
-    // If relative path starts with '..', it's outside base directory
-    if (!this.config.allowParentTraversal && relativePath.startsWith('..')) {
+    // If relative path escapes the base directory, reject it. Use path
+    // components so names like "..safe" are not confused with traversal.
+    if (!this.config.allowParentTraversal && (relativePath === '..' || relativePath.startsWith(`..${sep}`))) {
       return false;
     }
 
@@ -162,7 +163,12 @@ export class PathValidator {
    * Check if path matches blocked patterns
    */
   private matchesBlockedPattern(inputPath: string): boolean {
-    return this.config.blockedPatterns.some(pattern => pattern.test(inputPath));
+    const normalized = normalize(inputPath);
+    if (!this.config.allowParentTraversal && normalized.split(/[\\/]+/).includes('..')) {
+      return true;
+    }
+
+    return this.config.blockedPatterns.some(pattern => pattern.test(inputPath) || pattern.test(normalized));
   }
 
   /**

@@ -14,6 +14,8 @@ from enum import Enum
 import logging
 from collections import defaultdict, deque
 
+from ..utils.safe_eval import UnsafeExpressionError, safe_arithmetic_eval
+
 logger = logging.getLogger(__name__)
 
 class OptimizationLevel(Enum):
@@ -1255,11 +1257,11 @@ class QueryRewriter:
                 # Simple constant folding for basic arithmetic
                 if ' + ' in transformation or ' - ' in transformation:
                     try:
-                        # Evaluate simple expressions
-                        result = eval(transformation.replace('add_field:', '').strip())
+                        # Evaluate simple numeric expressions without Python eval.
+                        result = safe_arithmetic_eval(transformation.replace('add_field:', '').strip())
                         node['data']['transformation'] = f"constant:{result}"
                         modified = True
-                    except:
+                    except (SyntaxError, TypeError, ValueError, UnsafeExpressionError, ZeroDivisionError):
                         pass
 
         if modified:

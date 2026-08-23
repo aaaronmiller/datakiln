@@ -1,171 +1,154 @@
 import * as React from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
 import { LoadingSpinner } from "../ui/spinner"
-import { Search, FileText, Play, CheckCircle, AlertCircle } from "lucide-react"
-import QueryStructuringDialog from "./QueryStructuringDialog"
+import { Search, FileText, Play, CheckCircle, AlertCircle, Zap } from "lucide-react"
 
 interface QuickRunTileProps {
-   type: 'deep-research' | 'transcript-analysis';
-   onRun: (type: string, data?: Record<string, unknown>) => Promise<void>;
- }
+  type: string;
+  title?: string;
+  description?: string;
+  icon?: React.ElementType;
+  color?: string;
+  onRun: (type: string, data?: Record<string, unknown>) => Promise<void> | void;
+}
 
-const QuickRunTile: React.FC<QuickRunTileProps> = ({ type, onRun }) => {
+const QuickRunTile: React.FC<QuickRunTileProps> = ({
+  type,
+  title,
+  description,
+  icon,
+  color,
+  onRun
+}) => {
   const [isRunning, setIsRunning] = React.useState(false);
   const [lastRun, setLastRun] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<'idle' | 'running' | 'success' | 'error'>('idle');
-  const [showQueryDialog, setShowQueryDialog] = React.useState(false);
 
   const handleRun = async () => {
-    if (type === 'deep-research') {
-      // Show query structuring dialog for deep research
-      setShowQueryDialog(true);
-      return;
-    }
+    // Optimistic UI interaction
+    const result = onRun(type);
 
-    setIsRunning(true);
-    setStatus('running');
-
-    try {
-      await onRun(type);
-      setStatus('success');
-      setLastRun(new Date().toLocaleTimeString());
-    } catch (error) {
-      setStatus('error');
-      console.error(`Failed to run ${type}:`, error);
-    } finally {
-      setIsRunning(false);
-      // Reset status after 3 seconds
-      setTimeout(() => setStatus('idle'), 3000);
-    }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleStructuredQueryConfirm = async (structuredQuery: any) => {
-    setIsRunning(true);
-    setStatus('running');
-    setShowQueryDialog(false);
-
-    try {
-      await onRun(type, structuredQuery);
-      setStatus('success');
-      setLastRun(new Date().toLocaleTimeString());
-    } catch (error) {
-      setStatus('error');
-      console.error(`Failed to run ${type}:`, error);
-    } finally {
-      setIsRunning(false);
-      // Reset status after 3 seconds
-      setTimeout(() => setStatus('idle'), 3000);
+    if (result instanceof Promise) {
+      setIsRunning(true);
+      setStatus('running');
+      try {
+        await result;
+        setStatus('success');
+        setLastRun(new Date().toLocaleTimeString());
+      } catch (error) {
+        setStatus('error');
+      } finally {
+        setIsRunning(false);
+        setTimeout(() => setStatus('idle'), 3000);
+      }
     }
   };
 
   const getTileConfig = () => {
-    switch (type) {
-      case 'deep-research':
-        return {
-          title: 'Deep Research',
-          description: 'Comprehensive AI-powered research with multiple sources',
-          icon: Search,
-          color: 'bg-blue-500',
-          hoverColor: 'hover:bg-blue-600',
-          estimatedTime: '2-5 min'
-        };
-      case 'transcript-analysis':
-        return {
-          title: 'Transcript Analysis',
-          description: 'Analyze YouTube videos and extract key insights',
-          icon: FileText,
-          color: 'bg-green-500',
-          hoverColor: 'hover:bg-green-600',
-          estimatedTime: '1-3 min'
-        };
-      default:
-        return {
-          title: 'Unknown',
-          description: 'Unknown task type',
-          icon: Play,
-          color: 'bg-gray-500',
-          hoverColor: 'hover:bg-gray-600',
-          estimatedTime: 'Unknown'
-        };
+    if (title) {
+      // Dynamic generic icon mapping
+      let defaultIcon = Zap
+      let colorClass = 'bg-primary text-white' // Default Primary
+
+      if (type === 'deep-research') {
+        defaultIcon = Search
+        colorClass = 'bg-blue-500 text-white'
+      } else if (type.includes('youtube') || type.includes('transcript')) {
+        defaultIcon = FileText
+        colorClass = 'bg-red-500 text-white'
+      }
+
+      return {
+        title,
+        description: description || 'Automated Workflow',
+        icon: icon || defaultIcon,
+        colorClass: colorClass
+      };
     }
+    return {
+      title: type,
+      description: 'Custom Workflow',
+      icon: Play,
+      colorClass: 'bg-gray-500 text-white'
+    };
   };
 
   const config = getTileConfig();
-  const Icon = config.icon;
+  const Icon = config.icon as any;
 
   return (
-    <>
-      <Card className="h-full transition-all duration-200 hover:shadow-lg">
+    <motion.div
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
+      className="h-full"
+    >
+      <Card className="h-full border-border/60 hover:border-primary/50 transition-colors shadow-sm hover:shadow-glow duration-300 bg-surface">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <div className={`p-2 rounded-lg ${config.color}`}>
-              <Icon className="h-5 w-5 text-white" />
+            <div className={`p-2.5 rounded-xl shadow-inner ${config.colorClass}`}>
+              <Icon className="h-5 w-5" strokeWidth={2} />
             </div>
-            {status !== 'idle' && (
-              <Badge
-                variant={
-                  status === 'success' ? 'default' :
-                  status === 'error' ? 'destructive' :
-                  'secondary'
-                }
-                className="text-xs"
-              >
-                {status === 'running' && <LoadingSpinner className="h-3 w-3 mr-1" />}
-                {status === 'success' && <CheckCircle className="h-3 w-3 mr-1" />}
-                {status === 'error' && <AlertCircle className="h-3 w-3 mr-1" />}
-                {status === 'running' ? 'Running' :
-                 status === 'success' ? 'Complete' :
-                 status === 'error' ? 'Failed' : ''}
-              </Badge>
-            )}
+
+            <AnimatePresence mode="wait">
+              {status !== 'idle' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                >
+                  <Badge
+                    variant={status === 'success' ? 'default' : status === 'error' ? 'destructive' : 'secondary'}
+                    className="text-xs px-2 py-0.5"
+                  >
+                    {status === 'running' && <LoadingSpinner className="h-3 w-3 mr-1" />}
+                    {status === 'success' && <CheckCircle className="h-3 w-3 mr-1" />}
+                    {status === 'running' ? 'Running' : status === 'success' ? 'Done' : 'Failed'}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <CardTitle className="text-lg">{config.title}</CardTitle>
+          <CardTitle className="text-lg font-bold mt-3 tracking-tight">{config.title}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5em]">
             {config.description}
           </p>
 
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Est. time: {config.estimatedTime}</span>
-            {lastRun && (
-              <span>Last run: {lastRun}</span>
+          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+            {lastRun ? (
+              <span className="flex items-center gap-1">
+                Run: {lastRun}
+              </span>
+            ) : (
+              <span>Ready to run</span>
             )}
           </div>
 
           <Button
             onClick={handleRun}
             disabled={isRunning}
-            className={`w-full ${config.hoverColor} transition-colors`}
+            className="w-full bg-surface-secondary text-foreground hover:bg-primary hover:text-white border border-border transition-all duration-300 group"
             size="sm"
           >
             {isRunning ? (
               <>
                 <LoadingSpinner className="h-4 w-4 mr-2" />
-                Running...
+                Processing...
               </>
             ) : (
               <>
-                <Play className="h-4 w-4 mr-2" />
-                Quick Run
+                <Play className="h-4 w-4 mr-2 text-primary group-hover:text-white transition-colors" />
+                Launch
               </>
             )}
           </Button>
         </CardContent>
       </Card>
-
-      {/* Query Structuring Dialog for Deep Research */}
-      {type === 'deep-research' && (
-        <QueryStructuringDialog
-          isOpen={showQueryDialog}
-          onClose={() => setShowQueryDialog(false)}
-          onConfirm={handleStructuredQueryConfirm}
-        />
-      )}
-    </>
+    </motion.div>
   );
 };
 

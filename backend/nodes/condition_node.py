@@ -1,6 +1,7 @@
 from typing import Dict, Any, Optional, Union, List, Literal
 from pydantic import Field
 from .base_node import BaseNode
+from app.utils.safe_eval import safe_boolean_eval
 
 
 class ConditionNode(BaseNode):
@@ -172,25 +173,8 @@ class ConditionNode(BaseNode):
         context = self._build_evaluation_context(data)
 
         try:
-            # Create evaluation context with safe built-ins
-            safe_builtins = {
-                'len': len,
-                'str': str,
-                'int': int,
-                'float': float,
-                'bool': bool,
-                'list': list,
-                'dict': dict,
-                'abs': abs,
-                'min': min,
-                'max': max,
-                'sum': sum,
-                'any': any,
-                'all': all,
-            }
-
-            # Evaluate expression
-            result = eval(self.expr, {"__builtins__": safe_builtins}, context)
+            # Evaluate a restricted expression subset. Python eval is not a sandbox.
+            result = safe_boolean_eval(self.expr, context)
             return bool(result)
 
         except Exception as e:
@@ -239,7 +223,10 @@ class ConditionNode(BaseNode):
         context.update({
             "node_id": self.id,
             "node_name": self.name,
-            "timestamp": self.created_at.isoformat()
+            "timestamp": self.created_at.isoformat(),
+            "true": True,
+            "false": False,
+            "null": None,
         })
 
         return context

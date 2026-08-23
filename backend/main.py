@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import asyncio
 import json
+import os
 import subprocess
 import uuid
 from pathlib import Path
@@ -14,11 +15,33 @@ from query_engine import QueryEngine
 from websocket_manager import collaboration_manager
 from dom_selectors import default_registry as selectors_registry
 from providers import ProviderManager
+from app.utils.security import validate_public_url, validate_youtube_url
 
 app = FastAPI(title="DataKiln Backend API", version="2.0.0")
 research_agent = ResearchAgent()
 query_engine = QueryEngine()
 provider_manager = ProviderManager()
+
+
+@app.middleware("http")
+async def require_api_key_when_configured(request, call_next):
+    """Require an API key when API_KEY_REQUIRED=true."""
+    if os.getenv("API_KEY_REQUIRED", "false").lower() != "true":
+        return await call_next(request)
+
+    if request.url.path in {"/health", "/docs", "/openapi.json", "/redoc"}:
+        return await call_next(request)
+
+    expected_key = os.getenv("DATAKILN_API_KEY")
+    supplied_key = request.headers.get("x-api-key")
+    auth_header = request.headers.get("authorization", "")
+    if not supplied_key and auth_header.startswith("Bearer "):
+        supplied_key = auth_header.removeprefix("Bearer ")
+
+    if not expected_key or supplied_key != expected_key:
+        return JSONResponse(status_code=401, content={"detail": "Valid API key required"})
+
+    return await call_next(request)
 
 # Pydantic models
 class ResearchRequest(BaseModel):
@@ -1041,10 +1064,11 @@ async def run_deep_research_background(task_id: str, script_path: str, project_r
         # Run the deep research script
         cmd = [
             "python3", script_path,
-            topic,
             "--mode", mode,
             "--concurrency", str(concurrency),
-            "--retries", str(retries)
+            "--retries", str(retries),
+            "--",
+            topic,
         ]
 
         result = subprocess.run(
@@ -1095,6 +1119,7 @@ async def run_deep_research_background(task_id: str, script_path: str, project_r
 async def process_youtube_workflow_background(task_id: str, url: str):
     """Process YouTube transcript in background following workflow steps"""
     try:
+        url = validate_youtube_url(url)
         # Step 1: Extract transcript
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "youtube_transcript.py"
@@ -1233,6 +1258,7 @@ async def get_script_task_status(task_id: str):
 async def run_youtube_extraction_background(task_id: str, url: str, languages: List[str], format_type: str):
     """Run YouTube transcript extraction in background"""
     try:
+        url = validate_youtube_url(url)
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "youtube_transcript.py"
 
@@ -1290,13 +1316,14 @@ async def run_deep_research_script_background(task_id: str, topic: str, mode: st
 
         cmd = [
             "python3", str(script_path),
-            topic,
             "--mode", mode,
             "--timeout", str(timeout)
         ]
 
         if headless:
             cmd.append("--headless")
+
+        cmd.extend(["--", topic])
 
         result = subprocess.run(
             cmd,
@@ -1353,6 +1380,7 @@ async def run_deep_research_script_background(task_id: str, topic: str, mode: st
 async def execute_youtube_analysis_workflow(task_id: str, url: str, title: str, output_destination: str):
     """Execute YouTube analysis workflow from extension"""
     try:
+        url = validate_youtube_url(url)
         # Step 1: Extract transcript
         project_root = Path(__file__).parent
         script_path = project_root / "scripts" / "youtube_transcript.py"
@@ -1418,7 +1446,7 @@ async def execute_deep_research_workflow(task_id: str, query: str, mode: str, ou
         script_path = project_root / "scripts" / "deep_research.py"
 
         result = subprocess.run(
-            ["python3", str(script_path), query, "--mode", mode],
+            ["python3", str(script_path), "--mode", mode, "--", query],
             capture_output=True,
             text=True,
             cwd=str(project_root),
@@ -1461,6 +1489,7 @@ async def execute_deep_research_workflow(task_id: str, query: str, mode: str, ou
 async def execute_website_summary_workflow(task_id: str, url: str, title: str, output_destination: str):
     """Execute website summary workflow from extension"""
     try:
+        url = validate_public_url(url)
         # Use web scraping to get content
         import aiohttp
         from bs4 import BeautifulSoup

@@ -39,9 +39,11 @@ const securityConfig = {
     baseDirectory: process.cwd(),
   },
   enableRateLimiting: true,
-  enableDomainValidation: false, // Enable in production
+  enableDomainValidation: process.env.NODE_ENV === 'production',
   enableAuditLogging: true,
   enablePathValidation: true,
+  enableApiKeyAuth: process.env.API_KEY_REQUIRED === 'true',
+  apiKeys: process.env.DATAKILN_API_KEY ? [process.env.DATAKILN_API_KEY] : [],
 };
 
 const securityMiddleware = new SecurityMiddleware(securityConfig);

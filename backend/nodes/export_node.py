@@ -5,6 +5,7 @@ import json
 import yaml
 import os
 from pathlib import Path
+from app.utils.security import safe_resolve_path
 
 
 class ExportNode(BaseNode):
@@ -112,7 +113,7 @@ class ExportNode(BaseNode):
             base, ext = os.path.splitext(path_template)
             path_template = f"{base}_{timestamp}{ext}"
 
-        return Path(path_template)
+        return safe_resolve_path(path_template)
 
     async def _export_json(self, data: Any, path: Path, result: Dict[str, Any]):
         """Export data as JSON"""
