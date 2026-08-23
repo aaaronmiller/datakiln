@@ -1,265 +1,89 @@
 import React, { memo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
-import { WORKFLOW_NODE_TYPES } from '../../types/workflow-fixed'
-import '../../styles/workflow-nodes.css'
+import {
+  Network, Brain, Cpu, Shuffle, FileOutput, GitBranch, Filter, BarChart3, GitMerge, Layers, Sparkles, Combine, Clock, Database
+} from 'lucide-react'
 
 interface WorkflowNodeData {
   type: string
   name: string
   label?: string
-  action?: string
-  selector_key?: string
-  template_id?: string
-  max_tokens?: number
-  provider_type?: string
-  research_depth?: string
-  transform_type?: string
-  output_key?: string
-  format?: string
-  path_key?: string
-  expr?: string
-  status?: string
-  filter_type?: string
-  functions?: unknown[]
-  join_type?: string
-  union_mode?: string
-  model?: string
-  attachments?: unknown[]
+  action?: string; selector_key?: string; template_id?: string; max_tokens?: number
+  provider_type?: string; research_depth?: string; transform_type?: string; output_key?: string
+  format?: string; path_key?: string; expr?: string; status?: string; filter_type?: string
+  functions?: unknown[]; join_type?: string; union_mode?: string; model?: string
   [key: string]: unknown
 }
+interface WorkflowNodeProps extends NodeProps { data: WorkflowNodeData }
 
-interface WorkflowNodeProps extends NodeProps {
-  data: WorkflowNodeData
+const META: Record<string, { label: string; icon: React.ReactNode; grad: string; accent: string }> = {
+  dom_action: { label: 'DOM Action', icon: <Network size={13} />, grad: 'from-sky-500 to-cyan-400', accent: '#0EA5E9' },
+  prompt: { label: 'AI Prompt', icon: <Brain size={13} />, grad: 'from-violet-600 to-indigo-500', accent: '#8B5CF6' },
+  provider: { label: 'AI Provider', icon: <Cpu size={13} />, grad: 'from-violet-600 to-fuchsia-500', accent: '#8B5CF6' },
+  transform: { label: 'Transform', icon: <Shuffle size={13} />, grad: 'from-cyan-500 to-teal-400', accent: '#06B6D4' },
+  export: { label: 'Export', icon: <FileOutput size={13} />, grad: 'from-emerald-500 to-teal-400', accent: '#10B981' },
+  condition: { label: 'Condition', icon: <GitBranch size={13} />, grad: 'from-amber-500 to-orange-400', accent: '#F59E0B' },
+  filter: { label: 'Filter', icon: <Filter size={13} />, grad: 'from-amber-500 to-yellow-400', accent: '#F59E0B' },
+  aggregate: { label: 'Aggregate', icon: <BarChart3 size={13} />, grad: 'from-fuchsia-500 to-pink-400', accent: '#C084FC' },
+  join: { label: 'Join', icon: <GitMerge size={13} />, grad: 'from-blue-500 to-indigo-500', accent: '#6366F1' },
+  union: { label: 'Union', icon: <Layers size={13} />, grad: 'from-indigo-500 to-violet-500', accent: '#6366F1' },
+  ai_dom: { label: 'AI DOM Automation', icon: <Sparkles size={13} />, grad: 'from-pink-500 to-violet-500', accent: '#EC4899' },
+  consolidate: { label: 'Consolidate', icon: <Combine size={13} />, grad: 'from-teal-500 to-emerald-400', accent: '#14B8A6' },
+  delay: { label: 'Delay', icon: <Clock size={13} />, grad: 'from-zinc-600 to-zinc-500', accent: '#71717A' },
+  wait: { label: 'Wait', icon: <Clock size={13} />, grad: 'from-zinc-600 to-zinc-500', accent: '#71717A' },
 }
 
 const WorkflowNodeComponent: React.FC<WorkflowNodeProps> = ({ data, selected }) => {
-  const nodeType = WORKFLOW_NODE_TYPES.find(type => type.type === data.type) || WORKFLOW_NODE_TYPES[0]
-
-  const getInputCount = () => {
+  const meta = META[data.type] || { label: data.type, icon: <Database size={13} />, grad: 'from-zinc-600 to-zinc-700', accent: '#71717A' }
+  const subtitle = (() => {
     switch (data.type) {
-      case 'condition':
-        return 1
-      case 'join':
-      case 'union':
-        return 2
-      default:
-        return nodeType.inputs
+      case 'dom_action': return data.action ? String(data.action) : String(data.selector_key || 'click / fill')
+      case 'provider': return String(data.provider_type || data.model || 'gemini')
+      case 'transform': return String(data.transform_type || 'markdown')
+      case 'export': return `${String(data.format || 'json')} · ${String(data.path_key || data.filename || 'output')}`
+      case 'condition': return String(data.expr || data.condition || 'condition')
+      case 'filter': return String(data.filter_type || 'filter')
+      case 'aggregate': return Array.isArray(data.functions) && data.functions.length ? (data.functions as string[]).join(', ') : 'aggregate'
+      case 'join': return String(data.join_type || 'inner join')
+      case 'union': return String(data.union_mode || 'union')
+      default: return String(data.label || data.type)
     }
-  }
-
-  const getOutputCount = () => {
-    switch (data.type) {
-      case 'condition':
-        return 2 // true and false branches
-      case 'export':
-        return 0
-      default:
-        return nodeType.outputs
-    }
-  }
-
-  const renderNodeContent = (): React.ReactNode => {
-    switch (data.type) {
-      case 'dom_action':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Action: {data.action}</div>
-            {data.selector_key && (
-              <div className="text-gray-500 truncate">Selector: {data.selector_key}</div>
-            )}
-          </div>
-        )
-
-      case 'prompt':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            {data.template_id && (
-              <div className="text-gray-500">Template: {data.template_id}</div>
-            )}
-            {data.max_tokens && (
-              <div className="text-gray-400">Tokens: {data.max_tokens}</div>
-            )}
-          </div>
-        )
-
-      case 'provider':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Provider: {data.provider_type}</div>
-            {data.research_depth && (
-              <div className="text-gray-500">Depth: {data.research_depth}</div>
-            )}
-          </div>
-        )
-
-      case 'transform':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Type: {data.transform_type}</div>
-            {data.output_key && (
-              <div className="text-gray-500">Output: {data.output_key}</div>
-            )}
-          </div>
-        )
-
-      case 'export':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Format: {data.format}</div>
-            {data.path_key && (
-              <div className="text-gray-500 truncate">Path: {data.path_key}</div>
-            )}
-          </div>
-        )
-
-      case 'condition':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Condition</div>
-            {data.expr && (
-              <div className="text-gray-500 truncate">Expr: {data.expr}</div>
-            )}
-          </div>
-        )
-
-      case 'filter':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Filter</div>
-            {data.filter_type ? (
-              <div className="text-gray-500">Type: {data.filter_type}</div>
-            ) : null}
-          </div>
-        )
-
-      case 'aggregate':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Aggregate</div>
-            {data.functions && data.functions.length > 0 ? (
-              <div className="text-gray-500">Functions: {data.functions.map((f: unknown) => typeof f === 'string' ? f : String(f)).join(', ')}</div>
-            ) : null}
-          </div>
-        )
-
-      case 'join':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Join</div>
-            {data.join_type ? (
-              <div className="text-gray-500">Type: {data.join_type}</div>
-            ) : null}
-          </div>
-        )
-
-      case 'union':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Union</div>
-            {data.union_mode ? (
-              <div className="text-gray-500">Mode: {data.union_mode}</div>
-            ) : null}
-          </div>
-        )
-
-      case 'consolidate':
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-600">Consolidate</div>
-            {data.model ? (
-              <div className="text-gray-500">Model: {data.model}</div>
-            ) : null}
-            {data.attachments && data.attachments.length > 0 ? (
-              <div className="text-gray-500">{data.attachments.length} attachment{data.attachments.length !== 1 ? 's' : ''}</div>
-            ) : null}
-          </div>
-        )
-
-      default:
-        return (
-          <div className="text-xs">
-            <div className="font-medium">{data.name}</div>
-            <div className="text-gray-500">{nodeType.description}</div>
-          </div>
-        )
-    }
-  }
+  })()
 
   return (
     <div
-      className={`
-        workflow-node-${data.type} workflow-node-content
-        ${selected ? 'selected' : ''}
-      `}
-      style={{
-        minWidth: '180px',
-        minHeight: '80px',
-        position: 'relative'
-      }}
-      title={`${data.name} (${nodeType.label}) - ${nodeType.description}`}
+      className={[
+        'group relative w-[220px] rounded-xl overflow-hidden',
+        'bg-[#111733] border',
+        selected ? 'border-violet-500/50 shadow-[0_8px_32px_rgba(99,102,241,0.25)]' : 'border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.35)]',
+        'transition-colors duration-[var(--duration-normal)] ease-[var(--ease-enter)]',
+        'hover:border-white/15 hover:shadow-[0_12px_32px_rgba(0,0,0,0.45)]',
+      ].join(' ')}
     >
-      {/* Input Handles */}
-      {Array.from({ length: getInputCount() }, (_, i) => (
-        <Handle
-          key={`input-${i}`}
-          type="target"
-          position={Position.Left}
-          id={`input-${i}`}
-          className="w-2 h-2 bg-gray-400 border border-white"
-          style={{ top: `${((i + 1) * 100) / (getInputCount() + 1)}%` }}
-        />
-      ))}
-
-      {/* Node Content */}
-      <div className="flex items-center space-x-2">
-        <span className="text-sm">{nodeType.icon}</span>
-        <div className="flex-1">
-          {renderNodeContent()}
+      <div className={`h-1 w-full bg-gradient-to-r ${meta.grad}`} style={{ opacity: selected ? 1 : 0.9 }} />
+      <div className="px-3 pt-2.5 pb-2 flex items-start gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/10 grid place-items-center shrink-0 text-white/80">
+          {meta.icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold leading-none truncate" style={{ fontFamily: 'Sora, sans-serif' }}>{String(data.name)}</p>
+            {data.status && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow shadow-emerald-400/50 shrink-0" />}
+          </div>
+          <p className="text-[10px] tracking-[0.08em] font-medium text-white/40 uppercase truncate">{meta.label}</p>
         </div>
       </div>
-
-      {/* Output Handles */}
-      {Array.from({ length: getOutputCount() }, (_, i) => (
-        <Handle
-          key={`output-${i}`}
-          type="source"
-          position={Position.Right}
-          id={`output-${i}`}
-          className="w-2 h-2 bg-gray-400 border border-white"
-          style={{
-            top: data.type === 'condition' && i === 0
-              ? '25%'  // True branch
-              : data.type === 'condition' && i === 1
-              ? '75%'  // False branch
-              : `${((i + 1) * 100) / (getOutputCount() + 1)}%`
-          }}
-        />
-      ))}
-
-      {/* Status Indicator */}
-      {data.status && (
-        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white">
-          <div
-            className={`w-full h-full rounded-full ${
-              data.status === 'completed' ? 'bg-green-400' :
-              data.status === 'error' ? 'bg-red-400' :
-              data.status === 'running' ? 'bg-yellow-400' :
-              'bg-gray-400'
-            }`}
-          />
+      <div className="px-3 pb-3">
+        <div className="rounded-lg bg-white/[0.04] border border-white/[0.06] px-2.5 py-2">
+          <p className="text-[11px] leading-relaxed text-white/60 truncate font-mono">{subtitle}</p>
+          {data.type === 'export' && String(data.path_key || '').length > 0 && (
+            <p className="text-[10px] text-white/30 truncate mt-1">{String(data.path_key)}</p>
+          )}
         </div>
-      )}
+      </div>
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-white !border-2 !border-violet-500 !-top-1" style={{ borderColor: meta.accent }} />
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-white !border-2 !border-violet-500 !-bottom-1" style={{ borderColor: meta.accent }} />
+      {selected && <div className="absolute inset-0 pointer-events-none rounded-xl ring-1 ring-violet-500/30" />}
     </div>
   )
 }

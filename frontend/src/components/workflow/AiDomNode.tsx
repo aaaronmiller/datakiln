@@ -1,124 +1,32 @@
 import React, { memo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
+import { Sparkles } from 'lucide-react'
 
-interface AiDomNodeData {
-  type: string
-  name: string
-  provider?: 'gemini' | 'perplexity' | 'youtube_transcript'
-  actions?: Array<{
-    selector: string
-    action: 'type' | 'click' | 'wait'
-    value?: string
-    delayAfter?: number
-  }>
-  output?: 'file' | 'screen' | 'clipboard' | 'next'
-  status?: 'pending' | 'running' | 'completed' | 'error'
-  [key: string]: unknown
-}
-
-interface AiDomNodeProps extends NodeProps {
-  data: AiDomNodeData
-}
+interface AiDomNodeData { type: string; name: string; provider?: string; actions?: unknown[]; output?: string; status?: string; [k:string]:unknown }
+interface AiDomNodeProps extends NodeProps { data: AiDomNodeData }
 
 const AiDomNodeComponent: React.FC<AiDomNodeProps> = ({ data, selected }) => {
-  const getProviderColor = (provider?: string) => {
-    switch (provider) {
-      case 'gemini':
-        return 'bg-blue-500 border-blue-600'
-      case 'perplexity':
-        return 'bg-orange-500 border-orange-600'
-      case 'youtube_transcript':
-        return 'bg-red-500 border-red-600'
-      default:
-        return 'bg-gray-500 border-gray-600'
-    }
-  }
-
-  const getProviderIcon = (provider?: string) => {
-    switch (provider) {
-      case 'gemini':
-        return '🤖'
-      case 'perplexity':
-        return '🔍'
-      case 'youtube_transcript':
-        return '📺'
-      default:
-        return '🖥️'
-    }
-  }
-
+  const provider = String(data.provider || 'gemini')
+  const grad = provider==='perplexity' ? 'from-amber-500 to-orange-400' : provider==='youtube_transcript' ? 'from-red-500 to-rose-400' : 'from-violet-600 to-fuchsia-500'
   return (
-    <div
-      className={`
-        relative rounded-lg border-2 p-3 min-w-[200px] min-h-[120px]
-        ${getProviderColor(data.provider)}
-        ${selected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
-        text-white shadow-lg
-      `}
-      style={{
-        background: `linear-gradient(135deg, ${data.provider === 'gemini' ? '#3b82f6' : data.provider === 'perplexity' ? '#f97316' : data.provider === 'youtube_transcript' ? '#ef4444' : '#6b7280'} 0%, rgba(0,0,0,0.1) 100%)`
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center space-x-2 mb-2">
-        <span className="text-lg">{getProviderIcon(data.provider)}</span>
-        <div className="flex-1">
-          <div className="font-semibold text-sm truncate">{data.name}</div>
-          <div className="text-xs opacity-80 capitalize">{data.provider || 'AI DOM'}</div>
+    <div className={['relative w-[220px] rounded-xl overflow-hidden bg-[#111733] border', selected?'border-violet-500/50 shadow-[0_8px_32px_rgba(99,102,241,0.25)]':'border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.35)]', 'transition-colors duration-[var(--duration-normal)]'].join(' ')}>
+      <div className={`h-1 w-full bg-gradient-to-r ${grad}`} />
+      <div className="px-3 pt-2.5 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/10 grid place-items-center"><Sparkles size={13} className="text-white/80"/></span>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold truncate" style={{fontFamily:'Sora, sans-serif'}}>{String(data.name)}</p>
+            <p className="text-[10px] tracking-[0.08em] font-medium text-white/40 uppercase truncate">{provider} · AI DOM</p>
+          </div>
+        </div>
+        <div className="mt-2 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2.5 py-2">
+          <p className="text-[11px] text-white/60 truncate">{Array.isArray(data.actions) ? `${(data.actions as unknown[]).length} actions` : 'AI automation'}</p>
+          {typeof data.output==='string' && <p className="text-[10px] text-white/30">→ {String(data.output)}</p>}
         </div>
       </div>
-
-      {/* Actions Summary */}
-      {data.actions && data.actions.length > 0 && (
-        <div className="text-xs space-y-1 mb-2">
-          <div className="font-medium">Actions: {data.actions.length}</div>
-          {data.actions.slice(0, 2).map((action, index) => (
-            <div key={index} className="truncate opacity-90">
-              {action.action}: {action.selector}
-            </div>
-          ))}
-          {data.actions.length > 2 && (
-            <div className="opacity-75">+{data.actions.length - 2} more</div>
-          )}
-        </div>
-      )}
-
-      {/* Output */}
-      {typeof data.output === 'string' && (
-        <div className="text-xs">
-          <span className="font-medium">Output:</span> {data.output}
-        </div>
-      )}
-
-      {/* Input Handle */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 bg-white border-2 border-current"
-      />
-
-      {/* Output Handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 bg-white border-2 border-current"
-      />
-
-      {/* Status Indicator */}
-      {data.status && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
-          <div
-            className={`w-2 h-2 rounded-full ${
-              data.status === 'completed' ? 'bg-green-400' :
-              data.status === 'error' ? 'bg-red-400' :
-              data.status === 'running' ? 'bg-yellow-400' :
-              'bg-gray-400'
-            }`}
-          />
-        </div>
-      )}
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-white !border-2 !border-violet-500 !-top-1" />
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-white !border-2 !border-violet-500 !-bottom-1" />
     </div>
   )
 }
-
 export default memo(AiDomNodeComponent)
