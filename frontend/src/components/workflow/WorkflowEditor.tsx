@@ -44,12 +44,13 @@ const nodeTypes = {
   union: WorkflowNode,
   ai_dom: AiDomNode,
   consolidate: WorkflowNode,
+  dataSource: WorkflowNode,
   custom: WorkflowNode,
 }
 
 // Palette taxonomy — exclusive categories
 const PALETTE_SECTIONS: { title: string; accent: string; items: typeof WORKFLOW_NODE_TYPES }[] = [
-  { title: 'Sources', accent: 'from-sky-500 to-cyan-400', items: WORKFLOW_NODE_TYPES.filter(n => ['dom_action'].includes(n.type)) },
+  { title: 'Sources', accent: 'from-sky-500 to-cyan-400', items: WORKFLOW_NODE_TYPES.filter(n => ['dataSource','dom_action'].includes(n.type)) },
   { title: 'Intelligence', accent: 'from-violet-600 to-indigo-500', items: WORKFLOW_NODE_TYPES.filter(n => ['provider','prompt','ai_dom'].includes(n.type)) },
   { title: 'Transforms', accent: 'from-cyan-500 to-teal-400', items: WORKFLOW_NODE_TYPES.filter(n => ['transform','filter','aggregate','consolidate'].includes(n.type)) },
   { title: 'Logic', accent: 'from-amber-500 to-orange-400', items: WORKFLOW_NODE_TYPES.filter(n => ['condition','join','union'].includes(n.type)) },
@@ -74,6 +75,7 @@ const ICON_BY_TYPE: Record<string, React.ReactNode> = {
   consolidate: <Combine size={14} />,
   delay: <Clock size={14} />,
   wait: <Clock size={14} />,
+  dataSource: <Database size={14} />,
 }
 
 interface WorkflowEditorProps {
@@ -522,6 +524,26 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
                       <span className="text-[11px] font-medium text-white/60">DKEL condition</span>
                       <input value={String((selectedNodeData.data as Record<string,unknown>)?.condition || (selectedNodeData.data as Record<string,unknown>)?.expr || '')} onChange={e=>updateSelectedData({ condition: e.target.value, expr: e.target.value })} className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-xs font-mono" placeholder="input.score > 50" />
                     </label>
+                  )}
+                  {String(selectedNodeData.data?.type)==='provider' && (
+                    <>
+                      <label className="block">
+                        <span className="text-[11px] font-medium text-white/60">Provider</span>
+                        <select value={String((selectedNodeData.data as Record<string,unknown>)?.provider_type||'gemini_deep_research')} onChange={e=>updateSelectedData({ provider_type: e.target.value })} className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-xs">
+                          <option value="gemini_deep_research">gemini_deep_research</option><option value="perplexity">perplexity</option><option value="gemini_canvas">gemini_canvas</option>
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] font-medium text-white/60">Research depth</span>
+                        <select value={String((selectedNodeData.data as Record<string,unknown>)?.research_depth||'balanced')} onChange={e=>updateSelectedData({ research_depth: e.target.value })} className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-xs">
+                          <option value="fast">fast</option><option value="balanced">balanced</option><option value="comprehensive">comprehensive</option>
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] font-medium text-white/60">Query</span>
+                        <input value={String((selectedNodeData.data as Record<string,unknown>)?.query||'')} onChange={e=>updateSelectedData({ query: e.target.value })} className="mt-1 w-full bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-xs" placeholder="Latest developments in renewable energy" />
+                      </label>
+                    </>
                   )}
                   {(String(selectedNodeData.data?.type)==='delay' || String(selectedNodeData.data?.type)==='wait') && (
                     <label className="block">

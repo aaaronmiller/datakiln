@@ -111,6 +111,29 @@ export interface WorkflowNodeType {
 
 export const WORKFLOW_NODE_TYPES: WorkflowNodeType[] = [
   {
+    type: 'dataSource',
+    label: 'Data Source',
+    icon: '🗃️',
+    color: 'bg-sky-500',
+    category: 'input',
+    description: 'Provide inline data, fetch from URL, or load YouTube transcript',
+    defaultData: {
+      name: 'Data Source',
+      source_type: 'mock',
+      mock_data: 'hello from datakiln',
+      language: 'en'
+    },
+    inputs: 0,
+    outputs: 1,
+    configSchema: {
+      source_type: { type: 'select', required: true, options: ['mock', 'inline', 'url', 'youtube'] },
+      mock_data: { type: 'string' },
+      url: { type: 'string' },
+      language: { type: 'string', default: 'en' },
+      include_timestamps: { type: 'boolean', default: true }
+    }
+  },
+  {
     type: 'dom_action',
     label: 'DOM Action',
     icon: '🖱️',
