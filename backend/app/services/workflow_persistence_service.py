@@ -463,7 +463,7 @@ class WorkflowPersistenceService:
 
     def _workflow_to_dict(self, workflow: Workflow) -> Dict[str, Any]:
         """Convert Workflow object to dictionary."""
-        return {
+        d: Dict[str, Any] = {
             "id": workflow.id,
             "name": workflow.name,
             "description": workflow.description,
@@ -471,6 +471,19 @@ class WorkflowPersistenceService:
             "nodes": [node.model_dump() for node in workflow.nodes],
             "edges": [edge.model_dump(by_alias=True) for edge in workflow.edges]
         }
+        # schedule fields for 24-7 free execution
+        if getattr(workflow, "schedule_interval_seconds", None) is not None:
+            d["schedule_interval_seconds"] = workflow.schedule_interval_seconds
+        if getattr(workflow, "schedule_enabled", False):
+            d["schedule_enabled"] = workflow.schedule_enabled
+        if getattr(workflow, "last_scheduled_at", None):
+            d["last_scheduled_at"] = workflow.last_scheduled_at
+        # also include any extra scheduler fields from __pydantic_extra__
+        extra = getattr(workflow, "__pydantic_extra__", None) or {}
+        for k in ("schedule_interval_seconds","schedule_enabled","last_scheduled_at"):
+            if k in extra and k not in d:
+                d[k] = extra[k]
+        return d
 
     def _dict_to_workflow(self, workflow_dict: Dict[str, Any]) -> Workflow:
         """Convert dictionary to Workflow object."""
@@ -497,7 +510,10 @@ class WorkflowPersistenceService:
             description=workflow_dict.get("description"),
             metadata=metadata,
             nodes=nodes,
-            edges=edges
+            edges=edges,
+            schedule_interval_seconds=workflow_dict.get("schedule_interval_seconds"),
+            schedule_enabled=workflow_dict.get("schedule_enabled", False),
+            last_scheduled_at=workflow_dict.get("last_scheduled_at")
         )
 
     def detect_conflicts(self, workflow_id: str, user_version: int, user_id: str) -> Dict[str, Any]:

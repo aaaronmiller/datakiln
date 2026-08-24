@@ -36,9 +36,27 @@ class WorkflowService:
     """
 
     def __init__(self):
-        # TODO: Replace with durable store (database)
+        # Durable run store (JSON file, survives restarts — SQLite is next)
         self.runs: Dict[str, Run] = {}
         self.results: Dict[str, Result] = {}
+        self._runs_file = Path(__file__).parent.parent.parent / "data" / "runs.json"
+        try:
+            if self._runs_file.exists():
+                data = json.loads(self._runs_file.read_text())
+                for rid, rdict in data.get("runs", {}).items():
+                    try:
+                        self.runs[rid] = Run(**rdict)
+                    except Exception:
+                        pass
+                for rid, rdict in data.get("results", {}).items():
+                    try:
+                        self.results[rid] = Result(**rdict)
+                    except Exception:
+                        pass
+                if self.runs:
+                    logger.info(f"Loaded {len(self.runs)} durable runs from {self._runs_file}")
+        except Exception as e:
+            logger.warning(f"Failed to load durable runs: {e}")
         self.event_queues: Dict[str, asyncio.Queue] = {}  # For SSE streaming
         self.selectors_registry = default_registry
         self.dag_executor = DAGExecutor()
@@ -100,6 +118,13 @@ class WorkflowService:
             execution_options=execution_options or {}
         )
         self.runs[run_id] = run
+        # Persist runs for 24-7 durability (best-effort)
+        try:
+            self._runs_file.parent.mkdir(parents=True, exist_ok=True)
+            out = {"runs": {k: v.model_dump(mode="json") for k, v in self.runs.items()}, "results": {k: v.model_dump(mode="json") for k, v in self.results.items()}}
+            self._runs_file.write_text(json.dumps(out, indent=2))
+        except Exception as e:
+            logger.warning(f"Failed to persist runs: {e}")
 
         # Set up event queue for SSE streaming
         event_queue = asyncio.Queue()
@@ -257,6 +282,15 @@ class WorkflowService:
                 "data": {"error": str(e), "run_id": run_id},
                 "timestamp": datetime.now().isoformat()
             }))
+
+        # Persist final run state for durability
+        try:
+            self._runs_file.parent.mkdir(parents=True, exist_ok=True)
+            out = {"runs": {k: v.model_dump(mode="json") for k, v in self.runs.items()}, "results": {k: v.model_dump(mode="json") for k, v in self.results.items()}}
+            self._runs_file.write_text(__import__("json").dumps(out, indent=2))
+        except Exception as e:
+            import logging as _log
+            _log.getLogger(__name__).warning(f"Failed to persist final runs: {e}")
 
         finally:
             # Clean up event queue after a delay to allow SSE consumers to get final events

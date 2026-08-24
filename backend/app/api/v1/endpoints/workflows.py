@@ -84,6 +84,46 @@ def get_all_workflows(
         logger.error(f"Failed to get workflows: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get workflows: {str(e)}")
 
+
+@router.get("/workflows/{workflow_id}/schedule")
+def get_workflow_schedule(workflow_id: str, persistence_service = Depends(get_workflow_persistence_service)):
+    wf = persistence_service.load_workflow(workflow_id)
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    extra = getattr(wf, "__pydantic_extra__", None) or {}
+    return {
+        "workflow_id": workflow_id,
+        "schedule_interval_seconds": getattr(wf, "schedule_interval_seconds", None) or extra.get("schedule_interval_seconds"),
+        "schedule_enabled": getattr(wf, "schedule_enabled", False) or bool(extra.get("schedule_enabled")),
+        "last_scheduled_at": getattr(wf, "last_scheduled_at", None) or extra.get("last_scheduled_at"),
+    }
+
+@router.put("/workflows/{workflow_id}/schedule")
+def set_workflow_schedule(workflow_id: str, body: Dict[str, Any], persistence_service = Depends(get_workflow_persistence_service)):
+    wf = persistence_service.load_workflow(workflow_id)
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    interval = body.get("schedule_interval_seconds")
+    enabled = body.get("schedule_enabled", False)
+    if interval is not None:
+        try:
+            interval = int(interval)
+            if interval < 10:
+                raise ValueError("interval must be >=10s")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        wf.schedule_interval_seconds = interval
+    else:
+        wf.schedule_interval_seconds = None
+    wf.schedule_enabled = bool(enabled)
+    persistence_service.save_workflow(wf)
+    return {
+        "workflow_id": workflow_id,
+        "schedule_interval_seconds": wf.schedule_interval_seconds,
+        "schedule_enabled": wf.schedule_enabled,
+        "last_scheduled_at": wf.last_scheduled_at,
+    }
+
 @router.get("/workflows/stats", response_model=WorkflowStatsResponse)
 def get_workflow_stats(
     workflow_service: WorkflowService = Depends(get_workflow_service)

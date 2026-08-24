@@ -48,6 +48,9 @@ class Workflow(BaseModel):
 
     id: str = ""
     name: str = ""
+    schedule_interval_seconds: Optional[int] = Field(None, description="Repeat interval in seconds; null = manual only")
+    schedule_enabled: bool = Field(False, description="Whether scheduler should run this workflow")
+    last_scheduled_at: Optional[str] = Field(None, description="ISO timestamp of last scheduled run")
     description: Optional[str] = None
     metadata: Optional[WorkflowMetadata] = None
     nodes: List[Node] = Field(default_factory=list)

@@ -34,16 +34,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Scheduler (free 24-7 repetition)
+scheduler_service = None
+
 # Startup and shutdown events
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup."""
     await initialize_research_service()
+    global scheduler_service
+    try:
+        from app.services.scheduler_service import SchedulerService
+        from app.services.workflow_persistence_service import get_workflow_persistence_service
+        from app.services.workflow_service import get_workflow_service
+        scheduler_service = SchedulerService(
+            persistence_service=get_workflow_persistence_service(),
+            workflow_service=get_workflow_service(),
+            poll_seconds=30,
+        )
+        await scheduler_service.start()
+    except Exception as e:
+        logger.warning("Scheduler failed to start: %s", e)
     logger.info("Application startup complete")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up services on shutdown."""
+    global scheduler_service
+    if scheduler_service:
+        try:
+            await scheduler_service.stop()
+        except Exception:
+            pass
     await shutdown_research_service()
     logger.info("Application shutdown complete")
 

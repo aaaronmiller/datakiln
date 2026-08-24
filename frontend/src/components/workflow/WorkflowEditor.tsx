@@ -107,6 +107,9 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
   const [customNodes, setCustomNodes] = useState<CustomNodeInfo[]>([])
   const [paletteQuery, setPaletteQuery] = useState('')
   const [workflowName, setWorkflowName] = useState('Untitled Workflow')
+  const [scheduleInterval, setScheduleInterval] = useState<number| null>(null)
+  const [scheduleEnabled, setScheduleEnabled] = useState(false)
+  const [savedWorkflowId, setSavedWorkflowId] = useState<string | null>(null)
 
   React.useEffect(() => {
     const load = async () => {
@@ -207,6 +210,16 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
       const res = await fetch('http://localhost:8000/api/v1/workflows', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       if (!res.ok) throw new Error(await res.text())
       const j = await res.json()
+      setSavedWorkflowId(j.id)
+      // persist schedule if configured
+      if (scheduleInterval && scheduleEnabled) {
+        try {
+          await fetch(`http://localhost:8000/api/v1/workflows/${j.id}/schedule`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ schedule_interval_seconds: scheduleInterval, schedule_enabled: true })
+          })
+        } catch {}
+      }
       addNotification({ type: 'success', title: 'Saved', message: `ID ${j.id}` })
     } catch(e){ addNotification({ type:'error', title:'Save failed', message: String(e) }) }
   }, [nodes, convertToWorkflowFormat, addNotification, workflowName])
@@ -277,6 +290,33 @@ const WorkflowEditorContent: React.FC<WorkflowEditorProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.06] border border-white/10">
+            <Clock size={12} className={scheduleEnabled ? 'text-emerald-400' : 'text-white/40'} />
+            <select value={scheduleInterval || ''} onChange={e=> setScheduleInterval(e.target.value ? Number(e.target.value) : null)} className="bg-transparent text-xs text-white/80 focus:outline-none">
+              <option value="">Manual</option>
+              <option value="60">Every 1m</option>
+              <option value="300">Every 5m</option>
+              <option value="3600">Every 1h</option>
+              <option value="86400">Daily</option>
+            </select>
+            <button onClick={async ()=>{
+              const next = !scheduleEnabled
+              setScheduleEnabled(next)
+              if (savedWorkflowId) {
+                try {
+                  await fetch(`http://localhost:8000/api/v1/workflows/${savedWorkflowId}/schedule`, {
+                    method: 'PUT', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ schedule_interval_seconds: scheduleInterval || 60, schedule_enabled: next })
+                  })
+                  addNotification({ type: next ? 'success' : 'warning', title: next ? 'Scheduled' : 'Manual', message: next ? `Runs every ${scheduleInterval||60}s` : 'Scheduled runs disabled' })
+                } catch {}
+              } else if (next && !scheduleInterval) {
+                setScheduleInterval(60)
+              }
+            }} className={`w-8 h-4 rounded-full relative transition-colors ${scheduleEnabled ? 'bg-emerald-500' : 'bg-white/20'}`}>
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${scheduleEnabled ? 'left-4' : 'left-0.5'}`} />
+            </button>
+          </div>
           <button onClick={()=>setShowExecutionOrder(s=>!s)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 text-xs font-medium transition-colors cursor-pointer">
             <Eye size={14} /> {showExecutionOrder ? 'Hide order' : 'Show order'}
           </button>
