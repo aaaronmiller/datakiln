@@ -232,7 +232,7 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="mt-4 md:mt-0">
           <div className="flex items-center space-x-2 text-sm font-mono text-muted-foreground bg-surface-secondary px-3 py-1 rounded-full border border-border">
-            <span className={`w-2 h-2 rounded-full ${systemStatus?.system_health === 'healthy' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${systemStatus?.system_health === 'healthy' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></span>
             <span>Engine: {systemStatus?.system_health?.toUpperCase() || 'OFFLINE'}</span>
           </div>
         </div>

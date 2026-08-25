@@ -96,13 +96,13 @@ const Workflows: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800"
+        return "bg-emerald-100 text-emerald-800"
       case "draft":
         return "bg-yellow-100 text-yellow-800"
       case "archived":
-        return "bg-gray-100 text-gray-800"
+        return "bg-white/[0.08] text-white/90"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-white/[0.08] text-white/90"
     }
   }
 
@@ -199,8 +199,8 @@ const Workflows: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workflows</h1>
-          <p className="text-gray-600 mt-1">Create and manage your automation workflows</p>
+          <h1 className="text-2xl font-bold text-white">Workflows</h1>
+          <p className="text-white/60 mt-1">Create and manage your automation workflows</p>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" size="sm">
@@ -219,11 +219,11 @@ const Workflows: React.FC = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white/[0.04] rounded-lg border border-white/10 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
               <Input
                 placeholder="Search workflows..."
                 value={searchTerm}
@@ -234,7 +234,7 @@ const Workflows: React.FC = () => {
           </div>
           <div className="flex gap-2">
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -270,7 +270,7 @@ const Workflows: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg">{workflow.name}</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    <p className="text-sm text-white/60 mt-1 line-clamp-2">
                       {workflow.description}
                     </p>
                   </div>
@@ -280,7 +280,7 @@ const Workflows: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-white/50">
                   <span>Version {workflow.version}</span>
                   <span>{workflow.run_count} runs</span>
                 </div>
@@ -293,7 +293,7 @@ const Workflows: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-white/50">
                   Modified {new Date(workflow.last_modified).toLocaleDateString()}
                 </div>
 
@@ -325,11 +325,11 @@ const Workflows: React.FC = () => {
 
       {!isLoading && filteredWorkflows.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
+          <div className="text-white/40 mb-4">
             {/* Icon */}
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No workflows found</h3>
-          <p className="text-gray-600 mb-4">
+          <h3 className="text-lg font-medium text-white mb-2">No workflows found</h3>
+          <p className="text-white/60 mb-4">
             {searchTerm || statusFilter !== "all"
               ? "Try adjusting your search or filters"
               : "Get started by creating your first workflow"

@@ -1,406 +1,191 @@
-# 🚀 DataKiln AI Research Automation Platform
+# DataKiln — Visual Workflow Automation for Free 24/7 Execution
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Playwright">
-  <img src="https://img.shields.io/badge/Obsidian-7C3AED?style=for-the-badge&logo=obsidian&logoColor=white" alt="Obsidian">
-  <img src="https://img.shields.io/badge/Local%20First-22c55e?style=for-the-badge" alt="Local First">
+  <img src="https://img.shields.io/badge/Local%20First-0ea5e9?style=for-the-badge" alt="Local First">
 </p>
 
-## **Production-Ready AI Research Automation System**
-
-DataKiln is a comprehensive, production-ready platform that automates AI research workflows through an intuitive node-based interface, Chrome extension integration, and powerful script automation.
+<p align="center"><i>Script what you repeat. Replace token-billed repetition with free programmatic execution — including AI tasks via the HTML web interface instead of the API — so 24/7 limited-resource models get more done.</i></p>
 
 ---
 
-## 🎯 **System Status: 100% COMPLETE**
+## Screenshots
 
-### **✅ All Major Components Implemented**
-- **ReactFlow Performance Engine** - Virtualized rendering for 100+ nodes
-- **Chrome Extension Integration** - Dual activation modes with chat capture
-- **Script Automation** - YouTube transcript + deep research automation
-- **Real-time Monitoring** - Comprehensive system health dashboard
-- **Production Deployment** - Automated deployment with monitoring
+| Dashboard — Engine & Launchpad | Workflows — Library |
+|---|---|
+| ![Dashboard](docs/screenshots/01-dashboard.webp) | ![Workflows](docs/screenshots/02-workflows.webp) |
+| **Aurora Editor — Data Source → Transform → Export** | **Results Explorer** |
+| ![Editor](docs/screenshots/03-editor.webp) | ![Results](docs/screenshots/04-results.webp) |
 
----
-
-## 🏗️ **Architecture Overview**
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  Chrome         │    │  Frontend        │    │  Backend        │
-│  Extension      │◄──►│  (React+Vite)    │◄──►│  (FastAPI)      │
-│                 │    │                  │    │                 │
-│ • Dual Modes    │    │ • ReactFlow      │    │ • 25+ Endpoints │
-│ • Chat Capture  │    │ • Virtualization │    │ • WebSocket     │
-│ • Context Menus │    │ • Real-time UI   │    │ • Monitoring    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                        │                        │
-         └────────────────────────┼────────────────────────┘
-                                  │
-                    ┌─────────────────────────┐
-                    │  Script Automation      │
-                    │                         │
-                    │ • YouTube Transcript    │
-                    │ • Deep Research         │
-                    │ • Playwright Browser    │
-                    │ • Background Processing │
-                    └─────────────────────────┘
-```
+> Aurora dark shell (`#070A14` / `#0B0F1E`), `Sora` + `Instrument Sans` + `Fragment Mono`, `React Flow` canvas with glass nodes and glow.
 
 ---
 
-## 🚀 **Quick Start**
+## What this is
 
-### **1. Automated Production Deployment**
+DataKiln is a **local, power-user workflow builder** — not a generic agent. You define a repetitive task once (site + selectors + variables all known up front), save it as a workflow, then re-run it with one click as a script. No LLM agent in the loop unless you explicitly want one.
+
+* **Predefined only** — the site and DOM element names are part of the workflow definition. It does not discover sites on the fly; that's out of scope by design.
+* **Free repetition** — an AI research run can go through the **HTML web UI** (`gemini.google.com/app` via `dom.sequence`) instead of the billable API (`provider` → `llm.chat`). Same output, zero tokens. That is the 24/7 leverage.
+* **Layered model** — `atoms` (single DOM/data actions) → `molecules` (reusable site groups like "submit prompt to Gemini") → `substances` (full report pipelines). `Subgraph` / `SubgraphInvocation` in the schema; editor save/load of grouped patterns is next.
+
+---
+
+## What works today (2026-08-25, `main` `f9edd13` → `da6827f` Aurora → refinements)
+
+**Core loop verified end-to-end (vision + API):**
+`Define in Aurora editor → Save → One-click Run → Results/Artifacts`
+
+* **Editor** — palette `Data Source / DOM Action / AI Prompt / AI Provider / AI DOM Automation / Transform / Filter / Aggregate / Consolidate / Condition / Join / Union / Export` (13 types), drag + click to add, `Handle` output→input joining, right **Inspector** live variable editing (`mock_data`, `template`, `filename/format`, `provider_type`/`research_depth`/`query`, `delay_ms`), `EXECUTION ORDER — DRAG TO REORDER`, `Import`/`Export` JSON, `Save` → `POST /api/v1/workflows`, `Run` → `POST /api/v1/workflows/execute` (seen `bf7c134e` `a86ab21a` `2eae6523…` `completed` in Results).
+* **Executor** — typed layered schema `Port / NodeDef / Subgraph / WorkflowComposition → ExecutionPlan` (`backend/app/models/workflow_schema.py`), `WorkflowExecutor` with `logic.merge`/`transform.markdown`/`control.delay`/`export.file`/`data_source.inline|web|youtube`/`code.youtube_id_extract`, generic `dom.sequence` wired for any site (`dom_action → dom.sequence` 14edf6b, dry-run `[goto, click]` verified).
+* **Scheduler** — `schedule_interval_seconds` / `schedule_enabled` on `Workflow`, `SchedulerService` 30s poll (`backend/app/services/scheduler_service.py`), `PUT/GET /api/v1/workflows/{id}/schedule`, editor header `Manual / Every 1m/5m/1h/Daily` toggle, verified `scheduler-test-30s` firing `total 1 → 2` unattended.
+* **Durability** — workflow definitions persisted as `backend/data/workflows/*.json`; run history now persisted to `backend/data/runs.json` (survives restart, shown `total 1 durability-test` after restart). SQLite is next.
+* **Auth** — `scripts/capture_auth_state.py --url https://gemini.google.com/app --out storage_state.json` (headed Playwright) for the free HTML-AI path; `storage_state_path` already wired in `execute_dom_sequence`.
+* **WebUX** — `Dashboard` Engine `HEALTHY` + Launchpad + `Queue Depth 17` + `Recent Activity` from real runs (no more `Activity 1` placeholders), `Workflows` grid (4 authentic pipelines), `Results Explorer` `completed` cards, `Selectors Lab`/`Templates` load clean. `GET /api/v1/results/stats/top` added to fix white skeleton cards.
+
+**Example workflows that build and `completed`:**
+* `Deep Research — Renewable Energy`: `AI Provider gemini_deep_research balanced` → `Export markdown renewable-energy-research.md`
+* `YouTube Transcript Pipeline`: `Data Source mock https://www.youtube.com/watch?v=dQw4w9WgXcQ` → `Transform text_clean` → `Export json youtube-transcript`
+
+**Gates:** `backend 111 passed` `frontend tsc EXIT 0` `vite build ✓` (in `main`).
+
+### Still in progress (honest)
+
+* **Live provider proof** — one real `dom.gemini.deep_research` run with captured auth against a live session (selectors currently `rich-textarea [contenteditable]`, `button[aria-label*='Send']`).
+* **Selector versioning** — `selectors.json` is versioned but without `last_success` tracking.
+* **Molecule save/load** — schema supports `Subgraph` but editor has no grouped-pattern save.
+* **YouTube transcript live fetch** — `youtube_transcript_api` path works but `youtubetotranscript.com` hits Cloudflare headless; `data_source.youtube` is dry-run until the transcript site fallback is hardened.
+* **No external cron** — scheduler is in-process interval only, not system cron.
+
+> `AUTHORITATIVE_STATUS_NOTES.md` supersedes any `100% COMPLETE` claim until the release gate checklist is green.
+
+---
+
+## Quick start
+
 ```bash
-# Clone repository
-git clone <repository-url>
+git clone https://github.com/aaaronmiller/datakiln.git
 cd datakiln
 
-# Run automated deployment
-chmod +x scripts/deploy-production.sh
-./scripts/deploy-production.sh
-```
-
-### **2. Manual Setup**
-
-#### **Backend Setup**
-```bash
+# Backend
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
+# optional: capture auth for free Gemini web UI
+python ../scripts/capture_auth_state.py --url https://gemini.google.com/app --out ../storage_state.json
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-#### **Frontend Setup**
-```bash
+# Frontend (new terminal)
 cd frontend
 npm install
-npm run build
-npm run preview
-```
+npm run dev        # http://localhost:3001  (Vite, HMR)
 
-#### **Chrome Extension**
-1. Open Chrome → Extensions → Developer mode
-2. Load unpacked extension from `chrome-extension/` directory
-3. Pin extension to toolbar
-
----
-
-## 🎯 **Key Features**
-
-### **🔥 ReactFlow Performance Engine**
-- **Viewport Virtualization**: Only renders visible nodes (70% DOM reduction)
-- **Performance Tiers**: Automatic optimization for 30/50/100+ nodes
-- **State Synchronization**: Debounced ReactFlow ↔ Zustand sync
-- **Memory Management**: Comprehensive leak prevention
-- **Auto Layout Algorithms**: Force-directed, hierarchical, and grid layouts
-- **Drag & Drop Interface**: Intuitive node creation and connection
-
-### **🧩 Chrome Extension Integration**
-- **Dual Activation Modes**: Website Mode (URL) + Clipboard Mode (text)
-- **Enhanced Chat Capture**: ChatGPT, Gemini, Claude support
-- **Context Integration**: Right-click menus, keyboard shortcuts
-- **5 Workflow Types**: YouTube, Research, Summary, Analysis, Chat
-- **Smart Content Detection**: Automatic content type recognition
-
-### **📜 Script Automation**
-- **YouTube Transcript**: Multi-language extraction with JSON/text output
-- **Deep Research**: Playwright automation with 3 modes (Fast/Balanced/Comprehensive)
-- **Background Processing**: Async execution with real-time updates
-- **AI Provider Integration**: Gemini, Perplexity, and custom providers
-
-### **📊 Real-time Monitoring**
-- **System Health**: CPU, memory, response times
-- **Performance Metrics**: Workflow success rates, execution times
-- **Live Alerts**: Threshold-based notifications
-- **WebSocket Updates**: Real-time dashboard
-- **Execution Tracking**: Node-by-node progress monitoring
-
-### **🎨 Node-Based Workflow System**
-- **6 Node Types**: Provider, DOM Action, Transform, Export, Condition, AI Prompt
-- **Visual Programming**: Drag-and-drop workflow creation
-- **Execution Engine**: Topological sort with parallel processing
-- **Node Configuration**: Rich property panels for each node type
-- **Template System**: Pre-built workflow templates
-
-### **♿ Accessibility & UX**
-- **Keyboard Navigation**: Full keyboard accessibility support
-- **Screen Reader Support**: ARIA labels and announcements
-- **High Contrast**: Accessible color schemes
-- **Responsive Design**: Works on all screen sizes
-- **Undo/Redo System**: Full workflow editing history
-
----
-
-## 🎮 **Usage Examples**
-
-### **1. YouTube Video Analysis**
-```javascript
-// Extension popup → Website Mode → Select "YouTube Analysis"
-// Input: https://youtube.com/watch?v=example
-// Output: Transcript + AI analysis → Obsidian
-```
-
-### **2. Deep Research from Clipboard**
-```javascript
-// Copy text → Extension popup → Clipboard Mode → "Deep Research"
-// Input: "artificial intelligence trends 2024"
-// Output: Comprehensive research report → Obsidian
-```
-
-### **3. Chat Capture Analysis**
-```javascript
-// Automatic capture from ChatGPT/Gemini/Claude
-// Ctrl+Shift+A → Analyze captured conversation
-// Output: Structured analysis → Obsidian
-```
-
-### **4. Node-based Workflow Creation**
-```javascript
-// Frontend → Workflow Editor → Drag & Drop nodes
-// Connect: DataSource → Transform → Provider → Export
-// Execute: Real-time progress tracking
-```
-
-### **5. Advanced Workflow Patterns**
-```javascript
-// Conditional Branching
-// Provider → Condition Node → True: Export Success | False: Export Error
-
-// Parallel Processing
-// Split Node → Multiple AI Providers → Merge Results → Export
-
-// Data Transformation Pipeline
-// DOM Action → Transform (JSON) → Filter → Export (CSV)
-```
-
-### **6. Template-Based Workflows**
-```javascript
-// Load pre-built templates:
-// - Simple Research: Basic AI provider workflow
-// - Data Processing: Transform and filter pipeline
-// - Custom templates via drag-and-drop
-```
-
-## ⌨️ **Keyboard Shortcuts Reference**
-
-### **Workflow Editor Shortcuts**
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+A` | Select All | Select all nodes in the workflow |
-| `Delete` | Delete Selected | Remove selected nodes and their connections |
-| `Ctrl+C` | Copy | Copy selected nodes to clipboard |
-| `Ctrl+V` | Paste | Paste nodes from clipboard with offset |
-| `Ctrl+Z` | Undo | Undo the last action |
-| `Ctrl+Y` | Redo | Redo the last undone action |
-| `Ctrl+Shift+Z` | Redo | Alternative redo shortcut |
-| `Tab` | Navigate | Move focus between interactive elements |
-| `Arrow Keys` | Navigate | Navigate to first node when no selection |
-| `Ctrl+Click` | Multi-select | Add/remove nodes from selection |
-| `Shift+Click` | Range select | Select range of nodes |
-| `Double-click` | Configure | Open node configuration dialog |
-| `Right-click` | Context Menu | Open context menu for node actions |
-
-### **Chrome Extension Shortcuts**
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+Shift+A` | Analyze Chat | Capture and analyze current chat conversation |
-| `Right-click` | Context Menu | Access workflow options for selected content |
-
-### **Accessibility Shortcuts**
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Tab` | Focus Navigation | Move through interactive elements |
-| `Enter/Space` | Activate | Activate buttons and interactive elements |
-| `Escape` | Close/Cancel | Close dialogs and cancel operations |
-| `Arrow Keys` | Navigate | Navigate within lists and menus |
-
-### **Workflow Management Shortcuts**
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+S` | Save | Save current workflow |
-| `Ctrl+O` | Open | Import workflow from file |
-| `Ctrl+E` | Export | Export workflow to JSON |
-| `F11` | Fullscreen | Toggle fullscreen mode |
-
----
-
-## 📊 **Performance Benchmarks**
-
-### **Frontend Performance**
-- ✅ **Load Time**: < 3 seconds
-- ✅ **ReactFlow Rendering**: 100+ nodes in <100ms
-- ✅ **Memory Usage**: Stable during extended sessions
-- ✅ **Bundle Size**: Optimized for production
-
-### **Backend Performance**
-- ✅ **API Response**: < 200ms for simple requests
-- ✅ **Workflow Execution**: Starts within 1 second
-- ✅ **Background Processing**: Efficient task management
-- ✅ **Database Operations**: Optimized queries
-
-### **Extension Performance**
-- ✅ **Popup Load**: < 500ms
-- ✅ **Chat Capture**: Minimal performance impact
-- ✅ **Memory Usage**: < 50MB background script
-- ✅ **Content Injection**: < 100ms
-
----
-
-## 🛡️ **Security & Quality**
-
-### **Security Measures**
-- ✅ Input validation on all API endpoints
-- ✅ CORS properly configured
-- ✅ Extension permissions minimized
-- ✅ Content Security Policy implemented
-- ✅ No sensitive data exposure
-
-### **Code Quality**
-- ✅ TypeScript for frontend type safety
-- ✅ Python type hints for backend
-- ✅ Comprehensive error handling
-- ✅ Memory leak prevention
-- ✅ Performance optimization
-
----
-
-## 📋 **API Documentation**
-
-### **Core Endpoints**
-```
-GET  /health                           # System health check
-GET  /api/v1/workflows/list           # Available workflows
-POST /api/v1/workflows/execute        # Execute workflow
-GET  /api/v1/monitoring/metrics       # System metrics
-WS   /ws/monitoring                   # Real-time monitoring
-```
-
-### **Script Integration**
-```
-POST /api/v1/scripts/youtube/extract  # YouTube transcript
-POST /api/v1/scripts/research/deep    # Deep research
-GET  /api/v1/scripts/status/{task_id} # Task status
+# Chrome extension (optional)
+# Chrome → Extensions → Developer mode → Load unpacked → chrome-extension/
 ```
 
 ---
 
-## 🔧 **Development**
+## Architecture
 
-### **Project Structure**
+```
+                ┌─────────────┐     ┌──────────────────┐     ┌──────────────┐
+                │  Chrome     │     │  Frontend        │     │  Backend     │
+                │  Extension  │◄──► │  React + Vite    │◄──► │  FastAPI     │
+                │  dual mode  │     │  React Flow      │     │  25+ endpoints│
+                │  capture    │     │  Aurora editor   │     │  Scheduler   │
+                └──────┬──────┘     └────────┬─────────┘     └──────┬───────┘
+                       │                     │                      │
+                       └─────────────────────┼──────────────────────┘
+                                             │
+                              ┌────────────────────────┐
+                              │  Executor              │
+                              │  dag_executor +        │
+                              │  Scheduler 30s poll    │
+                              │  dom.sequence dry-run  │
+                              │  runs.json durable     │
+                              └────────────────────────┘
+```
+
+* **Frontend** — `React 18` + `Vite` + `@xyflow/react` + `Zustand` + `Tailwind v3` (Aurora tokens).
+* **Backend** — `FastAPI` + `DAGExecutor` + `SchedulerService` + `WorkflowPersistenceService` (JSON) + `ArtifactService` + `ProviderManager`.
+* **Persistence** — `backend/data/workflows/*.json` (definitions), `backend/data/runs.json` (history), `data/outputs/` (artifacts).
+
+---
+
+## Node types
+
+`Data Source` (`mock`/`inline`/`url`/`youtube`) · `DOM Action` (`click`/`fill`/`goto`/`extract`/`copy`/`waitForVisible`) · `AI Prompt` · `AI Provider` (`gemini_deep_research`/`gemini_canvas`/`perplexity`) · `AI DOM Automation` · `Transform` (`markdown`/`text_clean`/`json_transform`…) · `Filter` · `Aggregate` (`count`/`sum`/`avg`…) · `Consolidate` · `Condition` (`DKEL`) · `Join` · `Union` · `Export` (`json`/`markdown`/`yaml`/`csv`/`txt` + `Obsidian`)
+
+`dom_action` executes as `dom.sequence` — any predefined sequence without an LLM.
+
+---
+
+## API
+
+```
+POST   /api/v1/workflows                          # create
+PUT    /api/v1/workflows/{id}                     # update
+GET    /api/v1/workflows                          # list
+GET    /api/v1/workflows/{id}                     # get
+PUT    /api/v1/workflows/{id}/schedule            # {schedule_interval_seconds, schedule_enabled}
+GET    /api/v1/workflows/{id}/schedule
+POST   /api/v1/workflows/execute                  # {workflow, validate_workflow, execution_options}
+POST   /api/v1/workflows/{id}/schedule            # alias for above
+GET    /api/v1/results                            # paginated {results, pagination}
+GET    /api/v1/results/{execution_id}
+GET    /api/v1/results/stats/top?limit=5
+GET    /api/v1/dashboard/system-status
+GET    /api/v1/dashboard/recent-activity
+GET    /api/v1/dashboard/queue-status
+WS     /ws/dashboard  /ws/executions/{id}
+```
+
+---
+
+## Project structure
+
 ```
 datakiln/
-├── frontend/                 # React + Vite frontend
-│   ├── src/components/      # React components
-│   ├── src/stores/          # Zustand state management
-│   └── src/hooks/           # Custom hooks
-├── backend/                 # FastAPI backend
-│   ├── main.py             # Main application
-│   ├── nodes/              # Workflow node types
-│   └── monitoring_service.py # System monitoring
-├── chrome-extension/        # Chrome extension
-│   ├── manifest.json       # Extension manifest
-│   ├── popup.html/js       # Extension popup
-│   └── background.js       # Background script
-├── scripts/                # Automation scripts
-│   ├── youtube_transcript.py
-│   ├── deep_research.py
-│   └── deploy-production.sh
-└── tests/                  # Test suites
-    └── e2e/               # End-to-end tests
+├── frontend/               # Aurora editor (React + Vite)
+│   ├── src/components/workflow/  # WorkflowEditor, WorkflowNode, AiDomNode
+│   ├── src/pages/          # Dashboard, Workflows, Runs, Results, Selectors Lab
+│   └── src/types/workflow-fixed.ts  # Node registry (13 types)
+├── backend/
+│   ├── app/services/       # workflow_service, scheduler_service, artifact_service
+│   ├── app/models/workflow_schema.py  # layered schema + NodeDefs
+│   ├── dag_executor.py     # planner + executors (dom.sequence wired)
+│   └── data/workflows/     # persisted definitions (gitignored)
+├── chrome-extension/       # dual-mode capture (Website vs Clipboard)
+├── scripts/                # capture_auth_state.py  youtube_transcript.py  deep_research.py
+└── docs/
+    ├── screenshots/        # 01-dashboard 02-workflows 03-editor 04-results (webp)
+    └── reference/datakiln-copy/  # retrieved unique artifacts from parallel fork
 ```
 
-### **Testing**
+---
+
+## Development
+
 ```bash
-# Run comprehensive tests
-node tests/e2e/workflow-integration-test.js
+# Gates (must pass before push)
+cd backend && venv/bin/python -m pytest backend/tests -q   # 111 passed
+cd frontend && npx tsc --noEmit                             # EXIT 0
+cd frontend && npm run build                                # vite build
 
-# Run optimization checks
-node scripts/optimize-production.js
-
-# Monitor system health
-./scripts/monitor.sh
+# Repo state as of 2026-08-25
+git log --oneline -4
+# f9edd13 refine: scheduler, durable runs, and auth capture
+# 14edf6b fix: wire generic DOM Action for predefined scripting
+# da6827f design(aurora): rebuild workflow editor
+# 03e526f merge: unified frontend(copy) + backend(og)
 ```
 
----
-
-## 📈 **Monitoring & Maintenance**
-
-### **System Monitoring**
-- **Real-time Dashboard**: http://localhost:3000/monitoring
-- **Health Check**: http://localhost:8000/health
-- **Metrics API**: http://localhost:8000/api/v1/monitoring/metrics
-
-### **Log Files**
-```bash
-# View deployment logs
-tail -f logs/deployment-*.log
-
-# View backend logs
-tail -f logs/error.log
-
-# View frontend logs
-tail -f logs/frontend.log
-```
-
-### **Maintenance Commands**
-```bash
-# Stop services
-./scripts/deploy-production.sh stop
-
-# Monitor system
-./scripts/deploy-production.sh monitor
-
-# Rollback deployment
-./scripts/deploy-production.sh rollback /path/to/backup
-```
+`docs/reference/datakiln-copy/` preserves every unique artifact from the parallel `datakiln copy` fork (50 files: `youtube-content.js`, `workflow-templates.json`, 15+ backend tests, `providers_legacy.py`, `prompt_templates.json`, docs, `cli.py`). Safe to remove the original `../datakiln copy` folder — nothing of value remains there.
 
 ---
 
-## 🎉 **Success Metrics**
-
-### **Technical Achievement**
-- **100% Feature Completion**: All major components delivered
-- **98% Performance Targets**: All benchmarks met or exceeded
-- **Zero Critical Bugs**: No blocking issues identified
-- **Production Ready**: Immediate deployment capability
-
-### **Key Innovations**
-- **ReactFlow Virtualization**: 70%+ performance improvement
-- **Dual Extension Modes**: Seamless workflow activation
-- **Real-time Monitoring**: Comprehensive system observability
-- **Script Integration**: Automated research workflows
-
----
-
-## 🏆 **Deployment Status**
-
-### **✅ PRODUCTION READY**
-The DataKiln AI Research Automation Platform is **immediately deployable** with:
-
-- ✅ All core features implemented and tested
-- ✅ Performance optimized for scale
-- ✅ Security hardened and validated
-- ✅ Comprehensive monitoring and alerting
-- ✅ Automated deployment and rollback
-
-### **🚀 Ready for Launch**
-The system represents a **complete success** - transforming from 90% to 100% completion with world-class performance, reliability, and user experience.
-
----
-
-## 📞 **Support**
-
-For technical support, deployment assistance, or feature requests:
-
-- **Documentation**: Check this README and deployment checklist
-- **Logs**: Review system logs for troubleshooting
-- **Monitoring**: Use the real-time dashboard for system health
-- **Testing**: Run the comprehensive test suite
-
----
-
-**🎯 DataKiln: Complete. Production-Ready. World-Class.**
+*Built for models that repeat — script once, run free forever.*

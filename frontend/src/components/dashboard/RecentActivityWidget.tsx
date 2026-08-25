@@ -34,7 +34,7 @@ const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
-        return <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600">Success</Badge>
+        return <Badge variant="default" className="text-xs bg-emerald-500 hover:bg-emerald-600">Success</Badge>
       case 'error':
         return <Badge variant="destructive" className="text-xs">Error</Badge>
       case 'running':
@@ -110,7 +110,7 @@ const RecentActivityWidget: React.FC<RecentActivityWidgetProps> = ({
                   </div>
 
                   {/* Actions overlay on hover */}
-                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 bg-white/90 p-1 rounded-lg backdrop-blur-sm shadow-sm border border-gray-100">
+                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 bg-white/90 p-1 rounded-lg backdrop-blur-sm shadow-sm border border-white/[0.06]">
                     {onView && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-primary" onClick={() => onView(activity.id)} title="View Details">
                         <Eye className="h-3.5 w-3.5" />

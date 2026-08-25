@@ -103,13 +103,13 @@ const Selectors: React.FC = () => {
 
   const getValidationIcon = (result: SelectorValidationResult) => {
     if (result.error) return <XCircle className="w-5 h-5 text-red-500" />
-    if (result.valid) return <CheckCircle className="w-5 h-5 text-green-500" />
+    if (result.valid) return <CheckCircle className="w-5 h-5 text-emerald-500" />
     return <AlertCircle className="w-5 h-5 text-yellow-500" />
   }
 
   const getValidationColor = (result: SelectorValidationResult) => {
     if (result.error) return 'border-red-200 bg-red-50'
-    if (result.valid) return 'border-green-200 bg-green-50'
+    if (result.valid) return 'border-green-200 bg-emerald-50'
     return 'border-yellow-200 bg-yellow-50'
   }
 
@@ -125,8 +125,8 @@ const Selectors: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Selectors Lab</h1>
-          <p className="text-gray-600 mt-1">Manage and validate DOM selectors for your Virtual APIs</p>
+          <h1 className="text-2xl font-bold text-white">Selectors Lab</h1>
+          <p className="text-white/60 mt-1">Manage and validate DOM selectors for your Virtual APIs</p>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" size="sm">
@@ -172,7 +172,7 @@ const Selectors: React.FC = () => {
 
               <div className="space-y-3">
                 {filteredRegistry.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-white/50">
                     No selectors found. Capture some using the Chrome Extension!
                   </div>
                 ) : (
@@ -186,16 +186,16 @@ const Selectors: React.FC = () => {
                               <Badge variant="outline">{item.selector_type.toUpperCase()}</Badge>
                               {item.provider && <Badge variant="secondary">{item.provider}</Badge>}
                             </div>
-                            <code className="text-sm bg-gray-100 px-2 py-1 rounded block mb-2 font-mono">
+                            <code className="text-sm bg-white/[0.08] px-2 py-1 rounded block mb-2 font-mono">
                               {item.selector}
                             </code>
-                            <p className="text-sm text-gray-600">{item.description}</p>
+                            <p className="text-sm text-white/60">{item.description}</p>
                             {item.fallback_selectors.length > 0 && (
                               <div className="mt-2">
-                                <span className="text-xs text-gray-500">Fallbacks:</span>
+                                <span className="text-xs text-white/50">Fallbacks:</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {item.fallback_selectors.map((fallback, index) => (
-                                    <code key={index} className="text-xs bg-gray-50 px-1 py-0.5 rounded">
+                                    <code key={index} className="text-xs bg-white/[0.04] px-1 py-0.5 rounded">
                                       {fallback}
                                     </code>
                                   ))}
@@ -232,7 +232,7 @@ const Selectors: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-white/80 mb-1">
                     HTML Snippet
                   </label>
                   <textarea
@@ -245,7 +245,7 @@ const Selectors: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-white/80 mb-1">
                     Selector
                   </label>
                   <Input
@@ -327,7 +327,7 @@ const Selectors: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-white/50">
                 Select selectors in the Registry to analyze their resilience and performance history.
               </div>
             </CardContent>

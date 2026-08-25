@@ -100,10 +100,10 @@ const SystemMonitoringDashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'healthy': return 'text-green-600 bg-green-100';
+      case 'healthy': return 'text-emerald-600 bg-emerald-100';
       case 'degraded': return 'text-yellow-600 bg-yellow-100';
       case 'down': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      default: return 'text-white/60 bg-white/[0.08]';
     }
   };
 
@@ -112,7 +112,7 @@ const SystemMonitoringDashboard: React.FC = () => {
       case 'error': return 'border-red-500 bg-red-50';
       case 'warning': return 'border-yellow-500 bg-yellow-50';
       case 'info': return 'border-blue-500 bg-blue-50';
-      default: return 'border-gray-500 bg-gray-50';
+      default: return 'border-gray-500 bg-white/[0.04]';
     }
   };
 
@@ -121,7 +121,7 @@ const SystemMonitoringDashboard: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading system metrics...</p>
+          <p className="text-white/60">Loading system metrics...</p>
         </div>
       </div>
     );
@@ -132,17 +132,17 @@ const SystemMonitoringDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">System Monitoring</h1>
-          <p className="text-gray-600">Real-time DataKiln system health and performance</p>
+          <h1 className="text-3xl font-bold text-white">System Monitoring</h1>
+          <p className="text-white/60">Real-time DataKiln system health and performance</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-            isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            isConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
           }`}>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
             <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
           </div>
-          <span className="text-sm text-gray-500">Last update: {lastUpdate}</span>
+          <span className="text-sm text-white/50">Last update: {lastUpdate}</span>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ const SystemMonitoringDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Backend Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-white/60">Backend Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -158,12 +158,12 @@ const SystemMonitoringDashboard: React.FC = () => {
                 <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(metrics.backend.status)}`}>
                   {metrics.backend.status.toUpperCase()}
                 </div>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{metrics.backend.responseTime}ms</p>
-                <p className="text-xs text-gray-500">Response Time</p>
+                <p className="text-2xl font-bold text-white mt-2">{metrics.backend.responseTime}ms</p>
+                <p className="text-xs text-white/50">Response Time</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">{metrics.backend.activeConnections}</p>
-                <p className="text-xs text-gray-500">Active Connections</p>
+                <p className="text-xs text-white/50">Active Connections</p>
               </div>
             </div>
           </CardContent>
@@ -171,7 +171,7 @@ const SystemMonitoringDashboard: React.FC = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Frontend Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-white/60">Frontend Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -179,12 +179,12 @@ const SystemMonitoringDashboard: React.FC = () => {
                 <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(metrics.frontend.status)}`}>
                   {metrics.frontend.status.toUpperCase()}
                 </div>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{metrics.frontend.loadTime}ms</p>
-                <p className="text-xs text-gray-500">Load Time</p>
+                <p className="text-2xl font-bold text-white mt-2">{metrics.frontend.loadTime}ms</p>
+                <p className="text-xs text-white/50">Load Time</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">{metrics.frontend.activeUsers}</p>
-                <p className="text-xs text-gray-500">Active Users</p>
+                <p className="text-xs text-white/50">Active Users</p>
               </div>
             </div>
           </CardContent>
@@ -192,38 +192,38 @@ const SystemMonitoringDashboard: React.FC = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Workflow Performance</CardTitle>
+            <CardTitle className="text-sm font-medium text-white/60">Workflow Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900">{metrics.workflows.successRate}%</p>
-                <p className="text-xs text-gray-500">Success Rate</p>
+                <p className="text-2xl font-bold text-white">{metrics.workflows.successRate}%</p>
+                <p className="text-xs text-white/50">Success Rate</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">{metrics.workflows.activeExecutions}</p>
-                <p className="text-xs text-gray-500">Active Workflows</p>
+                <p className="text-xs text-white/50">Active Workflows</p>
               </div>
             </div>
             <div className="mt-2">
-              <p className="text-sm text-gray-600">Avg: {metrics.workflows.averageExecutionTime}s</p>
+              <p className="text-sm text-white/60">Avg: {metrics.workflows.averageExecutionTime}s</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Extension Health</CardTitle>
+            <CardTitle className="text-sm font-medium text-white/60">Extension Health</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900">{metrics.extension.activeInstalls}</p>
-                <p className="text-xs text-gray-500">Active Installs</p>
+                <p className="text-2xl font-bold text-white">{metrics.extension.activeInstalls}</p>
+                <p className="text-xs text-white/50">Active Installs</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">{metrics.extension.errorRate}%</p>
-                <p className="text-xs text-gray-500">Error Rate</p>
+                <p className="text-xs text-white/50">Error Rate</p>
               </div>
             </div>
           </CardContent>
@@ -244,11 +244,11 @@ const SystemMonitoringDashboard: React.FC = () => {
                   <span>CPU Usage</span>
                   <span>{metrics.backend.cpuUsage}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full ${
                       metrics.backend.cpuUsage > 80 ? 'bg-red-500' : 
-                      metrics.backend.cpuUsage > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                      metrics.backend.cpuUsage > 60 ? 'bg-yellow-500' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${metrics.backend.cpuUsage}%` }}
                   ></div>
@@ -260,11 +260,11 @@ const SystemMonitoringDashboard: React.FC = () => {
                   <span>Memory Usage</span>
                   <span>{metrics.backend.memoryUsage}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full ${
                       metrics.backend.memoryUsage > 80 ? 'bg-red-500' : 
-                      metrics.backend.memoryUsage > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                      metrics.backend.memoryUsage > 60 ? 'bg-yellow-500' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${metrics.backend.memoryUsage}%` }}
                   ></div>
@@ -274,11 +274,11 @@ const SystemMonitoringDashboard: React.FC = () => {
               <div className="pt-2 border-t">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-500">Bundle Size</p>
+                    <p className="text-white/50">Bundle Size</p>
                     <p className="font-medium">{metrics.frontend.bundleSize}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Total Executions</p>
+                    <p className="text-white/50">Total Executions</p>
                     <p className="font-medium">{metrics.workflows.totalExecutions}</p>
                   </div>
                 </div>
@@ -295,16 +295,16 @@ const SystemMonitoringDashboard: React.FC = () => {
           <CardContent>
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {alerts.length === 0 ? (
-                <p className="text-gray-500 text-sm">No recent alerts</p>
+                <p className="text-white/50 text-sm">No recent alerts</p>
               ) : (
                 alerts.map((alert) => (
                   <div key={alert.id} className={`p-3 rounded-lg border-l-4 ${getAlertColor(alert.type)}`}>
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="text-sm font-medium">{alert.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{alert.component}</p>
+                        <p className="text-xs text-white/50 mt-1">{alert.component}</p>
                       </div>
-                      <span className="text-xs text-gray-400">{alert.timestamp}</span>
+                      <span className="text-xs text-white/40">{alert.timestamp}</span>
                     </div>
                   </div>
                 ))
@@ -322,13 +322,13 @@ const SystemMonitoringDashboard: React.FC = () => {
         <CardContent>
           <div className="flex flex-wrap gap-3">
             <button 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               onClick={() => window.open('/api/v1/dashboard/system-status', '_blank')}
             >
               📊 Detailed Metrics
             </button>
             <button 
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               onClick={() => window.open('/health', '_blank')}
             >
               🏥 Health Check

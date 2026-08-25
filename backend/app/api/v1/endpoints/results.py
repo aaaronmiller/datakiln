@@ -91,6 +91,23 @@ async def cancel_run_alias(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/results/stats/top")
+async def top_workflows_stats(
+    limit: int = Query(5, ge=1, le=50),
+    workflow_service: WorkflowService = Depends(get_workflow_service),
+):
+    """Top workflows by run count for the Dashboard Launchpad."""
+    counts: Dict[str, Dict[str, Any]] = {}
+    for run in workflow_service.runs.values():
+        wf_id = run.workflow_id
+        entry = counts.setdefault(wf_id, {"workflow_id": wf_id, "count": 0, "last_run": ""})
+        entry["count"] += 1
+        started = run.started_at.isoformat() + "Z" if run.started_at else ""
+        if started > entry["last_run"]:
+            entry["last_run"] = started
+    top = sorted(counts.values(), key=lambda x: x["count"], reverse=True)[:limit]
+    return top
+
 @router.post("/save-research-report")
 async def save_research_report(
     data: Dict[str, Any],

@@ -23,19 +23,25 @@ def get_system_status():
     }
 
 def get_recent_activity(limit: int = 10):
-    """Get recent activity feed"""
-    activities = [
-        {
-            "id": f"activity_{i}",
-            "type": random.choice(["workflow_completed", "research_started", "transcript_analyzed", "error_occurred"]),
-            "title": f"Activity {i}",
-            "description": f"Description for activity {i}",
-            "timestamp": (datetime.now() - timedelta(minutes=random.randint(1, 1440))).isoformat(),
-            "status": random.choice(["success", "warning", "error", "info"])
-        }
-        for i in range(limit)
-    ]
-    return sorted(activities, key=lambda x: x["timestamp"], reverse=True)
+    """Recent activity from real workflow runs."""
+    try:
+        from app.services.workflow_service import get_workflow_service
+        svc = get_workflow_service()
+        runs = sorted(svc.runs.values(), key=lambda r: r.started_at or r.id, reverse=True)[:limit]
+        activities = []
+        for r in runs:
+            status = r.status or "completed"
+            activities.append({
+                "id": r.id,
+                "type": "workflow_completed" if status == "completed" else ("error_occurred" if status == "failed" else "research_started"),
+                "title": r.workflow_id or "Workflow run",
+                "description": f"{status} · {len(r.node_results or {})} nodes · {(r.execution_time or 0):.2f}s",
+                "timestamp": (r.completed_at or r.started_at or datetime.now()).isoformat(),
+                "status": "success" if status == "completed" else ("error" if status == "failed" else "info"),
+            })
+        return sorted(activities, key=lambda x: x["timestamp"], reverse=True)
+    except Exception:
+        return []
 
 def get_queue_status():
     """Get current queue status"""

@@ -1,0 +1,52 @@
+{
+    "templates": {
+        "gemini_3x6_split": {
+            "id": "gemini_3x6_split",
+            "name": "Gemini 3×6 Query Splitter",
+            "description": "Splits a research query into 3 sessions × 6 questions for Gemini Deep Research",
+            "version": 1,
+            "system_message": "You are a research question generator. Given a topic, create exactly 18 research questions organized into 3 sessions of 6 questions each. Each question should be 1-2 sentences, specific, and actionable. Gemini Deep Research will use these questions verbatim.",
+            "template": "Generate 18 research questions for the topic: {{user_query}}\n\nOrganize into 3 sessions:\n- Session 1 (Foundations): Define concepts, history, core principles\n- Session 2 (Techniques): Methods, tools, practical approaches  \n- Session 3 (Applications): Best practices, case studies, implementation\n\nOutput as JSON with structure:\n{\n  \"session_1\": [\"q1\", \"q2\", \"q3\", \"q4\", \"q5\", \"q6\"],\n  \"session_2\": [\"q1\", \"q2\", \"q3\", \"q4\", \"q5\", \"q6\"],\n  \"session_3\": [\"q1\", \"q2\", \"q3\", \"q4\", \"q5\", \"q6\"]\n}",
+            "output_format": "structured",
+            "output_schema": {
+                "type": "object",
+                "required": [
+                    "session_1",
+                    "session_2",
+                    "session_3"
+                ],
+                "properties": {
+                    "session_1": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 6,
+                        "maxItems": 6
+                    },
+                    "session_2": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 6,
+                        "maxItems": 6
+                    },
+                    "session_3": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 6,
+                        "maxItems": 6
+                    }
+                }
+            },
+            "tags": [
+                "gemini",
+                "deep-research",
+                "query-splitting"
+            ]
+        }
+    }
+}

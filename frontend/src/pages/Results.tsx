@@ -47,8 +47,8 @@ const Results: React.FC = () => {
     <div className="space-y-6 container mx-auto max-w-7xl animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Results Explorer</h1>
-          <p className="text-gray-600 mt-1">Analyze workflow outputs and artifacts</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Results Explorer</h1>
+          <p className="text-white/60 mt-1">Analyze workflow outputs and artifacts</p>
         </div>
         <Button variant="outline" onClick={() => fetchResults()}>
           Refresh
@@ -98,7 +98,7 @@ const Results: React.FC = () => {
                       <CardTitle className="text-lg mt-2 truncate text-primary">{result.workflow_id}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="text-sm text-gray-500 flex items-center gap-2">
+                      <div className="text-sm text-white/50 flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         {(() => { const v = result.duration ?? (result as unknown as {execution_time?: number}).execution_time; return typeof v === 'number' ? `${v.toFixed(2)}s` : 'Unknown'; })()}
                       </div>

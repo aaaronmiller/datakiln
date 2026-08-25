@@ -223,7 +223,7 @@ const QueryStructuringDialog: React.FC<QueryStructuringDialogProps> = ({
                     <Card
                       key={key}
                       className={`cursor-pointer transition-colors ${
-                        selectedOption === key ? 'ring-2 ring-blue-500' : 'hover:bg-gray-50'
+                        selectedOption === key ? 'ring-2 ring-blue-500' : 'hover:bg-white/[0.04]'
                       }`}
                       onClick={() => setSelectedOption(key)}
                     >
@@ -240,7 +240,7 @@ const QueryStructuringDialog: React.FC<QueryStructuringDialogProps> = ({
                             </div>
                             <p className="text-sm text-muted-foreground mb-2">{option.description}</p>
                             <p className="text-sm font-medium mb-1">Approach: {option.approach}</p>
-                            <p className="text-xs bg-gray-100 p-2 rounded font-mono">{option.structuredQuery}</p>
+                            <p className="text-xs bg-white/[0.08] p-2 rounded font-mono">{option.structuredQuery}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -250,7 +250,7 @@ const QueryStructuringDialog: React.FC<QueryStructuringDialogProps> = ({
                   {/* Custom Option */}
                   <Card
                     className={`cursor-pointer transition-colors ${
-                      selectedOption === 'custom' ? 'ring-2 ring-blue-500' : 'hover:bg-gray-50'
+                      selectedOption === 'custom' ? 'ring-2 ring-blue-500' : 'hover:bg-white/[0.04]'
                     }`}
                     onClick={() => setSelectedOption('custom')}
                   >
@@ -290,7 +290,7 @@ const QueryStructuringDialog: React.FC<QueryStructuringDialogProps> = ({
                       <ul className="space-y-1">
                         {category.suggestions.map((suggestion, idx) => (
                           <li key={idx} className="text-sm text-muted-foreground flex items-start space-x-2">
-                            <span className="text-blue-500 mt-1">•</span>
+                            <span className="text-violet-300 mt-1">•</span>
                             <span>{suggestion}</span>
                           </li>
                         ))}

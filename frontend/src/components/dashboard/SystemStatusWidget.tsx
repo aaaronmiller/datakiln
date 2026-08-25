@@ -33,14 +33,14 @@ const SystemStatusWidget: React.FC<SystemStatusWidgetProps> = ({
         <CardContent>
           <div className="space-y-4">
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-white/10 rounded w-1/2"></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-1"></div>
-                  <div className="h-6 bg-gray-200 rounded w-full"></div>
+                  <div className="h-3 bg-white/10 rounded w-1/2 mb-1"></div>
+                  <div className="h-6 bg-white/10 rounded w-full"></div>
                 </div>
               ))}
             </div>
@@ -51,36 +51,36 @@ const SystemStatusWidget: React.FC<SystemStatusWidgetProps> = ({
   }
 
   const getHealthStatusColor = (health: string) => {
-    if (!health) return 'text-gray-600'
+    if (!health) return 'text-white/60'
     switch (health.toLowerCase()) {
       case 'healthy':
-        return 'text-green-600'
+        return 'text-emerald-600'
       case 'warning':
         return 'text-yellow-600'
       case 'critical':
         return 'text-red-600'
       default:
-        return 'text-gray-600'
+        return 'text-white/60'
     }
   }
 
   const getHealthIcon = (health: string) => {
-    if (!health) return <Activity className="h-4 w-4 text-gray-500" />
+    if (!health) return <Activity className="h-4 w-4 text-white/50" />
     switch (health.toLowerCase()) {
       case 'healthy':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
+        return <CheckCircle className="h-4 w-4 text-emerald-500" />
       case 'warning':
       case 'critical':
         return <AlertTriangle className="h-4 w-4 text-red-500" />
       default:
-        return <Activity className="h-4 w-4 text-gray-500" />
+        return <Activity className="h-4 w-4 text-white/50" />
     }
   }
 
   const getResourceColor = (usage: number) => {
     if (usage >= 90) return 'text-red-600'
     if (usage >= 70) return 'text-yellow-600'
-    return 'text-green-600'
+    return 'text-emerald-600'
   }
 
   return (
@@ -110,20 +110,20 @@ const SystemStatusWidget: React.FC<SystemStatusWidgetProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
-              <Activity className="h-4 w-4 text-blue-500 mr-1" />
+              <Activity className="h-4 w-4 text-violet-300 mr-1" />
               <span className="text-sm font-medium">Active Runs</span>
             </div>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-violet-300">
               {systemData.active_runs || 0}
             </div>
           </div>
 
           <div className="text-center">
             <div className="flex items-center justify-center mb-1">
-              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              <CheckCircle className="h-4 w-4 text-emerald-500 mr-1" />
               <span className="text-sm font-medium">Recent Results</span>
             </div>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-emerald-600">
               {systemData.recent_results || 0}
             </div>
           </div>
@@ -159,14 +159,14 @@ const SystemStatusWidget: React.FC<SystemStatusWidgetProps> = ({
         </div>
 
         {/* System Info */}
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="pt-4 border-t border-white/10 dark:border-gray-700">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Uptime</span>
+            <span className="text-white/60">Uptime</span>
             <span className="font-medium">{systemData.uptime || '0d 0h 0m'}</span>
           </div>
         </div>
 
-        <div className="text-xs text-gray-500 text-center">
+        <div className="text-xs text-white/50 text-center">
            Last updated: {new Date(systemData.last_updated || new Date()).toLocaleTimeString()}
          </div>
       </CardContent>

@@ -66,8 +66,8 @@ const ResultDetails: React.FC = () => {
                         Back
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Result Details</h1>
-                        <p className="text-sm text-gray-500 font-mono">{result.execution_id}</p>
+                        <h1 className="text-2xl font-bold text-white">Result Details</h1>
+                        <p className="text-sm text-white/50 font-mono">{result.execution_id}</p>
                     </div>
                 </div>
                 <div className="flex space-x-2">
@@ -82,7 +82,7 @@ const ResultDetails: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500 flex items-center">
+                        <CardTitle className="text-sm font-medium text-white/50 flex items-center">
                             <Clock className="h-4 w-4 mr-2" />
                             Timeline
                         </CardTitle>
@@ -111,7 +111,7 @@ const ResultDetails: React.FC = () => {
 
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500 flex items-center">
+                        <CardTitle className="text-sm font-medium text-white/50 flex items-center">
                             <Play className="h-4 w-4 mr-2" />
                             Workflow Info
                         </CardTitle>
@@ -123,7 +123,7 @@ const ResultDetails: React.FC = () => {
 
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500 flex items-center">
+                        <CardTitle className="text-sm font-medium text-white/50 flex items-center">
                             <Download className="h-4 w-4 mr-2" />
                             Actions
                         </CardTitle>
@@ -149,13 +149,13 @@ const ResultDetails: React.FC = () => {
                     <CardTitle>Output Content</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 overflow-auto max-h-[600px]">
+                    <div className="bg-white/[0.04] rounded-lg p-6 border border-white/10 overflow-auto max-h-[600px]">
                         {isMarkdown ? (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
                                 <ReactMarkdown>{outputString}</ReactMarkdown>
                             </div>
                         ) : (
-                            <pre className="text-xs font-mono whitespace-pre-wrap text-gray-800">
+                            <pre className="text-xs font-mono whitespace-pre-wrap text-white/90">
                                 {outputString}
                             </pre>
                         )}

@@ -1,0 +1,267 @@
+{
+    "version": "1.0",
+    "templates": [
+        {
+            "id": "youtube-analysis",
+            "name": "YouTube Video Analysis",
+            "description": "Extract and analyze YouTube video transcript with AI insights",
+            "category": "transcription",
+            "input_type": "url",
+            "input_validation": {
+                "pattern": "^https?://(www\\.)?(youtube\\.com/watch|youtu\\.be/)",
+                "error_message": "Please provide a valid YouTube video URL"
+            },
+            "workflow": {
+                "nodes": [
+                    {
+                        "id": "extract-transcript",
+                        "type": "dom_action",
+                        "data": {
+                            "action": "extract",
+                            "description": "Extract video transcript"
+                        }
+                    },
+                    {
+                        "id": "analyze-content",
+                        "type": "provider",
+                        "data": {
+                            "provider_type": "gemini_deep_research",
+                            "mode": "fast",
+                            "prompt_template": "Analyze this video transcript and provide key insights, main topics, and a summary."
+                        }
+                    },
+                    {
+                        "id": "export-obsidian",
+                        "type": "export",
+                        "data": {
+                            "format": "markdown",
+                            "include_metadata": true
+                        }
+                    }
+                ],
+                "edges": [
+                    {
+                        "source": "extract-transcript",
+                        "target": "analyze-content"
+                    },
+                    {
+                        "source": "analyze-content",
+                        "target": "export-obsidian"
+                    }
+                ]
+            },
+            "output": {
+                "destination": "obsidian",
+                "folder": "YouTube Analysis",
+                "filename_template": "{{video_title}} - Analysis"
+            }
+        },
+        {
+            "id": "deep-research",
+            "name": "Deep Research",
+            "description": "Comprehensive AI-powered research on any topic",
+            "category": "research",
+            "input_type": "clipboard",
+            "input_validation": {
+                "min_length": 10,
+                "max_length": 5000,
+                "error_message": "Research query should be between 10 and 5000 characters"
+            },
+            "workflow": {
+                "nodes": [
+                    {
+                        "id": "research",
+                        "type": "provider",
+                        "data": {
+                            "provider_type": "gemini_deep_research",
+                            "research_depth": "comprehensive",
+                            "follow_up_questions": 5
+                        }
+                    },
+                    {
+                        "id": "format-results",
+                        "type": "transform",
+                        "data": {
+                            "transform_type": "markdown",
+                            "include_citations": true
+                        }
+                    },
+                    {
+                        "id": "export-obsidian",
+                        "type": "export",
+                        "data": {
+                            "format": "md_yaml",
+                            "include_metadata": true
+                        }
+                    }
+                ],
+                "edges": [
+                    {
+                        "source": "research",
+                        "target": "format-results"
+                    },
+                    {
+                        "source": "format-results",
+                        "target": "export-obsidian"
+                    }
+                ]
+            },
+            "output": {
+                "destination": "obsidian",
+                "folder": "Research",
+                "filename_template": "Research - {{query_summary}}"
+            }
+        },
+        {
+            "id": "website-summary",
+            "name": "Website Summary",
+            "description": "Summarize the content of any webpage",
+            "category": "analysis",
+            "input_type": "url",
+            "input_validation": {
+                "pattern": "^https?://",
+                "error_message": "Please provide a valid URL"
+            },
+            "workflow": {
+                "nodes": [
+                    {
+                        "id": "extract-content",
+                        "type": "dom_action",
+                        "data": {
+                            "action": "extract",
+                            "selector": "article, main, .content, body"
+                        }
+                    },
+                    {
+                        "id": "summarize",
+                        "type": "provider",
+                        "data": {
+                            "provider_type": "gemini_canvas",
+                            "canvas_mode": "analyze",
+                            "prompt_template": "Summarize this webpage content. Include key points, main themes, and any important details."
+                        }
+                    }
+                ],
+                "edges": [
+                    {
+                        "source": "extract-content",
+                        "target": "summarize"
+                    }
+                ]
+            },
+            "output": {
+                "destination": "both",
+                "folder": "Web Summaries"
+            }
+        },
+        {
+            "id": "text-analysis",
+            "name": "Text Analysis",
+            "description": "Analyze selected text for insights and patterns",
+            "category": "analysis",
+            "input_type": "selection",
+            "input_validation": {
+                "min_length": 50,
+                "error_message": "Please select at least 50 characters of text"
+            },
+            "workflow": {
+                "nodes": [
+                    {
+                        "id": "analyze",
+                        "type": "provider",
+                        "data": {
+                            "provider_type": "gemini_canvas",
+                            "canvas_mode": "analyze",
+                            "prompt_template": "Analyze this text. Identify: 1) Main themes 2) Key arguments 3) Sentiment 4) Notable patterns 5) Summary"
+                        }
+                    }
+                ],
+                "edges": []
+            },
+            "output": {
+                "destination": "screen",
+                "display_mode": "popup"
+            }
+        },
+        {
+            "id": "chat-capture",
+            "name": "Chat Capture & Save",
+            "description": "Capture AI chat conversation and save to Obsidian",
+            "category": "extraction",
+            "input_type": "custom",
+            "trigger": {
+                "type": "manual",
+                "shortcut": "Ctrl+Shift+S"
+            },
+            "workflow": {
+                "nodes": [
+                    {
+                        "id": "capture-chat",
+                        "type": "dom_action",
+                        "data": {
+                            "action": "extract",
+                            "selector_key": "chat_container"
+                        }
+                    },
+                    {
+                        "id": "format-chat",
+                        "type": "transform",
+                        "data": {
+                            "transform_type": "markdown",
+                            "chat_format": true
+                        }
+                    },
+                    {
+                        "id": "export-obsidian",
+                        "type": "export",
+                        "data": {
+                            "format": "markdown",
+                            "include_metadata": true
+                        }
+                    }
+                ],
+                "edges": [
+                    {
+                        "source": "capture-chat",
+                        "target": "format-chat"
+                    },
+                    {
+                        "source": "format-chat",
+                        "target": "export-obsidian"
+                    }
+                ]
+            },
+            "output": {
+                "destination": "obsidian",
+                "folder": "Chat Captures",
+                "filename_template": "{{site}} - Chat - {{timestamp}}"
+            }
+        }
+    ],
+    "categories": [
+        {
+            "id": "transcription",
+            "name": "Transcription",
+            "icon": "📝",
+            "description": "Extract and process transcripts from videos"
+        },
+        {
+            "id": "research",
+            "name": "Research",
+            "icon": "🔬",
+            "description": "AI-powered research and analysis"
+        },
+        {
+            "id": "analysis",
+            "name": "Analysis",
+            "icon": "📊",
+            "description": "Analyze text and web content"
+        },
+        {
+            "id": "extraction",
+            "name": "Extraction",
+            "icon": "📤",
+            "description": "Extract and capture content"
+        }
+    ]
+}

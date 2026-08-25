@@ -8,8 +8,8 @@ const Extension: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Chrome Extension</h1>
-          <p className="text-gray-600 mt-1">Connect your browser to the DataKiln Engine</p>
+          <h1 className="text-3xl font-bold text-white">Chrome Extension</h1>
+          <p className="text-white/60 mt-1">Connect your browser to the DataKiln Engine</p>
         </div>
         <Button onClick={() => window.open('chrome://extensions', '_blank')}>
           Open Chrome Extensions
@@ -25,7 +25,7 @@ const Extension: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+            <ol className="list-decimal list-inside space-y-2 text-sm text-white/80">
               <li>Download the <code>chrome-extension</code> folder from the project root.</li>
               <li>Open Chrome and navigate to <code>chrome://extensions</code>.</li>
               <li>Enable <strong>Developer Mode</strong> in the top right.</li>
@@ -47,19 +47,19 @@ const Extension: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-3">
-              <Globe className="h-5 w-5 text-blue-500" />
+              <Globe className="h-5 w-5 text-violet-300" />
               <div>
                 <h4 className="font-medium text-sm">Context-Aware Triggers</h4>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-white/50">
                   The extension detects which site you are on (e.g., YouTube, Gemini) and suggests relevant workflows to run instantly.
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
-              <Shield className="h-5 w-5 text-green-500" />
+              <Shield className="h-5 w-5 text-emerald-500" />
               <div>
                 <h4 className="font-medium text-sm">Secure Capture</h4>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-white/50">
                   Use the "Capture Selector" mode to click any element on a page and save its robust generic selector to your Registry.
                 </p>
               </div>
@@ -73,13 +73,13 @@ const Extension: React.FC = () => {
           <CardTitle>Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-white/60 mb-4">
             By default, the extension connects to `http://localhost:8000`. You can configure this in the extension popup settings if you deploy DataKiln remotely.
           </p>
           {/* Placeholder for status check if we had one */}
           <div className="flex items-center space-x-2 text-sm">
             <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-            <span className="text-gray-500">Extension Link Status: Unknown (Install to verify)</span>
+            <span className="text-white/50">Extension Link Status: Unknown (Install to verify)</span>
           </div>
         </CardContent>
       </Card>

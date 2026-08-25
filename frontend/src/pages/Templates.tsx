@@ -132,18 +132,18 @@ const Templates: React.FC = () => {
           <Card key={template.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="text-lg">{template.name}</CardTitle>
-              <div className="text-sm text-gray-500">{template.category}</div>
+              <div className="text-sm text-white/50">{template.category}</div>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">{template.description}</p>
-              <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
+              <p className="text-white/60 mb-4">{template.description}</p>
+              <div className="flex justify-between items-center text-sm text-white/50 mb-4">
                 <span>{template.nodes?.length || 0} nodes</span>
                 <span>{template.edges?.length || 0} connections</span>
               </div>
               {template.parameters && template.parameters.length > 0 && (
                 <div className="mb-4">
-                  <div className="text-sm font-medium text-gray-700">Parameters:</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm font-medium text-white/80">Parameters:</div>
+                  <div className="text-sm text-white/60">
                     {template.parameters.length} configurable values
                   </div>
                 </div>
@@ -162,8 +162,8 @@ const Templates: React.FC = () => {
 
       {templates.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No templates available yet.</p>
-          <p className="text-gray-400">Create your first template from a workflow in the Workflow Builder.</p>
+          <p className="text-white/50 mb-4">No templates available yet.</p>
+          <p className="text-white/40">Create your first template from a workflow in the Workflow Builder.</p>
         </div>
       )}
     </div>

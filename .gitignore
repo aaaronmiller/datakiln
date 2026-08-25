@@ -180,3 +180,15 @@ frontend/.next/
 .kiro/steering/byterover-rules.md
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md
+
+# Demo and ephemeral runtime data (do not commit) — added 2026-08-25
+backend/data/runs.json
+backend/data/outputs/
+backend/data/exports/
+backend/data/screenshots/
+backend/data/transcripts/*.json
+backend/artifacts/
+research_results/
+research_data/outputs/
+error_logs.jsonl
+extension_data.json

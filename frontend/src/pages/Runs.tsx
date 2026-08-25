@@ -126,8 +126,8 @@ const Runs: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Runs</h1>
-          <p className="text-gray-600 mt-1">Monitor and manage workflow executions</p>
+          <h1 className="text-2xl font-bold text-white">Runs</h1>
+          <p className="text-white/60 mt-1">Monitor and manage workflow executions</p>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" size="sm" onClick={loadRuns} disabled={isLoading}>
@@ -155,7 +155,7 @@ const Runs: React.FC = () => {
 
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
               <Input
                 placeholder="Search ID or Workflow..."
                 value={searchTerm}
@@ -164,7 +164,7 @@ const Runs: React.FC = () => {
               />
             </div>
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
               <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="pl-10 w-32">
                 <option value="all">All Status</option>
                 <option value="running">Running</option>
@@ -181,9 +181,9 @@ const Runs: React.FC = () => {
           {activeRuns.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Play className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Runs</h3>
-                <p className="text-gray-600 text-center mb-4">
+                <Play className="h-12 w-12 text-white/40 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Active Runs</h3>
+                <p className="text-white/60 text-center mb-4">
                   Start a workflow to see real-time execution monitoring here.
                 </p>
                 <Button onClick={() => navigate("/workflows")}>
@@ -198,7 +198,7 @@ const Runs: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">Run {run.execution_id.slice(0, 8)}</CardTitle>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-white/60">
                         Workflow: {run.workflow_id} • Started {new Date(run.started_at).toLocaleString()}
                       </p>
                     </div>
@@ -245,9 +245,9 @@ const Runs: React.FC = () => {
           {completedRuns.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileText className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Run History</h3>
-                <p className="text-gray-600 text-center">
+                <FileText className="h-12 w-12 text-white/40 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Run History</h3>
+                <p className="text-white/60 text-center">
                   Completed runs will appear here.
                 </p>
               </CardContent>
@@ -259,7 +259,7 @@ const Runs: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">Run {run.execution_id.slice(0, 8)}</CardTitle>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div className="flex items-center space-x-4 text-sm text-white/60">
                         <span>Started: {new Date(run.started_at).toLocaleString()}</span>
                         {run.completed_at && (
                           <span>Completed: {new Date(run.completed_at).toLocaleString()}</span>

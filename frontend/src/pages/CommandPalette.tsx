@@ -148,9 +148,9 @@ const CommandPalette: React.FC = () => {
   const getCategoryColor = (category: CommandAction['category']) => {
     switch (category) {
       case 'navigation': return 'bg-blue-100 text-blue-800'
-      case 'actions': return 'bg-green-100 text-green-800'
-      case 'system': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'actions': return 'bg-emerald-100 text-emerald-800'
+      case 'system': return 'bg-white/[0.08] text-white/90'
+      default: return 'bg-white/[0.08] text-white/90'
     }
   }
 
@@ -167,12 +167,12 @@ const CommandPalette: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Command Palette</h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-white/60 mt-2">
             Quick access to all application commands and shortcuts
           </p>
         </div>
         <div className="text-right">
-          <div className="text-sm text-gray-500">Total Commands</div>
+          <div className="text-sm text-white/50">Total Commands</div>
           <div className="text-2xl font-bold">{actions.length}</div>
         </div>
       </div>
@@ -202,7 +202,7 @@ const CommandPalette: React.FC = () => {
               {categoryActions.map(action => (
                 <div
                   key={action.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="bg-white border border-white/10 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -210,9 +210,9 @@ const CommandPalette: React.FC = () => {
                         {action.icon}
                       </span>
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{action.title}</h3>
+                        <h3 className="font-medium text-white">{action.title}</h3>
                         {action.description && (
-                          <p className="text-sm text-gray-600 mt-1">{action.description}</p>
+                          <p className="text-sm text-white/60 mt-1">{action.description}</p>
                         )}
                       </div>
                     </div>
@@ -223,7 +223,7 @@ const CommandPalette: React.FC = () => {
                       </Badge>
                       {action.shortcut && (
                         <div className="flex items-center gap-1">
-                          <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">
+                          <kbd className="px-2 py-1 bg-white/[0.08] border border-gray-300 rounded text-xs font-mono">
                             {action.shortcut}
                           </kbd>
                         </div>
@@ -237,7 +237,7 @@ const CommandPalette: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+      <div className="mt-8 bg-white/[0.04] border border-white/10 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div className="flex justify-between">

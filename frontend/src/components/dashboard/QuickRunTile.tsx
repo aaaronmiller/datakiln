@@ -55,7 +55,7 @@ const QuickRunTile: React.FC<QuickRunTileProps> = ({
 
       if (type === 'deep-research') {
         defaultIcon = Search
-        colorClass = 'bg-blue-500 text-white'
+        colorClass = 'bg-violet-600 text-white'
       } else if (type.includes('youtube') || type.includes('transcript')) {
         defaultIcon = FileText
         colorClass = 'bg-red-500 text-white'
@@ -72,7 +72,7 @@ const QuickRunTile: React.FC<QuickRunTileProps> = ({
       title: type,
       description: 'Custom Workflow',
       icon: Play,
-      colorClass: 'bg-gray-500 text-white'
+      colorClass: 'bg-white/[0.04]0 text-white'
     };
   };
 
