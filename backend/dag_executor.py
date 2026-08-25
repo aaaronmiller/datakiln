@@ -516,7 +516,11 @@ async def execute_dom_sequence(
     sequence = node.config.get("dom_action_sequence") or DEFAULT_DOM_SEQUENCES.get(node.type, [])
     actions = [_resolve_dom_action(action, inputs, node.config) for action in sequence]
 
-    if context.get("dom_dry_run", True) and not context.get("page"):
+    # dom_dry_run may arrive top-level (schema executor ctx) or nested
+    # under execution_options (workflow_service._prepare_execution_context)
+    exec_opts = context.get("execution_options") or {}
+    dry_run = context.get("dom_dry_run", exec_opts.get("dom_dry_run", True))
+    if dry_run and not context.get("page"):
         return {
             "result": f"[dry-run:{node.type}] {inputs.get('query') or inputs.get('input') or ''}".strip(),
             "actions": actions,

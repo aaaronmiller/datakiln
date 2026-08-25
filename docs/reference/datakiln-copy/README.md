@@ -16,3 +16,10 @@ on any build/test path.
   `init_check.py`, `custom_nodes.json`, `data/prompt_templates.json`
 - `docs/` — fork-only documentation
 - root — `cli.py`, `quickstart.sh`
+
+## Post-retrieval disposition (2026-08-25)
+
+- `chrome-extension/youtube-content.js` → **merged** into `chrome-extension/` (manifest already referenced it; reference was broken).
+- `chrome-extension/workflow-templates.json` → **merged** into `chrome-extension/` (manifest `web_accessible_resources` referenced it).
+- `content.copy-version.js` → **diffed, not adopted.** Its substantive addition over unified `content.js` is `initGeneric()` (generic init on non-supported sites); it contains no YouTube code (that lives in `youtube-content.js`). Kept here for reference; adopt `initGeneric` deliberately if generic-site capture is wanted.
+- Selector verification: see `backend/selectors.json` — YouTube selectors live-confirmed 2026-08-25; Gemini prompt input confirmed, Add Files icon changed (`add_2` → `plus`), send/tools require sign-in.

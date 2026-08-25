@@ -1,386 +1,601 @@
 {
-  "selectors": [
-    {
-      "key": "gemini.searchButton",
-      "selector": "button[aria-label*='Send']",
-      "selector_type": "css",
-      "description": "Gemini send button",
-      "provider": "gemini",
-      "context": "search",
-      "fallback_selectors": [
-        "mat-icon[fonticon='send']",
-        "button:has(mat-icon[fonticon='send'])"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 8000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110098",
-      "updated_at": "2025-09-26 23:49:03.110520"
-    },
-    {
-      "key": "perplexity.searchInput",
-      "selector": "[contenteditable='true']",
-      "selector_type": "css",
-      "description": "Perplexity search input",
-      "provider": "perplexity",
-      "context": "search",
-      "fallback_selectors": [
-        "[role='textbox']",
-        "[data-lexical-editor='true']",
-        "textarea"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 2000,
-        "wait_for_selector_timeout_ms": 3000,
-        "action_timeout_ms": 8000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110099",
-      "updated_at": "2025-09-26 23:49:03.110795"
-    },
-    {
-      "key": "perplexity.submitButton",
-      "selector": "button[aria-label*='Submit']",
-      "selector_type": "css",
-      "description": "Perplexity submit button",
-      "provider": "perplexity",
-      "context": "search",
-      "fallback_selectors": [
-        "button[aria-label*='Send']",
-        "button[data-testid='send-button']",
-        "button:has-text('Ask')"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 3000,
-        "action_timeout_ms": 8000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110101",
-      "updated_at": "2025-09-26 23:49:03.111038"
-    },
-    {
-      "key": "generic.promptInput",
-      "selector": "[contenteditable='true']",
-      "selector_type": "css",
-      "description": "Generic contenteditable element for prompt input",
-      "provider": null,
-      "context": "prompt_input",
-      "fallback_selectors": [
-        "textarea",
-        "input[type='text'][placeholder*='prompt']"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 3000,
-        "action_timeout_ms": 8000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110102",
-      "updated_at": "2025-09-26 23:49:03.111276"
-    },
-    {
-      "key": "generic.submitButton",
-      "selector": "button[type='submit']",
-      "selector_type": "css",
-      "description": "Generic submit button",
-      "provider": null,
-      "context": "forms",
-      "fallback_selectors": [
-        "input[type='submit']",
-        "button:has-text('Submit')"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 500,
-        "wait_for_selector_timeout_ms": 3000,
-        "action_timeout_ms": 8000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110104",
-      "updated_at": "2025-09-26 23:49:03.111526"
-    },
-    {
-      "key": "generic.textInput",
-      "selector": "input[type='text']",
-      "selector_type": "css",
-      "description": "Generic text input field",
-      "provider": null,
-      "context": "forms",
-      "fallback_selectors": [
-        "input:not([type])",
-        "input[type='email']"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 500,
-        "wait_for_selector_timeout_ms": 3000,
-        "action_timeout_ms": 8000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110105",
-      "updated_at": "2025-09-26 23:49:03.111776"
-    },
-    {
-      "key": "generic.mainContent",
-      "selector": "main, [role='main'], .main-content, #main",
-      "selector_type": "css",
-      "description": "Main content area",
-      "provider": null,
-      "context": "content",
-      "fallback_selectors": [
-        "#content",
-        ".content",
-        "body > div:first-child"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110106",
-      "updated_at": "2025-09-26 23:49:03.112023"
-    },
-    {
-      "key": "generic.articleContent",
-      "selector": "article, .article, .post-content",
-      "selector_type": "css",
-      "description": "Article content",
-      "provider": null,
-      "context": "content",
-      "fallback_selectors": [
-        ".entry-content",
-        ".post",
-        "#article"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110108",
-      "updated_at": "2025-09-26 23:49:03.112269"
-    },
-    {
-      "key": "gemini.textInput",
-      "selector": "rich-textarea [contenteditable='true']",
-      "selector_type": "css",
-      "description": "Gemini prompt input",
-      "provider": "gemini",
-      "context": "search",
-      "fallback_selectors": [
-        "[contenteditable='true']",
-        "[role='textbox']"
-      ],
-      "timing_policy": {
-        "default_delay_ms": 8000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2025-09-26 23:49:03.110093",
-      "updated_at": "2025-09-26 23:49:03.110112"
-    },
-    {
-      "key": "google_search_input",
-      "selector": "input[name='q']",
-      "selector_type": "css",
-      "description": "Google search input field",
-      "provider": "gemini_deep_research",
-      "context": "search",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728115",
-      "updated_at": "2026-07-27 19:52:58.728170"
-    },
-    {
-      "key": "google_search_button",
-      "selector": "input[value='Google Search']",
-      "selector_type": "css",
-      "description": "Google search button",
-      "provider": "gemini_deep_research",
-      "context": "search",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728125",
-      "updated_at": "2026-07-27 19:52:58.729278"
-    },
-    {
-      "key": "perplexity_search_input",
-      "selector": "textarea[data-testid='search-input']",
-      "selector_type": "css",
-      "description": "Perplexity search input",
-      "provider": "perplexity",
-      "context": "search",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728129",
-      "updated_at": "2026-07-27 19:52:58.730247"
-    },
-    {
-      "key": "perplexity_send_button",
-      "selector": "button[data-testid='send-button']",
-      "selector_type": "css",
-      "description": "Perplexity send button",
-      "provider": "perplexity",
-      "context": "search",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728133",
-      "updated_at": "2026-07-27 19:52:58.731115"
-    },
-    {
-      "key": "contenteditable_input",
-      "selector": "[contenteditable='true']",
-      "selector_type": "css",
-      "description": "Generic contenteditable element for prompt input",
-      "provider": null,
-      "context": "prompt_input",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728139",
-      "updated_at": "2026-07-27 19:52:58.731850"
-    },
-    {
-      "key": "submit_button",
-      "selector": "button[type='submit']",
-      "selector_type": "css",
-      "description": "Generic submit button",
-      "provider": null,
-      "context": "forms",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728142",
-      "updated_at": "2026-07-27 19:52:58.732528"
-    },
-    {
-      "key": "text_input",
-      "selector": "input[type='text']",
-      "selector_type": "css",
-      "description": "Generic text input field",
-      "provider": null,
-      "context": "forms",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728146",
-      "updated_at": "2026-07-27 19:52:58.733276"
-    },
-    {
-      "key": "main_content",
-      "selector": "main, [role='main'], .main-content, #main",
-      "selector_type": "css",
-      "description": "Main content area",
-      "provider": null,
-      "context": "content",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728149",
-      "updated_at": "2026-07-27 19:52:58.733957"
-    },
-    {
-      "key": "article_content",
-      "selector": "article, .article, .post-content",
-      "selector_type": "css",
-      "description": "Article content",
-      "provider": null,
-      "context": "content",
-      "fallback_selectors": [],
-      "timing_policy": {
-        "default_delay_ms": 1000,
-        "wait_for_selector_timeout_ms": 5000,
-        "action_timeout_ms": 10000
-      },
-      "attributes": {},
-      "created_at": "2026-07-27 19:52:58.728152",
-      "updated_at": "2026-07-27 19:52:58.734688"
-    }
+ "selectors": [
+  {
+   "key": "gemini.searchButton",
+   "selector": "button[aria-label*='Send']",
+   "selector_type": "css",
+   "description": "Gemini send button",
+   "provider": "gemini",
+   "context": "search",
+   "fallback_selectors": [
+    "mat-icon[fonticon='send']",
+    "button:has(mat-icon[fonticon='send'])"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 8000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110098",
+   "updated_at": "2025-09-26 23:49:03.110520"
+  },
+  {
+   "key": "perplexity.searchInput",
+   "selector": "[contenteditable='true']",
+   "selector_type": "css",
+   "description": "Perplexity search input",
+   "provider": "perplexity",
+   "context": "search",
+   "fallback_selectors": [
+    "[role='textbox']",
+    "[data-lexical-editor='true']",
+    "textarea"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 3000,
+    "action_timeout_ms": 8000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110099",
+   "updated_at": "2025-09-26 23:49:03.110795"
+  },
+  {
+   "key": "perplexity.submitButton",
+   "selector": "button[aria-label*='Submit']",
+   "selector_type": "css",
+   "description": "Perplexity submit button",
+   "provider": "perplexity",
+   "context": "search",
+   "fallback_selectors": [
+    "button[aria-label*='Send']",
+    "button[data-testid='send-button']",
+    "button:has-text('Ask')"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 3000,
+    "action_timeout_ms": 8000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110101",
+   "updated_at": "2025-09-26 23:49:03.111038"
+  },
+  {
+   "key": "generic.promptInput",
+   "selector": "[contenteditable='true']",
+   "selector_type": "css",
+   "description": "Generic contenteditable element for prompt input",
+   "provider": null,
+   "context": "prompt_input",
+   "fallback_selectors": [
+    "textarea",
+    "input[type='text'][placeholder*='prompt']"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 3000,
+    "action_timeout_ms": 8000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110102",
+   "updated_at": "2025-09-26 23:49:03.111276"
+  },
+  {
+   "key": "generic.submitButton",
+   "selector": "button[type='submit']",
+   "selector_type": "css",
+   "description": "Generic submit button",
+   "provider": null,
+   "context": "forms",
+   "fallback_selectors": [
+    "input[type='submit']",
+    "button:has-text('Submit')"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 500,
+    "wait_for_selector_timeout_ms": 3000,
+    "action_timeout_ms": 8000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110104",
+   "updated_at": "2025-09-26 23:49:03.111526"
+  },
+  {
+   "key": "generic.textInput",
+   "selector": "input[type='text']",
+   "selector_type": "css",
+   "description": "Generic text input field",
+   "provider": null,
+   "context": "forms",
+   "fallback_selectors": [
+    "input:not([type])",
+    "input[type='email']"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 500,
+    "wait_for_selector_timeout_ms": 3000,
+    "action_timeout_ms": 8000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110105",
+   "updated_at": "2025-09-26 23:49:03.111776"
+  },
+  {
+   "key": "generic.mainContent",
+   "selector": "main, [role='main'], .main-content, #main",
+   "selector_type": "css",
+   "description": "Main content area",
+   "provider": null,
+   "context": "content",
+   "fallback_selectors": [
+    "#content",
+    ".content",
+    "body > div:first-child"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110106",
+   "updated_at": "2025-09-26 23:49:03.112023"
+  },
+  {
+   "key": "generic.articleContent",
+   "selector": "article, .article, .post-content",
+   "selector_type": "css",
+   "description": "Article content",
+   "provider": null,
+   "context": "content",
+   "fallback_selectors": [
+    ".entry-content",
+    ".post",
+    "#article"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110108",
+   "updated_at": "2025-09-26 23:49:03.112269"
+  },
+  {
+   "key": "gemini.textInput",
+   "selector": "rich-textarea [contenteditable='true']",
+   "selector_type": "css",
+   "description": "Gemini prompt input",
+   "provider": "gemini",
+   "context": "search",
+   "fallback_selectors": [
+    "[contenteditable='true']",
+    "[role='textbox']"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 8000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2025-09-26 23:49:03.110093",
+   "updated_at": "2025-09-26 23:49:03.110112"
+  },
+  {
+   "key": "google_search_input",
+   "selector": "input[name='q']",
+   "selector_type": "css",
+   "description": "Google search input field",
+   "provider": "gemini_deep_research",
+   "context": "search",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728115",
+   "updated_at": "2026-07-27 19:52:58.728170"
+  },
+  {
+   "key": "google_search_button",
+   "selector": "input[value='Google Search']",
+   "selector_type": "css",
+   "description": "Google search button",
+   "provider": "gemini_deep_research",
+   "context": "search",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728125",
+   "updated_at": "2026-07-27 19:52:58.729278"
+  },
+  {
+   "key": "perplexity_search_input",
+   "selector": "textarea[data-testid='search-input']",
+   "selector_type": "css",
+   "description": "Perplexity search input",
+   "provider": "perplexity",
+   "context": "search",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728129",
+   "updated_at": "2026-07-27 19:52:58.730247"
+  },
+  {
+   "key": "perplexity_send_button",
+   "selector": "button[data-testid='send-button']",
+   "selector_type": "css",
+   "description": "Perplexity send button",
+   "provider": "perplexity",
+   "context": "search",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728133",
+   "updated_at": "2026-07-27 19:52:58.731115"
+  },
+  {
+   "key": "contenteditable_input",
+   "selector": "[contenteditable='true']",
+   "selector_type": "css",
+   "description": "Generic contenteditable element for prompt input",
+   "provider": null,
+   "context": "prompt_input",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728139",
+   "updated_at": "2026-07-27 19:52:58.731850"
+  },
+  {
+   "key": "submit_button",
+   "selector": "button[type='submit']",
+   "selector_type": "css",
+   "description": "Generic submit button",
+   "provider": null,
+   "context": "forms",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728142",
+   "updated_at": "2026-07-27 19:52:58.732528"
+  },
+  {
+   "key": "text_input",
+   "selector": "input[type='text']",
+   "selector_type": "css",
+   "description": "Generic text input field",
+   "provider": null,
+   "context": "forms",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728146",
+   "updated_at": "2026-07-27 19:52:58.733276"
+  },
+  {
+   "key": "main_content",
+   "selector": "main, [role='main'], .main-content, #main",
+   "selector_type": "css",
+   "description": "Main content area",
+   "provider": null,
+   "context": "content",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728149",
+   "updated_at": "2026-07-27 19:52:58.733957"
+  },
+  {
+   "key": "article_content",
+   "selector": "article, .article, .post-content",
+   "selector_type": "css",
+   "description": "Article content",
+   "provider": null,
+   "context": "content",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 1000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {},
+   "created_at": "2026-07-27 19:52:58.728152",
+   "updated_at": "2026-07-27 19:52:58.734688"
+  },
+  {
+   "key": "gemini.promptInput",
+   "selector": "rich-textarea [contenteditable='true']",
+   "selector_type": "css",
+   "description": "Gemini prompt input (aria-label 'Enter a prompt for Gemini') \u2014 CONFIRMED live 2026-08-25",
+   "provider": "gemini",
+   "context": "prompt",
+   "fallback_selectors": [
+    "[contenteditable='true']",
+    "div[aria-label='Enter a prompt for Gemini']"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "gemini.addFiles",
+   "selector": "button[aria-label='Add files']",
+   "selector_type": "css",
+   "description": "Gemini Add files button \u2014 icon CHANGED add_2\u2192plus (live 2026-08-25); aria-label confirmed",
+   "provider": "gemini",
+   "context": "files",
+   "fallback_selectors": [
+    "mat-icon[fonticon='plus']",
+    "mat-icon[fonticon='add_2']",
+    "button:has(mat-icon[fonticon='plus'])"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "gemini.sendButton",
+   "selector": "button[aria-label*='Send']",
+   "selector_type": "css",
+   "description": "Gemini send \u2014 appears only after typing text AND sign-in; UNVERIFIED logged-out (enterkeyhint=send on textarea suggests Enter works)",
+   "provider": "gemini",
+   "context": "prompt",
+   "fallback_selectors": [
+    "button:has(mat-icon[fonticon='send'])",
+    "mat-icon[fonticon='send']",
+    "button[aria-label*='Run']"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": false
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "gemini.deepResearch",
+   "selector": "div.label.gds-label-l:has-text('Deep Research')",
+   "selector_type": "css",
+   "description": "Deep Research tool option inside Tools menu \u2014 requires sign-in; UNVERIFIED logged-out (doc Dec 2024)",
+   "provider": "gemini",
+   "context": "tools",
+   "fallback_selectors": [
+    "span:has-text('Tools')",
+    "button:has-text('Tools')"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": false
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "gemini.startResearch",
+   "selector": "span.mdc-button__label:has-text('Start research')",
+   "selector_type": "css",
+   "description": "Start research button after DR selected \u2014 requires sign-in; UNVERIFIED logged-out (doc Dec 2024)",
+   "provider": "gemini",
+   "context": "research",
+   "fallback_selectors": [
+    "button:has-text('Start research')"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": false
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "youtube.transcriptButton",
+   "selector": "button[aria-label='Show transcript']",
+   "selector_type": "css",
+   "description": "YouTube 'Show transcript' button in description \u2014 CONFIRMED live 2026-08-25 (2 matches)",
+   "provider": "youtube",
+   "context": "transcript",
+   "fallback_selectors": [
+    "button[aria-label*='transcript' i]",
+    "ytd-video-description-transcript-section-renderer button"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "youtube.transcriptSection",
+   "selector": "ytd-video-description-transcript-section-renderer",
+   "selector_type": "css",
+   "description": "Transcript section container \u2014 CONFIRMED live 2026-08-25 (2 matches)",
+   "provider": "youtube",
+   "context": "transcript",
+   "fallback_selectors": [
+    "ytd-video-description-renderer"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "youtube.expandDescription",
+   "selector": "tp-yt-paper-button#expand",
+   "selector_type": "css",
+   "description": "Expand description (...more) \u2014 CONFIRMED live 2026-08-25 (2 matches)",
+   "provider": "youtube",
+   "context": "description",
+   "fallback_selectors": [
+    "button[aria-label*='more' i]"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "youtube.player",
+   "selector": "video.html5-main-video",
+   "selector_type": "css",
+   "description": "Main video player element \u2014 CONFIRMED live 2026-08-25",
+   "provider": "youtube",
+   "context": "player",
+   "fallback_selectors": [],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  },
+  {
+   "key": "youtube.title",
+   "selector": "h1.ytd-watch-metadata yt-formatted-string",
+   "selector_type": "css",
+   "description": "Video title \u2014 CONFIRMED live 2026-08-25",
+   "provider": "youtube",
+   "context": "metadata",
+   "fallback_selectors": [
+    "h1#title"
+   ],
+   "timing_policy": {
+    "default_delay_ms": 2000,
+    "wait_for_selector_timeout_ms": 5000,
+    "action_timeout_ms": 10000
+   },
+   "attributes": {
+    "live_verified": true
+   },
+   "created_at": "2026-08-25",
+   "updated_at": "2026-08-25"
+  }
+ ],
+ "provider_mappings": {
+  "gemini": [
+   "gemini.textInput",
+   "gemini.searchButton"
   ],
-  "provider_mappings": {
-    "gemini": [
-      "gemini.textInput",
-      "gemini.searchButton"
-    ],
-    "perplexity": [
-      "perplexity.searchInput",
-      "perplexity.submitButton",
-      "perplexity_search_input",
-      "perplexity_send_button"
-    ],
-    "gemini_deep_research": [
-      "google_search_input",
-      "google_search_button"
-    ]
-  },
-  "context_mappings": {
-    "search": [
-      "gemini.textInput",
-      "gemini.searchButton",
-      "perplexity.searchInput",
-      "perplexity.submitButton",
-      "google_search_input",
-      "google_search_button",
-      "perplexity_search_input",
-      "perplexity_send_button"
-    ],
-    "prompt_input": [
-      "generic.promptInput",
-      "contenteditable_input"
-    ],
-    "forms": [
-      "generic.submitButton",
-      "generic.textInput",
-      "submit_button",
-      "text_input"
-    ],
-    "content": [
-      "generic.mainContent",
-      "generic.articleContent",
-      "main_content",
-      "article_content"
-    ]
-  },
-  "exported_at": "2026-07-27T19:52:58.734940"
+  "perplexity": [
+   "perplexity.searchInput",
+   "perplexity.submitButton",
+   "perplexity_search_input",
+   "perplexity_send_button"
+  ],
+  "gemini_deep_research": [
+   "google_search_input",
+   "google_search_button"
+  ]
+ },
+ "context_mappings": {
+  "search": [
+   "gemini.textInput",
+   "gemini.searchButton",
+   "perplexity.searchInput",
+   "perplexity.submitButton",
+   "google_search_input",
+   "google_search_button",
+   "perplexity_search_input",
+   "perplexity_send_button"
+  ],
+  "prompt_input": [
+   "generic.promptInput",
+   "contenteditable_input"
+  ],
+  "forms": [
+   "generic.submitButton",
+   "generic.textInput",
+   "submit_button",
+   "text_input"
+  ],
+  "content": [
+   "generic.mainContent",
+   "generic.articleContent",
+   "main_content",
+   "article_content"
+  ]
+ },
+ "exported_at": "2026-07-27T19:52:58.734940"
 }
