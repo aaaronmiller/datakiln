@@ -192,3 +192,7 @@ research_results/
 research_data/outputs/
 error_logs.jsonl
 extension_data.json
+
+# runtime outputs
+data/outputs/
+backend/data/research_reports/

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body{margin:0;background:#070A14;display:grid;place-items:center;width:128px;height:128px;overflow:hidden}
+  .tile{width:128px;height:128px;border-radius:28px;background:linear-gradient(135deg,#06B6D4 0%,#6366F1 60%,#8B5CF6 100%);display:grid;place-items:center;box-shadow:inset 0 2px 8px rgba(255,255,255,.25)}
+  svg{filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
+</style>
+</head>
+<body>
+<div class="tile">
+  <!-- kiln + node graph glyph: three connected nodes over a flame base -->
+  <svg width="86" height="86" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="6" width="14" height="14" rx="4" fill="#E8EAF2"/>
+    <rect x="44" y="10" width="12" height="12" rx="3.5" fill="#E8EAF2" opacity=".92"/>
+    <rect x="26" y="26" width="14" height="14" rx="4" fill="#0B0F1E" stroke="#E8EAF2" stroke-width="2.5"/>
+    <path d="M13 20 L13 33 L26 33" stroke="#E8EAF2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M50 22 L50 33 L40 33" stroke="#E8EAF2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>
+    <path d="M33 44 C27 52 27 56 33 60 C39 56 39 52 33 44Z" fill="#F59E0B"/>
+  </svg>
+</div>
+</body>
+</html>

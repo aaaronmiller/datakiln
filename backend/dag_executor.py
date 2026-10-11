@@ -1455,12 +1455,15 @@ class WorkflowExecutor:
           - execution_time: float
           - execution_order: list[node_id]
           - node_results: dict[node_id][port_name] = value
+          - node_timings: dict[node_id] -> wall-clock duration in milliseconds
+          - node_types: dict[node_id] -> node type string
           - error: optional str
         """
         start_time = time.time()
         execution_id = f"exec_{uuid.uuid4().hex[:12]}"
         node_outputs: Dict[str, Dict[str, Any]] = {}
         node_exec_times: Dict[str, float] = {}
+        node_types: Dict[str, str] = {}
 
         ctx = {
             "execution_id": execution_id,
@@ -1491,6 +1494,7 @@ class WorkflowExecutor:
                 elapsed = time.time() - node_start
                 node_outputs[node_id] = outputs
                 node_exec_times[node_id] = elapsed
+                node_types[node_id] = node.type
 
                 self._emit("node.finished", {
                     "node_id": node_id,
@@ -1519,6 +1523,8 @@ class WorkflowExecutor:
                 "execution_order": list(plan.execution_order),
                 "node_results": node_outputs,
                 "node_exec_times": node_exec_times,
+                "node_timings": {k: v * 1000.0 for k, v in node_exec_times.items()},
+                "node_types": dict(node_types),
                 "error": None,
             }
 
@@ -1538,6 +1544,8 @@ class WorkflowExecutor:
                 "execution_order": list(plan.execution_order),
                 "node_results": node_outputs,
                 "node_exec_times": node_exec_times,
+                "node_timings": {},
+                "node_types": {},
                 "error": str(e),
             }
 

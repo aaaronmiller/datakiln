@@ -450,3 +450,88 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.sync.set({ enableCapture: enableCapture.checked });
   }
 });
+// ════════════════════════════════════════════════════════════════════
+// Element Recorder UI (2026-08-25) — appends to existing popup logic.
+// ════════════════════════════════════════════════════════════════════
+(function () {
+  const $ = id => document.getElementById(id);
+  const store = {
+    async get(k){ try { const s = await chrome.storage.session.get(k); if (s[k] !== undefined) return s; } catch(e){} return chrome.storage.local.get(k); },
+    async set(o){ try { await chrome.storage.session.set(o); } catch(e){ await chrome.storage.local.set(o); } },
+  };
+  const statusEl = () => $('dk-status');
+
+  function renderCaptured(captured) {
+    const list = $('dk-cap-list');
+    if (!captured.length) {
+      list.innerHTML = '<div style="color:#5A6285;font-size:11px;text-align:center;padding:8px 0">No actions captured yet</div>';
+      return;
+    }
+    list.innerHTML = captured.map(c =>
+      `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.04);margin-bottom:4px">
+         <span style="background:#111733;border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:9px;color:#E8EAF2;padding:1px 5px">${c.action}</span>
+         <span style="flex:1;min-width:0;font-family:ui-monospace,monospace;font-size:10px;color:#8B92B5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.selector.replace(/"/g,'&quot;')}">${c.selector}</span>
+       </div>`).join('');
+  }
+
+  async function refreshCaptured() {
+    const { datakilnCaptured: captured = [] } = await store.get('datakilnCaptured');
+    renderCaptured(captured);
+    $('dk-save').textContent = `💾 Save (${captured.length})`;
+  }
+
+  async function refreshWorkflows() {
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/workflows');
+      if (!res.ok) throw new Error(res.status);
+      const wfs = await res.json();
+      const sel = $('dk-wf-select');
+      wfs.slice(0, 30).forEach(wf => {
+        const opt = document.createElement('option');
+        opt.value = wf.id;
+        opt.textContent = wf.name.slice(0, 42);
+        sel.appendChild(opt);
+      });
+      chrome.runtime.sendMessage({ type: 'DATAKILN_REC_REFRESH_MENUS' }, () => void chrome.runtime.lastError);
+    } catch (e) {
+      statusEl().textContent = '⚠ Backend offline — start uvicorn on :8000';
+    }
+  }
+
+  $('dk-toggle').addEventListener('click', async () => {
+    statusEl().textContent = '';
+    chrome.runtime.sendMessage({ type: 'DATAKILN_REC_TOGGLE', on: true }, res => {
+      if (res && res.ok) {
+        $('dk-rec-dot').style.background = '#EF4444';
+        $('dk-rec-dot').style.boxShadow = '0 0 8px #EF4444';
+        statusEl().textContent = 'Recorder on — click elements in the page, then come back';
+        setTimeout(window.close, 900);
+      } else {
+        statusEl().textContent = '⚠ Could not inject recorder into this tab';
+      }
+    });
+  });
+
+  $('dk-save').addEventListener('click', () => {
+    const wfId = $('dk-wf-select').value || null;
+    statusEl().textContent = 'Saving…';
+    chrome.runtime.sendMessage(
+      { type: 'DATAKILN_REC_SAVE', workflowId: wfId, openEditor: true },
+      res => {
+        if (res && res.ok) {
+          statusEl().textContent = `✓ Saved workflow ${String(res.workflow_id).slice(0, 18)} (+${res.nodes_added} nodes) — opening editor`;
+          refreshCaptured();
+          setTimeout(window.close, 1400);
+        } else {
+          statusEl().textContent = `⚠ ${res && res.error ? res.error : 'Save failed'}`;
+        }
+      }
+    );
+  });
+
+  store.get('datakilnCaptured').then(({ datakilnCaptured = [] }) => renderCaptured(datakilnCaptured));
+  chrome.storage.onChanged.addListener((ch, ns) => {
+    if (ch.datakilnCaptured && (ns === 'session' || ns === 'local')) refreshCaptured();
+  });
+  refreshWorkflows();
+})();

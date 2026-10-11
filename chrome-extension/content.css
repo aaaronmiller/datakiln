@@ -1,0 +1,9 @@
+/* DataKiln content-script stylesheet.
+   Referenced by manifest.json content_scripts. content.js styles its UI
+   inline via cssText, so this file is intentionally minimal; it exists to
+   satisfy the manifest and to host any future shared content-script styles. */
+
+#datakiln-floating-button,
+#datakiln-quick-menu {
+  all: initial;
+}

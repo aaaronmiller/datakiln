@@ -75,8 +75,51 @@ async def get_result_by_id(
         "execution_time": run.execution_time,
         "results": run.node_results,
         "node_results": run.node_results,
+        "node_timings": getattr(run, "node_timings", None) or {},
+        "node_types": getattr(run, "node_types", None) or {},
+        "execution_order": run.execution_order or [],
         "error": run.error,
     }
+
+
+@router.get("/runs/{run_id}/timeline")
+async def get_run_timeline(
+    run_id: str,
+    workflow_service: WorkflowService = Depends(get_workflow_service),
+):
+    """Per-node execution timing timeline for a run — ordered by execution order."""
+    try:
+        run = workflow_service.runs.get(run_id)
+        if not run:
+            raise HTTPException(status_code=404, detail="Run not found")
+        timings = getattr(run, "node_timings", None) or {}
+        types = getattr(run, "node_types", None) or {}
+        nodes = []
+        total_ms = 0.0
+        for idx, node_id in enumerate(run.execution_order or []):
+            res = run.node_results.get(node_id)
+            failed = isinstance(res, dict) and bool(res.get("error"))
+            duration = timings.get(node_id)
+            if isinstance(duration, (int, float)):
+                total_ms += duration
+            nodes.append({
+                "node_id": node_id,
+                "node_type": types.get(node_id),
+                "duration_ms": duration,
+                "order": idx,
+                "status": "failed" if failed else "completed",
+            })
+        return {
+            "run_id": run.id,
+            "workflow_id": run.workflow_id,
+            "total_ms": total_ms,
+            "status": run.status,
+            "nodes": nodes,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Alias for frontend's workflows/runs/cancel path
 @router.post("/workflows/runs/{run_id}/cancel")

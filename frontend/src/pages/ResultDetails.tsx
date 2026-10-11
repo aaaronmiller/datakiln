@@ -7,7 +7,7 @@ import { LoadingSpinner } from "../components/ui/spinner"
 import { ArrowLeft, Download, Clock, CheckCircle, AlertCircle, Play } from "lucide-react"
 import resultsService, { RunResult } from "../services/resultsService"
 import ReactMarkdown from 'react-markdown'
-
+import RunTimeline from "../components/workflow/RunTimeline"
 const ResultDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
@@ -142,6 +142,9 @@ const ResultDetails: React.FC = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Run Timeline */}
+            <RunTimeline executionId={result.execution_id} />
 
             {/* Output Content */}
             <Card className="min-h-[400px]">

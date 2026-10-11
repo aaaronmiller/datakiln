@@ -41,5 +41,6 @@
   "type": "module",
   "overrides": {
     "js-yaml": "^5.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.28.2"
 }

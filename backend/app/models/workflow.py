@@ -82,6 +82,8 @@ class Run(BaseModel):
     execution_order: List[str] = []
     node_results: Dict[str, Any] = {}
     execution_options: Dict[str, Any] = {}
+    node_timings: Dict[str, Any] = Field(default_factory=dict)
+    node_types: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
 
 class Result(BaseModel):

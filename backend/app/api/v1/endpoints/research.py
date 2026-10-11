@@ -5,10 +5,10 @@ Provides REST API endpoints for research operations.
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Optional
 import logging
-
+from ....services.research_orchestrator import get_research_orchestrator
 from ....services.research_service import get_research_service
 
 logger = logging.getLogger(__name__)
@@ -173,3 +173,68 @@ async def get_available_interfaces():
             }
         }
     }
+
+
+# ---------------------------------------------------------------------------
+# Deep research orchestration
+# ---------------------------------------------------------------------------
+
+class OrchestrateRequest(BaseModel):
+    query: str
+    sets: int = Field(default=3, ge=1, le=8)
+    per_set: int = Field(default=6, ge=1, le=12)
+    interface: str = "gemini"
+    mode: str = "auto"
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "impact of solid-state batteries on EV adoption",
+                "sets": 3,
+                "per_set": 6,
+                "interface": "gemini",
+                "mode": "auto",
+            }
+        }
+
+
+@router.post("/orchestrate")
+async def orchestrate_research(request: OrchestrateRequest):
+    """Decompose a query into question sets, research each set, and aggregate
+    a single cited markdown report."""
+    try:
+        orchestrator = get_research_orchestrator()
+        return await orchestrator.orchestrate(
+            query=request.query,
+            sets=request.sets,
+            per_set=request.per_set,
+            interface=request.interface,
+            mode=request.mode,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to orchestrate research: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to orchestrate research: {str(e)}")
+
+
+@router.get("/orchestrate/reports")
+async def list_orchestrate_reports():
+    """List generated research reports."""
+    try:
+        orchestrator = get_research_orchestrator()
+        reports_dir = orchestrator.reports_dir
+        reports: List[Dict[str, Any]] = []
+        if reports_dir.exists():
+            for f in sorted(reports_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
+                stat = f.stat()
+                reports.append({
+                    "file": f.name,
+                    "path": str(f),
+                    "size": stat.st_size,
+                    "modified": stat.st_mtime,
+                })
+        return {"reports": reports}
+    except Exception as e:
+        logger.error(f"Failed to list research reports: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list research reports: {str(e)}")

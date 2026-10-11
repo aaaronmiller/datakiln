@@ -237,6 +237,8 @@ class WorkflowService:
             run.completed_at = datetime.now()
             run.execution_order = execution_result.get("execution_order", [])
             run.node_results = node_results
+            run.node_timings = execution_result.get("node_timings", {})
+            run.node_types = execution_result.get("node_types", {})
             run.execution_time = execution_result.get("execution_time", 0)
 
             # Update execution summary

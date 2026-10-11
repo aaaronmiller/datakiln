@@ -1,23 +1,28 @@
 {
   "manifest_version": 3,
   "name": "DataKiln Workflow Assistant",
-  "version": "2.0",
+  "version": "2.1",
   "description": "Enhanced AI chat integration with workflow execution capabilities",
   "permissions": [
-    "storage",
     "activeTab",
+    "contextMenus",
+    "notifications",
     "scripting",
-    "tabs",
-    "notifications"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
-    "https://chat.openai.com/*",
-    "https://gemini.google.com/*",
-    "https://claude.ai/*",
-    "https://www.youtube.com/*",
-    "https://youtube.com/*",
+    "http://*/*",
+    "http://127.0.0.1/*",
+    "http://127.0.0.1:8000/*",
     "http://localhost:3000/*",
-    "http://localhost:8000/*"
+    "http://localhost:8000/*",
+    "https://*/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://www.youtube.com/*",
+    "https://youtube.com/*"
   ],
   "content_scripts": [
     {
@@ -26,15 +31,21 @@
         "https://gemini.google.com/*",
         "https://claude.ai/*"
       ],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ]
     },
     {
       "matches": [
         "https://www.youtube.com/*",
         "https://youtube.com/*"
       ],
-      "js": ["youtube-content.js"]
+      "js": [
+        "youtube-content.js"
+      ]
     }
   ],
   "background": {
@@ -42,12 +53,28 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "DataKiln Workflow Assistant"
+    "default_title": "DataKiln Workflow Assistant",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
   },
   "web_accessible_resources": [
     {
-      "resources": ["workflow-templates.json"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "workflow-templates.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
-  ]
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
 }

@@ -711,3 +711,227 @@ class DataKilnBackground {
 
 // Initialize background script
 const dataKilnBackground = new DataKilnBackground();
+// ════════════════════════════════════════════════════════════════════
+// Element Recorder (2026-08-25): pick DOM elements → workflow nodes.
+// Self-contained module; coexists with the legacy DataKilnBackground.
+// ════════════════════════════════════════════════════════════════════
+
+const RECORDER_API = 'http://localhost:8000';
+
+// Content scripts cannot touch storage.session by default — open it so the
+// in-page recorder can persist captured actions (fallback: storage.local).
+try {
+  chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
+} catch (e) { /* older Chromium */ }
+
+// Shared save path — callable from message handlers AND tests (service-worker
+// evaluate exposes top-level function declarations).
+async function datakilnSaveCaptured(opts) {
+  opts = opts || {};
+  let captured = [];
+  try {
+    const s = await chrome.storage.session.get('datakilnCaptured');
+    captured = s.datakilnCaptured || [];
+  } catch (e) {}
+  if (!captured.length) {
+    const l = await chrome.storage.local.get('datakilnCaptured');
+    captured = l.datakilnCaptured || [];
+  }
+  if (!captured.length) return { ok: false, error: 'No captured actions. Click elements with the recorder first.' };
+
+  const host = (() => { try { return new URL(captured[0].url).hostname; } catch (e) { return 'site'; } })();
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+
+  async function api(method, path, body) {
+    const res = await fetch(RECORDER_API + path, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`${method} ${path} → ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return res.json();
+  }
+
+  let workflowId = opts.workflowId || null;
+  let nodes = [];
+  let edges = [];
+  const prefix = workflowId ? 'cap-' + Date.now() + '-' : '';
+
+  if (workflowId) {
+    const wf = await api('GET', `/api/v1/workflows/${workflowId}`);
+    nodes = wf.nodes || [];
+    edges = wf.edges || [];
+  }
+
+  const firstUrl = captured[0].url;
+  const hasSource = nodes.some(n => n.type === 'dataSource');
+  if (!workflowId || !hasSource) {
+    nodes.push({
+      id: `${prefix}src-url`, name: 'Captured Site', type: 'dataSource',
+      inputs: { source_type: 'mock', mock_data: firstUrl },
+    });
+  }
+  const lastExisting = nodes.length ? nodes[nodes.length - 1].id : `${prefix}src-url`;
+  let prev = (!workflowId || !hasSource) ? `${prefix}src-url` : lastExisting;
+
+  captured.forEach((cap, i) => {
+    const id = `${prefix}dom-${i}`;
+    nodes.push({
+      id, name: `${cap.action} ${cap.tag}${cap.text ? ': ' + cap.text.slice(0, 20) : ''}`,
+      type: 'dom_action',
+      inputs: { action: cap.action, selector: cap.selector, value: cap.value || '', url: cap.url },
+    });
+    edges.push({ id: `${prefix}e-${i}`, source: prev, target: id });
+    prev = id;
+  });
+  const expId = `${prefix}exp`;
+  nodes.push({ id: expId, name: 'Save Captured Output', type: 'export', inputs: { format: 'json', path_key: `captured-${host}-${stamp}` } });
+  edges.push({ id: `${prefix}e-exp`, source: prev, target: expId });
+
+  let result;
+  if (workflowId) {
+    // Append: rebuild graph with new nodes wired after previous tail
+    result = await api('PUT', `/api/v1/workflows/${workflowId}`, {
+      id: workflowId, name: opts.name || 'Workflow + captured nodes',
+      nodes, edges,
+    });
+  } else {
+    const name = opts.name || `Captured: ${host} (${captured.length} actions)`;
+    result = await api('POST', '/api/v1/workflows', {
+      id: `captured-${Date.now()}`, name,
+      description: `Recorded from ${host} via DataKiln element recorder`,
+      nodes, edges,
+      metadata: { createdAt: new Date().toISOString(), version: 1, tags: ['captured', 'recorder'] },
+    });
+    workflowId = result.id || result.workflow_id;
+  }
+  try { await chrome.storage.session.remove('datakilnCaptured'); } catch (e) {}
+  try { await chrome.storage.local.remove('datakilnCaptured'); } catch (e) {}
+  try { chrome.contextMenus.update('datakiln-recorder-save', { title: `Save ${captured.length ? '' : '0 '}actions` }); } catch (e) {}
+  return { ok: true, workflow_id: workflowId, nodes_added: captured.length + 2 };
+}
+
+function datakilnInjectPicker(tabId, on) {
+  chrome.scripting.executeScript(
+    { target: { tabId }, files: ['lib/selector-builder.js', 'picker.js'] },
+    () => {
+      if (chrome.runtime.lastError) {
+        console.warn('DataKiln picker injection failed:', chrome.runtime.lastError.message);
+        return;
+      }
+      chrome.tabs.sendMessage(tabId, { type: 'DATAKILN_TOGGLE_PICKER', on: !!on }).catch?.(() => {});
+      chrome.tabs.sendMessage(tabId, { type: 'DATAKILN_TOGGLE_PICKER', on: !!on }, () => void chrome.runtime.lastError);
+    }
+  );
+}
+
+function datakilnEnsureBaseMenus() {
+  // The legacy DataKilnBackground.setupContextMenus() calls removeAll()
+  // asynchronously and can wipe recorder menus created at SW startup —
+  // so (re)create the base items here, ignoring duplicate-id errors.
+  const items = [
+    ['datakiln-recorder-root', 'DataKiln Recorder', null],
+    ['datakiln-recorder-start', '🎯 Start/stop element recorder', 'datakiln-recorder-root'],
+    ['datakiln-recorder-save', '💾 Save captured actions as new workflow', 'datakiln-recorder-root'],
+    ['datakiln-recorder-refresh', '🔄 Refresh workflow list', 'datakiln-recorder-root'],
+  ];
+  items.forEach(([id, title, parentId]) => {
+    chrome.contextMenus.create({ id, title, parentId: parentId || undefined, contexts: ['action'] },
+      () => void chrome.runtime.lastError);
+  });
+}
+
+async function datakilnRefreshMenus() {
+  datakilnEnsureBaseMenus();
+  await new Promise(r => setTimeout(r, 300));
+  try {
+    const items = await chrome.contextMenus.getAll();
+    items.filter(i => i.id && i.id.startsWith('datakiln-rec-wf:')).forEach(i => chrome.contextMenus.remove(i.id));
+    const res = await fetch(RECORDER_API + '/api/v1/workflows');
+    if (!res.ok) return;
+    const workflows = await res.json();
+    workflows.slice(0, 9).forEach(wf => {
+      chrome.contextMenus.create({
+        id: `datakiln-rec-wf:${wf.id}`,
+        parentId: 'datakiln-recorder-root',
+        title: `➕ Add captured nodes to: ${wf.name.slice(0, 40)}`,
+        contexts: ['action'],
+      });
+    });
+  } catch (e) { /* backend down — menus stay minimal */ }
+}
+
+chrome.contextMenus.create({
+  id: 'datakiln-recorder-root',
+  title: 'DataKiln Recorder',
+  contexts: ['action'],
+}, () => void chrome.runtime.lastError);
+chrome.contextMenus.create({
+  id: 'datakiln-recorder-start',
+  parentId: 'datakiln-recorder-root',
+  title: '🎯 Start/stop element recorder',
+  contexts: ['action'],
+}, () => void chrome.runtime.lastError);
+chrome.contextMenus.create({
+  id: 'datakiln-recorder-save',
+  parentId: 'datakiln-recorder-root',
+  title: '💾 Save captured actions as new workflow',
+  contexts: ['action'],
+}, () => void chrome.runtime.lastError);
+chrome.contextMenus.create({
+  id: 'datakiln-recorder-refresh',
+  parentId: 'datakiln-recorder-root',
+  title: '🔄 Refresh workflow list',
+  contexts: ['action'],
+}, () => void chrome.runtime.lastError);
+setTimeout(datakilnRefreshMenus, 1500);
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (!info.menuItemId.startsWith('datakiln-rec')) return;
+  if (info.menuItemId === 'datakiln-recorder-start' && tab?.id) {
+    datakilnInjectPicker(tab.id, true);
+  } else if (info.menuItemId === 'datakiln-recorder-save') {
+    datakilnSaveCaptured({ workflowId: null })
+      .then(r => chrome.notifications.create({ type: 'basic', iconUrl: 'icon128.png', title: 'DataKiln', message: r.ok ? `Saved workflow ${r.workflow_id} (+${r.nodes_added} nodes)` : r.error }));
+  } else if (info.menuItemId === 'datakiln-recorder-refresh') {
+    datakilnRefreshMenus();
+  } else if (info.menuItemId.startsWith('datakiln-rec-wf:')) {
+    const wfId = info.menuItemId.split(':')[1];
+    if (tab?.id) datakilnInjectPicker(tab.id, true);
+    datakilnSaveCaptured({ workflowId: wfId })
+      .then(r => chrome.notifications.create({ type: 'basic', iconUrl: 'icon128.png', title: 'DataKiln', message: r.ok ? `Added ${r.nodes_added} nodes to workflow ${r.workflow_id}` : r.error }));
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || typeof msg.type !== 'string' || !msg.type.startsWith('DATAKILN_REC')) return undefined;
+  if (msg.type === 'DATAKILN_REC_TOGGLE') {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (!tabs[0]?.id) return sendResponse({ ok: false, error: 'No active tab' });
+      datakilnInjectPicker(tabs[0].id, msg.on);
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+  if (msg.type === 'DATAKILN_REC_SAVE') {
+    datakilnSaveCaptured({ workflowId: msg.workflowId || null, name: msg.name })
+      .then(r => {
+        sendResponse(r);
+        if (r.ok && msg.openEditor) {
+          chrome.tabs.create({ url: `http://localhost:3001/#/workflows/${r.workflow_id}/edit` });
+        }
+      })
+      .catch(e => sendResponse({ ok: false, error: String(e) }));
+    return true;
+  }
+  if (msg.type === 'DATAKILN_REC_OPEN_SAVE') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('popup.html?save=1') });
+    sendResponse({ ok: true });
+    return undefined;
+  }
+  if (msg.type === 'DATAKILN_REC_REFRESH_MENUS') {
+    datakilnRefreshMenus().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  return undefined;
+});
