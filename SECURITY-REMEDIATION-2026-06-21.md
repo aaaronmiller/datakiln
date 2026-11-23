@@ -50,7 +50,7 @@ python -m pytest backend/tests -q
 cd frontend && npm test -- --run
 cd frontend && npm run type-check
 cd frontend && npm run build
-python /home/cheta/code/agents/skills/webapp-testing/scripts/with_server.py --server "cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000" --port 8000 --timeout 45 -- python scripts/smoke_workflow_api.py
+python ~/code/agents/skills/webapp-testing/scripts/with_server.py --server "cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000" --port 8000 --timeout 45 -- python scripts/smoke_workflow_api.py
 cd next-frontend && npm run lint
 cd next-frontend && npm run build
 ```
